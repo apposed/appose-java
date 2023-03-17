@@ -39,12 +39,25 @@ groovy = env.groovy()
 Task task = groovy.task("""
     5 + 6
 """)
-task.start().waitFor()
+task.waitFor()
 result = task.outputs.get("result")
 assert 11 == result
 ```
 
-And here is an example using a few more of Appose's features:
+The same example, but written in Java and calling into Python:
+
+```java
+Environment env = Appose.conda("/path/to/environment.yml").build();
+Service python = env.python();
+Task task = python.task("""
+    5 + 6
+""");
+task.waitFor();
+Object result = task.outputs.get("result");
+assertEquals(11, result);
+```
+
+Here is a Python example using a few more of Appose's features:
 
 ```python
 import appose
@@ -95,7 +108,55 @@ if not task.status.isFinished():
 task.waitFor()
 ```
 
-Of course, the above examples could have been done all in Python. But
+And the Java version:
+
+```java
+Environment env = Appose.conda("/path/to/environment.yml").build();
+Service python = env.python();
+Task golden_ratio = python.task("""
+    # Approximate the golden ratio using the Fibonacci sequence.
+    previous = 0
+    current = 1
+    for i in range(iterations):
+        if task.cancel_requested:
+            task.cancel()
+            break
+        task.status(current=i, maximum=iterations)
+        v = current
+        current += previous
+        previous = v
+    task.outputs["numer"] = current
+    task.outputs["denom"] = previous
+    """);
+task.listen(event -> {
+    switch (event.responseType) {
+        case UPDATE:
+            System.out.println("Progress: " + task.current + "/" + task.maximum);
+            break;
+        case COMPLETION:
+            long numer = (Long) task.outputs["numer"];
+            long denom = (Long) task.outputs["denom"];
+            double ratio = (double) numer / denom;
+            System.out.println("Task complete. Result: " + numer + "/" + denom + " =~ " + ratio);
+            break;
+        case CANCELATION:
+            System.out.println("Task canceled");
+            break;
+        case FAILURE:
+            System.out.println("Task failed: " + task.error);
+            break;
+    }
+});
+task.start();
+Thread.sleep(1000);
+if (!task.status.isFinished()) {
+    // Task is taking too long; request a cancelation.
+    task.cancel();
+}
+task.waitFor();
+```
+
+Of course, the above examples could have been done all in one language. But
 hopefully they hint at the possibilities of easy cross-language integration.
 
 ## Workers
