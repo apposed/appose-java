@@ -232,9 +232,7 @@ public class Service {
 			TaskEvent event = new TaskEvent(this, ResponseType.valueOf(responseType));
 			listeners.forEach(l -> l.accept(event));
 
-			if (status == TaskStatus.COMPLETE || status == TaskStatus.CANCELED ||
-				status == TaskStatus.FAILED)
-			{
+			if (status.isFinished()) {
 				synchronized (this) {
 					notifyAll();
 				}
