@@ -1,10 +1,10 @@
 #!/bin/sh
 
 case "$CONDA_PREFIX" in
-  */scyjava-dev)
+  */appose-dev)
     ;;
   *)
-    echo "Please run 'make setup' and then 'mamba activate scyjava-dev' first."
+    echo "Please run 'make setup' and then 'mamba activate appose-dev' first."
     exit 1
     ;;
 esac
