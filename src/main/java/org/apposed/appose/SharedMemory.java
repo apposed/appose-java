@@ -26,6 +26,7 @@
  * POSSIBILITY OF SUCH DAMAGE.
  * #L%
  */
+
 package org.apposed.appose;
 
 import com.sun.jna.Pointer;
