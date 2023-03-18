@@ -184,7 +184,8 @@ public class Service {
 			request.put("requestType", requestType.toString());
 			if (args != null) request.putAll(args);
 			stdin.println(encode(request));
-			stdin.flush(); // NB: Necessary to ensure worker receives the data!
+			// NB: Flush is necessary to ensure worker receives the data!
+			stdin.flush();
 		}
 
 		@SuppressWarnings("hiding")

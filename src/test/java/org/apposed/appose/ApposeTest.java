@@ -66,7 +66,7 @@ public class ApposeTest {
 	public void testGroovy() throws IOException, InterruptedException {
 		Environment env = Appose
 			// TEMP HACK - for testing
-			.base(new File("/usr/local/Caskroom/mambaforge/base/envs/pyimagej-dev/lib/jvm"))
+			.base(new File("/home/curtis/mambaforge/envs/pyimagej-dev"))
 			.build();
 
 		// Computes the stopping time of a given value
@@ -132,10 +132,10 @@ public class ApposeTest {
 			assertEquals(1, update.maximum);
 			assertNull(update.error);
 		}
-		TaskState completion = events.get(0);
-		assertSame(ResponseType.LAUNCH, completion.responseType);
-		assertSame(TaskStatus.RUNNING, completion.status);
-		assertNull(completion.message);
+		TaskState completion = events.get(92);
+		assertSame(ResponseType.COMPLETION, completion.responseType);
+		assertSame(TaskStatus.COMPLETE, completion.status);
+		assertEquals("[90] -> 1", completion.message);
 		assertEquals(0, completion.current); // FIXME: BUG: should be 91, not 0.
 		assertEquals(1, completion.maximum);
 		assertNull(completion.error);

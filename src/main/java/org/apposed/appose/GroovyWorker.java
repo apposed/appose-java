@@ -127,8 +127,8 @@ public class GroovyWorker {
 		}
 
 		private void start(String script, Map<String, Object> inputs) {
-			// TODO: Consider whether to retain a reference to this Thread,
-			// and expose a "force" option for cancelation that uses thread.stop().
+			// TODO: Consider whether to retain a reference to this Thread, and
+			// expose a "force" option for cancelation that uses thread.stop().
 			new Thread(() -> {
 				// Populate script bindings.
 				Binding binding = new Binding();
@@ -190,6 +190,7 @@ public class GroovyWorker {
 			response.put("responseType", responseType.toString());
 			if (args != null) response.putAll(args);
 			System.out.println(encode(response));
+			// NB: Flush is necessary to ensure service receives the data!
 			System.out.flush();
 		}
 	}
