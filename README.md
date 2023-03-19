@@ -35,26 +35,23 @@ Here is a very simple example written in Python:
 ```python
 import appose
 env = appose.java(vendor="zulu", version="17").build()
-groovy = env.groovy()
-Task task = groovy.task("""
-    5 + 6
-""")
-task.waitFor()
-result = task.outputs.get("result")
-assert 11 == result
+with env.groovy() as groovy:
+    task = groovy.task("5 + 6")
+    task.waitFor()
+    result = task.outputs.get("result")
+    assert 11 == result
 ```
 
 The same example, but written in Java and calling into Python:
 
 ```java
 Environment env = Appose.conda("/path/to/environment.yml").build();
-Service python = env.python();
-Task task = python.task("""
-    5 + 6
-""");
-task.waitFor();
-Object result = task.outputs.get("result");
-assertEquals(11, result);
+try (Service python = env.python()) {
+    Task task = python.task("5 + 6");
+    task.waitFor();
+    Object result = task.outputs.get("result");
+    assertEquals(11, result);
+}
 ```
 
 Here is a Python example using a few more of Appose's features:
@@ -63,97 +60,102 @@ Here is a Python example using a few more of Appose's features:
 import appose
 from time import sleep
 
-env = appose.java(vendor="zulu", version="17").build()
-groovy = env.groovy()
-task = groovy.task("""
-    // Approximate the golden ratio using the Fibonacci sequence.
-    previous = 0
-    current = 1
-    for (i=0; i<iterations; i++) {
-        if (task.cancelRequested) {
-            task.cancel()
-            break
-        }
-        task.status(null, i, iterations)
-        v = current
-        current += previous
-        previous = v
+golden_ratio = """
+// Approximate the golden ratio using the Fibonacci sequence.
+previous = 0
+current = 1
+for (i=0; i<iterations; i++) {
+    if (task.cancelRequested) {
+        task.cancel()
+        break
     }
-    task.outputs["numer"] = current
-    task.outputs["denom"] = previous
-""")
+    task.status(null, i, iterations)
+    v = current
+    current += previous
+    previous = v
+}
+task.outputs["numer"] = current
+task.outputs["denom"] = previous
+"""
 
-def task_listener(event):
-    match event.responseType:
-        case UPDATE:
-            print(f"Progress {task.current}/{task.maximum}")
-        case COMPLETION:
-            numer = task.outputs["numer"]
-            denom = task.outputs["denom"]
-            ratio = numer / denom
-            print(f"Task complete. Result: {numer}/{denom} =~ {ratio}");
-        case CANCELATION:
-            print("Task canceled")
-        case FAILURE:
-            print(f"Task failed: {task.error}")
+env = appose.java(vendor="zulu", version="17").build()
+with env.groovy() as groovy:
+    task = groovy.task(golden_ratio)
 
-task.listen(task_listener)
+    def task_listener(event):
+        match event.responseType:
+            case UPDATE:
+                print(f"Progress {task.current}/{task.maximum}")
+            case COMPLETION:
+                numer = task.outputs["numer"]
+                denom = task.outputs["denom"]
+                ratio = numer / denom
+                print(f"Task complete. Result: {numer}/{denom} =~ {ratio}");
+            case CANCELATION:
+                print("Task canceled")
+            case FAILURE:
+                print(f"Task failed: {task.error}")
 
-task.start()
-sleep(1)
-if not task.status.isFinished():
-    # Task is taking too long; request a cancelation.
-    task.cancel()
+    task.listen(task_listener)
 
-task.waitFor()
+    task.start()
+    sleep(1)
+    if not task.status.isFinished():
+        # Task is taking too long; request a cancelation.
+        task.cancel()
+
+    task.waitFor()
 ```
 
 And the Java version:
 
 ```java
+String goldenRatio = """
+# Approximate the golden ratio using the Fibonacci sequence.
+previous = 0
+current = 1
+for i in range(iterations):
+    if task.cancel_requested:
+        task.cancel()
+        break
+    task.status(current=i, maximum=iterations)
+    v = current
+    current += previous
+    previous = v
+task.outputs["numer"] = current
+task.outputs["denom"] = previous
+""";
+
 Environment env = Appose.conda("/path/to/environment.yml").build();
-Service python = env.python();
-Task golden_ratio = python.task("""
-    # Approximate the golden ratio using the Fibonacci sequence.
-    previous = 0
-    current = 1
-    for i in range(iterations):
-        if task.cancel_requested:
-            task.cancel()
-            break
-        task.status(current=i, maximum=iterations)
-        v = current
-        current += previous
-        previous = v
-    task.outputs["numer"] = current
-    task.outputs["denom"] = previous
-    """);
-task.listen(event -> {
-    switch (event.responseType) {
-        case UPDATE:
-            System.out.println("Progress: " + task.current + "/" + task.maximum);
-            break;
-        case COMPLETION:
-            long numer = (Long) task.outputs["numer"];
-            long denom = (Long) task.outputs["denom"];
-            double ratio = (double) numer / denom;
-            System.out.println("Task complete. Result: " + numer + "/" + denom + " =~ " + ratio);
-            break;
-        case CANCELATION:
-            System.out.println("Task canceled");
-            break;
-        case FAILURE:
-            System.out.println("Task failed: " + task.error);
-            break;
+try (Service python = env.python()) {
+    Task task = python.task(goldenRatio);
+    task.listen(event -> {
+        switch (event.responseType) {
+            case UPDATE:
+                System.out.println("Progress: " + task.current + "/" + task.maximum);
+                break;
+            case COMPLETION:
+                long numer = (Long) task.outputs["numer"];
+                long denom = (Long) task.outputs["denom"];
+                double ratio = (double) numer / denom;
+                System.out.println("Task complete. Result: " + numer + "/" + denom + " =~ " + ratio);
+                break;
+            case CANCELATION:
+                System.out.println("Task canceled");
+                break;
+            case FAILURE:
+                System.out.println("Task failed: " + task.error);
+                break;
+        }
+    });
+    task.start();
+    Thread.sleep(1000);
+    if (!task.status.isFinished()) {
+        // Task is taking too long; request a cancelation.
+        task.cancel();
     }
-});
-task.start();
-Thread.sleep(1000);
-if (!task.status.isFinished()) {
-    // Task is taking too long; request a cancelation.
-    task.cancel();
+    task.waitFor();
 }
-task.waitFor();
 ```
 
 Of course, the above examples could have been done all in one language. But
