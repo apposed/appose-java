@@ -2,8 +2,8 @@
 
 # Usage examples:
 #   bin/test.sh
-#   bin/test.sh test_basics.py
-#   bin/test.sh test_convert.py::TestConvert::test2DStringArray
+#   bin/test.sh test_appose.py
+#   bin/test.sh test_appose.py::test_groovy
 
 set -e
 

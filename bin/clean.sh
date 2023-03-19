@@ -13,4 +13,4 @@ rm -rfv .pytest_cache build dist src/*.egg-info
 mvn clean
 
 # JavaScript
-npm clean
+#TODO
