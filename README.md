@@ -182,3 +182,30 @@ But Appose is compatible with any program that abides by the
 
 TODO - write up the request and response formats in detail here!
 JSON, one line per request/response.
+
+## FAQ
+
+Q: How about abstracting the transport layer so protocols besides pipes+JSON
+   can be used? Then Appose could work with pipes+pickle, and/or with Google
+   Protocol Buffers, Apache Arrow, over HTTP local loopback, between machines
+   of a cluster...
+
+A: It is tempting. But simplicity is an important core design goal, and
+   additional transport layer implementations would increase complexity.
+   There are already a plethora of existing solutions for interprocess
+   communication, RPC, and data sharing between processes on the same or
+   different machines. The reason Appose exists is to be less complicated
+   than those other solutions, while supporting dynamic construction of
+   subprocess environments, and access to large data in shared memory.
+
+Q: What about more data types for inputs and outputs? Appose could be plugin
+   driven, with extension libraries registering additional externalization
+   routines to convert their own favorite kinds of objects to and from JSON.
+
+A: Again, tempting! But nailing down (via either invention or reuse) a
+   plugin mechanism for each supported language would increase the size of
+   the codebase, and the modularization would make it more complicated to
+   depend on Appose. Have you included the right plugins in your dependency
+   set? Do they all have the right versions? Where is the bill of materials
+   keeping all of the dependencies in sync? Etc. For now, Appose strives to
+   be self-contained with all supported types handled by one single library.
