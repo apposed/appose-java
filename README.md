@@ -60,7 +60,7 @@ Here is a Python example using a few more of Appose's features:
 import appose
 from time import sleep
 
-golden_ratio = """
+golden_ratio_in_groovy = """
 // Approximate the golden ratio using the Fibonacci sequence.
 previous = 0
 current = 1
@@ -80,37 +80,37 @@ task.outputs["denom"] = previous
 
 env = appose.java(vendor="zulu", version="17").build()
 with env.groovy() as groovy:
-    task = groovy.task(golden_ratio)
+    task = groovy.task(golden_ratio_in_groovy)
 
     def task_listener(event):
         match event.responseType:
-            case UPDATE:
+            case ResponseType.UPDATE:
                 print(f"Progress {task.current}/{task.maximum}")
-            case COMPLETION:
+            case ResponseType.COMPLETION:
                 numer = task.outputs["numer"]
                 denom = task.outputs["denom"]
                 ratio = numer / denom
                 print(f"Task complete. Result: {numer}/{denom} =~ {ratio}");
-            case CANCELATION:
+            case ResponseType.CANCELATION:
                 print("Task canceled")
-            case FAILURE:
+            case ResponseType.FAILURE:
                 print(f"Task failed: {task.error}")
 
     task.listen(task_listener)
 
     task.start()
     sleep(1)
-    if not task.status.isFinished():
+    if not task.status.is_finished():
         # Task is taking too long; request a cancelation.
         task.cancel()
 
-    task.waitFor()
+    task.wait_for()
 ```
 
 And the Java version:
 
 ```java
-String goldenRatio = """
+String goldenRatioInPython = """
 # Approximate the golden ratio using the Fibonacci sequence.
 previous = 0
 current = 1
@@ -128,7 +128,7 @@ task.outputs["denom"] = previous
 
 Environment env = Appose.conda("/path/to/environment.yml").build();
 try (Service python = env.python()) {
-    Task task = python.task(goldenRatio);
+    Task task = python.task(goldenRatioInPython);
     task.listen(event -> {
         switch (event.responseType) {
             case UPDATE:
@@ -175,9 +175,9 @@ object's `python()` and `groovy()` methods respectively.
 But Appose is compatible with any program that abides by the
 *Appose worker process contract*:
 
-1. The worker must accept requests in Appose's request format on its
+1. The worker must accept requests in Appose's *request* format on its
    standard input (stdin) stream.
-2. The worker must issue responses in Appose's response format on its
+2. The worker must issue responses in Appose's *response* format on its
    standard output (stdout) stream.
 
 TODO - write up the request and response formats in detail here!
