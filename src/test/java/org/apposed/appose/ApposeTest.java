@@ -36,17 +36,12 @@ import static org.junit.jupiter.api.Assertions.assertSame;
 import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 
 import org.apposed.appose.Service.ResponseType;
 import org.apposed.appose.Service.Task;
 import org.apposed.appose.Service.TaskStatus;
 import org.junit.jupiter.api.Test;
-
-import groovy.json.JsonOutput;
-import groovy.json.JsonSlurper;
 
 public class ApposeTest {
 
