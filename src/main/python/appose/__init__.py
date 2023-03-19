@@ -115,7 +115,7 @@ computation on behalf of the calling process. The calling process interacts
 with a worker via its associated *service*.
 
 Appose comes with built-in support for two worker implementations:
-`python-worker` to run Python scripts, and `GroovyWorker` to run Groovy
+`python_worker` to run Python scripts, and `GroovyWorker` to run Groovy
 scripts. These workers can be created easily by invoking the environment
 object's `python()` and `groovy()` methods respectively.
 

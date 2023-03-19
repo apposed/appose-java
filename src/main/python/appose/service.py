@@ -66,6 +66,15 @@ class Service:
     def task(self, script: str, inputs: Optional[Dict[str, Any]] = None) -> "Task":
         return Task(self, script, inputs)
 
+    def close(self) -> None:
+        self.process.stdin.close()
+
+    def __enter__(self) -> 'Service':
+        return self
+
+    def __exit__(self, exc_type, exc_value, exc_tb) -> None:
+        self.close()
+
     def _loop(self) -> None:
         while True:
             line = self.process.stdout.readline()
@@ -170,7 +179,7 @@ class Task:
             self.cv.wait()
 
     def cancel(self) -> None:
-        self.request(RequestType.CANCEL, [])
+        self._request(RequestType.CANCEL, [])
 
     def _request(self, request_type: RequestType, args: Dict[str, Any]) -> None:
         request = {"task": self.uuid, "requestType": request_type.value}
@@ -217,9 +226,6 @@ class Task:
                 self.cv.notify_all()
 
         self.service.tasks[self.uuid] = self
-
-
-# -- JSON processing --
 
 
 def encode(data: Dict[str, Any]) -> str:

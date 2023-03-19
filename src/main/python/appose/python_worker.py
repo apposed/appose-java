@@ -31,49 +31,22 @@
 TODO
 """
 
+import traceback
+import ast
 import json
 import sys
 from threading import Thread
-from types import Any, Dict, Optional
+from typing import Any, Dict, Optional
 
 # NB: Avoid relative import so that this script can be run standalone.
 from appose.service import RequestType, ResponseType
 
 
 class Task:
-    def __init__(self, uuid: str):
+    def __init__(self, uuid: str) -> None:
         self.uuid = uuid
         self.outputs = {}
         self.cancel_requested = False
-
-    def start(self, script: str, inputs: Optional[Dict[String, Any]]) -> None:
-        def execute_script():
-            # Populate script bindings.
-            binding = {"task": self}
-            # TODO: Magically convert shared memory image inputs.
-            if inputs is not None:
-                binding.update(inputs)
-
-            # Inform the calling process that the script is launching.
-            self.report_launch()
-
-            # Execute the script.
-            result = exec(script, locals=binding)
-
-            # Report the results to the Appose calling process.
-            if isinstance(result, dict):
-                # Script produced a dict; add all entries to the outputs.
-                self.outputs.update(result)
-            elif result is not None:
-                # Script produced a non-dict; add it alone to the outputs.
-                self.outputs["result"] = result
-
-            self.report_completion()
-
-        # TODO: Consider whether to retain a reference to this Thread, and
-        # expose a "force" option for cancelation that kills it forcibly; see:
-        # https://www.geeksforgeeks.org/python-different-ways-to-kill-a-thread/
-        Thread(target=execute_script, name=f"Appose-{self.uuid}").start()
 
     def update(
         self,
@@ -88,35 +61,96 @@ class Task:
             args["current"] = current
         if maximum is not None:
             args["maximum"] = maximum
-        self.respond(ResponseType.UPDATE, args)
+        self._respond(ResponseType.UPDATE, args)
 
-    def cancel(self):
-        self.respond(ResponseType.CANCELATION, None)
+    def cancel(self) -> None:
+        self._respond(ResponseType.CANCELATION, None)
 
-    def fail(self, error: Optional[str] = None):
+    def fail(self, error: Optional[str] = None) -> None:
         args = None if error is None else {"error": error}
-        self.respond(ResponseType.FAILURE, args)
+        self._respond(ResponseType.FAILURE, args)
 
-    def report_launch(self):
-        self.respond(ResponseType.LAUNCH, None)
+    def _start(self, script: str, inputs: Optional[Dict[str, Any]]) -> None:
+        def execute_script():
+            # Populate script bindings.
+            binding = {"task": self}
+            # TODO: Magically convert shared memory image inputs.
+            if inputs is not None:
+                binding.update(inputs)
 
-    def report_completion(self):
+            # Inform the calling process that the script is launching.
+            self._report_launch()
+
+            # Execute the script.
+            # result = exec(script, locals=binding)
+            result = None
+            try:
+                # NB: Execute the block, except for the last statement,
+                # which we evaluate instead to get its return value.
+                # Credit: https://stackoverflow.com/a/39381428/1207769
+
+                block = ast.parse(script, mode="exec")
+                last = None
+                if (
+                    len(block.body) > 0
+                    and hasattr(block.body[-1], "value")
+                    and not isinstance(block.body[-1], ast.Assign)
+                ):
+                    # Last statement of the script looks like an expression. Evaluate!
+                    last = ast.Expression(block.body.pop().value)
+
+                _globals = {}
+                exec(compile(block, "<string>", mode="exec"), _globals, binding)
+                if last is not None:
+                    result = eval(
+                        compile(last, "<string>", mode="eval"), _globals, binding
+                    )
+            except Exception:
+                self.fail(traceback.format_exc())
+                return
+
+            # Report the results to the Appose calling process.
+            if isinstance(result, dict):
+                # Script produced a dict; add all entries to the outputs.
+                self.outputs.update(result)
+            elif result is not None:
+                # Script produced a non-dict; add it alone to the outputs.
+                self.outputs["result"] = result
+
+            self._report_completion()
+
+        # TODO: Consider whether to retain a reference to this Thread, and
+        # expose a "force" option for cancelation that kills it forcibly; see:
+        # https://www.geeksforgeeks.org/python-different-ways-to-kill-a-thread/
+        Thread(target=execute_script, name=f"Appose-{self.uuid}").start()
+
+    def _report_launch(self) -> None:
+        self._respond(ResponseType.LAUNCH, None)
+
+    def _report_completion(self) -> None:
         args = None if self.outputs is None else {"outputs": self.outputs}
-        self.respond(ResponseType.COMPLETION, args)
+        self._respond(ResponseType.COMPLETION, args)
 
-    def respond(self, response_type, args):
-        response = {"task": self.uuid, "responseType": response_type}
+    def _respond(
+        self, response_type: ResponseType, args: Optional[Dict[str, Any]]
+    ) -> None:
+        response = {"task": self.uuid, "responseType": response_type.value}
         if args is not None:
             response.update(args)
         # NB: Flush is necessary to ensure service receives the data!
         print(json.dumps(response), flush=True)
 
 
-def main():
+def main() -> None:
     tasks = {}
 
     while True:
-        line = input().strip()
+        try:
+            line = input().strip()
+        except EOFError:
+            break
+        if not line:
+            break
 
         request = json.loads(line)
         uuid = request.get("task")
@@ -128,7 +162,7 @@ def main():
                 inputs = request.get("inputs")
                 task = Task(uuid)
                 tasks[uuid] = task
-                task.start(script, inputs)
+                task._start(script, inputs)
 
             case RequestType.CANCEL:
                 task = tasks.get(uuid)

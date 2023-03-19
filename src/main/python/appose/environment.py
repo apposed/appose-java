@@ -48,13 +48,19 @@ class Environment:
 
         This is a *high level* way to create a service, enabling execution of
         Python scripts asynchronously on its linked process running a
-        `python-worker`.
+        `python_worker`.
 
         :return: The newly created service.
         :see: groovy() To create a service for Groovy script execution.
         :raises IOError: If something goes wrong starting the worker process.
         """
-        raise RuntimeError("Unimplemented")
+        return self.service(
+            [
+                "bin/python",
+                "-c",
+                "import appose.python_worker; appose.python_worker.main()",
+            ]
+        )
 
     def groovy(
         self,

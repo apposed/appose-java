@@ -56,7 +56,7 @@ public class Environment {
 	 * <p>
 	 * This is a <b>high level</b> way to create a service, enabling execution of
 	 * Python scripts asynchronously on its linked process running a
-	 * {@code python-worker}.
+	 * {@code python_worker}.
 	 * </p>
 	 * 
 	 * @return The newly created service.
@@ -64,7 +64,8 @@ public class Environment {
 	 * @throws IOException If something goes wrong starting the worker process.
 	 */
 	public Service python() throws IOException {
-		throw new UnsupportedOperationException("Unimplemented");
+		return service("bin/python", "-c",
+			"import appose.python_worker; appose.python_worker.main()");
 	}
 
 	/**

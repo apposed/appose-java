@@ -32,6 +32,8 @@ package org.apposed.appose;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
+import java.io.PrintWriter;
+import java.io.StringWriter;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
@@ -102,8 +104,6 @@ public class GroovyWorker {
 		task.cancelRequested = true;
 	}
 
-	// -- JSON processing --
-
 	private static String encode(Map<?, ?> data) {
 		return JsonOutput.toJson(data);
 	}
@@ -126,36 +126,6 @@ public class GroovyWorker {
 			this.uuid = uuid;
 		}
 
-		private void start(String script, Map<String, Object> inputs) {
-			// TODO: Consider whether to retain a reference to this Thread, and
-			// expose a "force" option for cancelation that uses thread.stop().
-			new Thread(() -> {
-				// Populate script bindings.
-				Binding binding = new Binding();
-				binding.setVariable("task", Task.this);
-				// TODO: Magically convert shared memory image inputs.
-				inputs.forEach((k, v) -> binding.setVariable(k, v));
-
-				// Inform the calling process that the script is launching.
-				reportLaunch();
-
-				// Execute the script.
-				GroovyShell shell = new GroovyShell(binding);
-
-				// Report the results to the Appose calling process.
-				Object result = shell.evaluate(script);
-				if (result instanceof Map) {
-					// Script produced a map; add all entries to the outputs.
-					outputs.putAll((Map<?, ?>) result);
-				}
-				else if (result != null) {
-					// Script produced a non-map; add it alone to the outputs.
-					outputs.put("result", result);
-				}
-				reportCompletion();
-			}, "Appose-" + uuid).start();
-		}
-
 		public void update(String message, Long current, Long maximum) {
 			Map<String, Object> args = new HashMap<>();
 			if (message != null) args.put("message", message);
@@ -172,6 +142,45 @@ public class GroovyWorker {
 			Map<String, Object> args = error == null ? null : //
 				Collections.singletonMap("error", error);
 			respond(ResponseType.FAILURE, args);
+		}
+
+		private void start(String script, Map<String, Object> inputs) {
+			// TODO: Consider whether to retain a reference to this Thread, and
+			// expose a "force" option for cancelation that uses thread.stop().
+			new Thread(() -> {
+				// Populate script bindings.
+				Binding binding = new Binding();
+				binding.setVariable("task", Task.this);
+				// TODO: Magically convert shared memory image inputs.
+				inputs.forEach((k, v) -> binding.setVariable(k, v));
+
+				// Inform the calling process that the script is launching.
+				reportLaunch();
+
+				// Execute the script.
+				Object result;
+				try {
+					GroovyShell shell = new GroovyShell(binding);
+					result = shell.evaluate(script);
+				}
+				catch (Exception exc) {
+					StringWriter sw = new StringWriter();
+					exc.printStackTrace(new PrintWriter(sw));
+					fail(sw.toString());
+					return;
+				}
+
+				// Report the results to the Appose calling process.
+				if (result instanceof Map) {
+					// Script produced a map; add all entries to the outputs.
+					outputs.putAll((Map<?, ?>) result);
+				}
+				else if (result != null) {
+					// Script produced a non-map; add it alone to the outputs.
+					outputs.put("result", result);
+				}
+				reportCompletion();
+			}, "Appose-" + uuid).start();
 		}
 
 		private void reportLaunch() {

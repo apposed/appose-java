@@ -28,27 +28,38 @@
 ###
 
 import appose
-from appose.service import ResponseType, TaskStatus
+from appose.service import ResponseType, Service, TaskStatus
+
+
+collatz_groovy = """
+// Computes the stopping time of a given value
+// according to the Collatz conjecture sequence.
+time = 0
+BigInteger v = 9999
+while (v != 1) {
+  v = v%2==0 ? v/2 : 3*v+1
+  task.update("[${time}] -> ${v}", time, null)
+  time++
+}
+return time
+"""
+
+collatz_python = """
+# Computes the stopping time of a given value
+# according to the Collatz conjecture sequence.
+time = 0
+v = 9999
+while v != 1:
+    v = v//2 if v%2==0 else 3*v+1
+    task.update(f"[{time}] -> {v}", current=time)
+    time += 1
+task.outputs["result"] = time
+"""
 
 
 def test_groovy():
-    # TEMP HACK - for testing
+    # TEMP HACK - for testing - somewhere that has bin/java
     env = appose.base("/home/curtis/mambaforge/envs/pyimagej-dev").build()
-
-    # Computes the stopping time of a given value
-    # according to the Collatz conjecture sequence.
-    collatz = """
-        time = 0
-        BigInteger v = 9999
-        while (v != 1) {
-          v = v%2==0 ? v/2 : 3*v+1
-          task.update("[${time}] -> ${v}", time, null)
-          time++
-        }
-        return time
-    """
-
-    # TEMP HACK - for testing
     class_path = [
         "/home/curtis/code/polyglot/appose/target/appose-0.1.0-SNAPSHOT.jar",
         "/home/curtis/code/polyglot/appose/target/dependency/groovy-3.0.4.jar",
@@ -57,8 +68,19 @@ def test_groovy():
         "/home/curtis/code/polyglot/appose/target/dependency/jna-5.13.0.jar",
         "/home/curtis/code/polyglot/appose/target/dependency/jna-platform-5.13.0.jar",
     ]
-    groovy = env.groovy(class_path=class_path)
-    task = groovy.task(collatz)
+    with env.groovy(class_path=class_path) as service:
+        execute_and_assert(service, collatz_groovy)
+
+
+def test_python():
+    # TEMP HACK - for testing - somewhere with bin/python and appose
+    env = appose.base("/home/curtis/mambaforge/envs/appose-dev").build()
+    with env.python() as service:
+        execute_and_assert(service, collatz_python)
+
+
+def execute_and_assert(service: Service, script: str):
+    task = service.task(script)
 
     # Record the state of the task for each event that occurs.
 

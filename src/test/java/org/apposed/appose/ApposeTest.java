@@ -50,40 +50,55 @@ import groovy.json.JsonSlurper;
 
 public class ApposeTest {
 
-	@Test
-	public void testJson() {
-		Map<String, Object> map = new HashMap<>();
-		map.put("stringValue", "QWERTYUIOP");
-		map.put("intValue", 369_252_963);
-		map.put("longValue", 123_456_789_987_654_321L);
-		String json = JsonOutput.toJson(map);
-		assertEquals("{\"stringValue\":\"QWERTYUIOP\",\"intValue\":369252963,\"longValue\":123456789987654321}", json);
-		Map<?, ?> parsed = (Map<?, ?>) new JsonSlurper().parseText(json);
-		assertEquals(map,  parsed);
-	}
+	private static final String COLLATZ_GROOVY = "" + //
+		"// Computes the stopping time of a given value\n" + //
+		"// according to the Collatz conjecture sequence.\n" + //
+		"time = 0\n" + //
+		"BigInteger v = 9999\n" +
+		"while (v != 1) {\n" + //
+		"  v = v%2==0 ? v/2 : 3*v+1\n" + //
+		"  task.update(\"[${time}] -> ${v}\", time, null)\n" + //
+		"  time++\n" + //
+		"}\n" + //
+		"return time\n";
+
+	private static final String COLLATZ_PYTHON = "" + //
+		"# Computes the stopping time of a given value\n" + //
+		"# according to the Collatz conjecture sequence.\n" + //
+		"time = 0\n" + //
+		"v = 9999\n" +
+		"while v != 1:\n" + //
+		"    v = v//2 if v%2==0 else 3*v+1\n" + //
+		"    task.update(f\"[{time}] -> {v}\", current=time)\n" + //
+		"    time += 1\n" + //
+		"task.outputs[\"result\"] = time\n";
 
 	@Test
 	public void testGroovy() throws IOException, InterruptedException {
 		Environment env = Appose
-			// TEMP HACK - for testing
+			// TEMP HACK - for testing - somewhere that has bin/java
 			.base(new File("/home/curtis/mambaforge/envs/pyimagej-dev"))
 			.build();
+		try (Service service = env.groovy()) {
+			executeAndAssert(service, COLLATZ_GROOVY);
+		}
+	}
 
-		// Computes the stopping time of a given value
-		// according to the Collatz conjecture sequence.
-		int n = 9999;
-		String collatz = "" + //
-			"time = 0\n" + //
-			"BigInteger v = " + n + "\n" +
-			"while (v != 1) {\n" + //
-			"  v = v%2==0 ? v/2 : 3*v+1\n" + //
-			"  task.update(\"[${time}] -> ${v}\", time, null)\n" + //
-			"  time++\n" + //
-			"}\n" + //
-			"return time";
+	@Test
+	public void testPython() throws IOException, InterruptedException {
+		Environment env = Appose
+			// TEMP HACK - for testing - somewhere with bin/python and appose
+			.base(new File("/home/curtis/mambaforge/envs/appose-dev"))
+			.build();
+		try (Service service = env.python()) {
+			executeAndAssert(service, COLLATZ_PYTHON);
+		}
+	}
 
-		Service groovy = env.groovy();
-		Task task = groovy.task(collatz);
+	public void executeAndAssert(Service service, String script)
+		throws InterruptedException
+	{
+		Task task = service.task(script);
 
 		// Record the state of the task for each event that occurs.
 		class TaskState {
@@ -121,7 +136,7 @@ public class ApposeTest {
 		assertEquals(0, launch.current);
 		assertEquals(1, launch.maximum);
 		assertNull(launch.error);
-		int v = n;
+		int v = 9999;
 		for (int i=0; i<91; i++) {
 			v = v%2==0 ? v/2 : 3*v+1;
 			TaskState update = events.get(i + 1);

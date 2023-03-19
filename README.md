@@ -166,10 +166,11 @@ computation on behalf of the calling process. The calling process interacts
 with a worker via its associated {@link Service}.
 
 Appose comes with built-in support for two worker implementations:
-{@code python-worker} to run Python scripts, and {@link GroovyWorker} to run
-Groovy scripts. These workers can be created easily by invoking the
-{@link Environment#python} and {@link Environment#groovy} methods
-respectively. But Appose is compatible with any program that abides by the
+`python_worker` to run Python scripts, and `GroovyWorker` to run Groovy
+scripts. These workers can be created easily by invoking the environment
+object's `python()` and `groovy()` methods respectively.
+
+But Appose is compatible with any program that abides by the
 *Appose worker process contract*:
 
 1. The worker must accept requests in Appose's request format on its

@@ -52,7 +52,7 @@ import groovy.json.JsonSlurper;
  * that run asynchronously in the worker process, which notifies the service of
  * updates via communication over pipes (stdin and stdout).
  */
-public class Service {
+public class Service implements AutoCloseable {
 
 	private static int serviceCount = 0;
 
@@ -103,6 +103,11 @@ public class Service {
 
 	public Task task(String script, Map<String, Object> inputs) {
 		return new Task(script, inputs);
+	}
+
+	@Override
+	public void close() {
+		stdin.close();
 	}
 
 	public static enum TaskStatus {
@@ -240,8 +245,6 @@ public class Service {
 			}
 		}
 	}
-
-	// -- JSON processing --
 
 	private static String encode(Map<String, Object> data) {
 		return JsonOutput.toJson(data);
