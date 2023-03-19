@@ -43,9 +43,6 @@ import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Consumer;
 
-import groovy.json.JsonOutput;
-import groovy.json.JsonSlurper;
-
 /**
  * An Appose *service* provides access to a linked Appose *worker* running in a
  * different process. Using the service, programs create Appose {@link Task}s
@@ -72,7 +69,7 @@ public class Service implements AutoCloseable {
 				try {
 					String line = stdout.readLine();
 					if (line == null) return; // pipe closed
-					Map<String, Object> response = decode(line);
+					Map<String, Object> response = Types.decode(line);
 					Object uuid = response.get("task");
 					if (uuid == null) {
 						// TODO: proper logging
@@ -188,7 +185,7 @@ public class Service implements AutoCloseable {
 			request.put("task", uuid);
 			request.put("requestType", requestType.toString());
 			if (args != null) request.putAll(args);
-			stdin.println(encode(request));
+			stdin.println(Types.encode(request));
 			// NB: Flush is necessary to ensure worker receives the data!
 			stdin.flush();
 		}
@@ -244,14 +241,5 @@ public class Service implements AutoCloseable {
 				}
 			}
 		}
-	}
-
-	private static String encode(Map<String, Object> data) {
-		return JsonOutput.toJson(data);
-	}
-
-	@SuppressWarnings("unchecked")
-	private static Map<String, Object> decode(String json) {
-		return (Map<String, Object>) new JsonSlurper().parseText(json);
 	}
 }

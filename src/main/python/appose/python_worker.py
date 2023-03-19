@@ -33,13 +33,13 @@ TODO
 
 import traceback
 import ast
-import json
 import sys
 from threading import Thread
-from typing import Any, Dict, Optional
+from typing import Optional
 
-# NB: Avoid relative import so that this script can be run standalone.
+# NB: Avoid relative imports so that this script can be run standalone.
 from appose.service import RequestType, ResponseType
+from appose.types import Args, decode, encode
 
 
 class Task:
@@ -70,7 +70,7 @@ class Task:
         args = None if error is None else {"error": error}
         self._respond(ResponseType.FAILURE, args)
 
-    def _start(self, script: str, inputs: Optional[Dict[str, Any]]) -> None:
+    def _start(self, script: str, inputs: Optional[Args]) -> None:
         def execute_script():
             # Populate script bindings.
             binding = {"task": self}
@@ -131,14 +131,12 @@ class Task:
         args = None if self.outputs is None else {"outputs": self.outputs}
         self._respond(ResponseType.COMPLETION, args)
 
-    def _respond(
-        self, response_type: ResponseType, args: Optional[Dict[str, Any]]
-    ) -> None:
+    def _respond(self, response_type: ResponseType, args: Optional[Args]) -> None:
         response = {"task": self.uuid, "responseType": response_type.value}
         if args is not None:
             response.update(args)
         # NB: Flush is necessary to ensure service receives the data!
-        print(json.dumps(response), flush=True)
+        print(encode(response), flush=True)
 
 
 def main() -> None:
@@ -152,7 +150,7 @@ def main() -> None:
         if not line:
             break
 
-        request = json.loads(line)
+        request = decode(line)
         uuid = request.get("task")
         request_type = request.get("requestType")
 

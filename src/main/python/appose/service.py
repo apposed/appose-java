@@ -31,13 +31,13 @@
 TODO
 """
 
-import json
 import subprocess
 import sys
 import threading
 import uuid
 from enum import Enum
-from typing import Any, Callable, Dict, List, Optional, Sequence
+from typing import Callable, Dict, List, Optional, Sequence
+from .types import Args, decode, encode
 
 
 class Service:
@@ -63,13 +63,13 @@ class Service:
         Service._service_count += 1
         self.thread.start()
 
-    def task(self, script: str, inputs: Optional[Dict[str, Any]] = None) -> "Task":
+    def task(self, script: str, inputs: Optional[Args] = None) -> "Task":
         return Task(self, script, inputs)
 
     def close(self) -> None:
         self.process.stdin.close()
 
-    def __enter__(self) -> 'Service':
+    def __enter__(self) -> "Service":
         return self
 
     def __exit__(self, exc_type, exc_value, exc_tb) -> None:
@@ -131,15 +131,15 @@ class TaskEvent:
 
 class Task:
     def __init__(
-        self, service: Service, script: str, inputs: Optional[Dict[str, Any]] = None
+        self, service: Service, script: str, inputs: Optional[Args] = None
     ) -> None:
         self.uuid = uuid.uuid4().hex
         self.service = service
         self.script = script
-        self.inputs: Dict[str, Any] = {}
+        self.inputs: Args = {}
         if inputs is not None:
             self.inputs.update(inputs)
-        self.outputs: Dict[str, Any] = {}
+        self.outputs: Args = {}
         self.status: TaskStatus = TaskStatus.INITIAL
         self.message: Optional[str] = None
         self.current: int = 0
@@ -181,7 +181,7 @@ class Task:
     def cancel(self) -> None:
         self._request(RequestType.CANCEL, [])
 
-    def _request(self, request_type: RequestType, args: Dict[str, Any]) -> None:
+    def _request(self, request_type: RequestType, args: Args) -> None:
         request = {"task": self.uuid, "requestType": request_type.value}
         if args is not None:
             request.update(args)
@@ -189,7 +189,7 @@ class Task:
         # NB: Flush is necessary to ensure worker receives the data!
         print(encode(request), file=self.service.process.stdin, flush=True)
 
-    def _handle(self, response: Dict[str, Any]) -> None:
+    def _handle(self, response: Args) -> None:
         maybe_response_type = response.get("responseType")
         if maybe_response_type is None:
             print("Message type not specified", file=sys.stderr)
@@ -226,11 +226,3 @@ class Task:
                 self.cv.notify_all()
 
         self.service.tasks[self.uuid] = self
-
-
-def encode(data: Dict[str, Any]) -> str:
-    return json.dumps(data)
-
-
-def decode(the_json: str) -> Dict[str, Any]:
-    return json.loads(the_json)

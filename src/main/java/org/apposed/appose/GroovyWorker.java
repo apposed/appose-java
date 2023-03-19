@@ -42,8 +42,6 @@ import java.util.concurrent.ConcurrentHashMap;
 import org.apposed.appose.Service.RequestType;
 import org.apposed.appose.Service.ResponseType;
 
-import groovy.json.JsonOutput;
-import groovy.json.JsonSlurper;
 import groovy.lang.Binding;
 import groovy.lang.GroovyShell;
 
@@ -65,7 +63,7 @@ public class GroovyWorker {
 		while (true) {
 			String line = stdin.readLine();
 			if (line == null) break; // broken pipe
-			Map<String, Object> request = decode(line);
+			Map<String, Object> request = Types.decode(line);
 			String uuid = (String) request.get("task");
 			String requestType = (String) request.get("requestType");
 			switch (RequestType.valueOf(requestType)) {
@@ -102,15 +100,6 @@ public class GroovyWorker {
 			return;
 		}
 		task.cancelRequested = true;
-	}
-
-	private static String encode(Map<?, ?> data) {
-		return JsonOutput.toJson(data);
-	}
-
-	@SuppressWarnings("unchecked")
-	private static Map<String, Object> decode(String json) {
-		return (Map<String, Object>) new JsonSlurper().parseText(json);
 	}
 
 	/**
@@ -198,7 +187,7 @@ public class GroovyWorker {
 			response.put("task", uuid);
 			response.put("responseType", responseType.toString());
 			if (args != null) response.putAll(args);
-			System.out.println(encode(response));
+			System.out.println(Types.encode(response));
 			// NB: Flush is necessary to ensure service receives the data!
 			System.out.flush();
 		}
