@@ -187,8 +187,8 @@ JSON, one line per request/response.
 
 Q: How about abstracting the transport layer so protocols besides pipes+JSON
    can be used? Then Appose could work with pipes+pickle, and/or with Google
-   Protocol Buffers, Apache Arrow, over HTTP local loopback, between machines
-   of a cluster...
+   Protocol Buffers, Apache Arrow, NATS.io, over HTTP local loopback,
+   between machines on the cloud...
 
 A: It is tempting. But simplicity is an important core design goal, and
    additional transport layer implementations would increase complexity.
