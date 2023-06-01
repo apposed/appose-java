@@ -9,6 +9,7 @@
 		<relativePath />
 	</parent>
 
+	<groupId>org.apposed</groupId>
 	<artifactId>appose</artifactId>
 	<version>0.1.0-SNAPSHOT</version>
 
