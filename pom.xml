@@ -83,13 +83,6 @@
 		<ivy.version>2.4.0</ivy.version>
 	</properties>
 
-	<repositories>
-		<repository>
-			<id>scijava.public</id>
-			<url>https://maven.scijava.org/content/groups/public</url>
-		</repository>
-	</repositories>
-
 	<dependencies>
 		<!--
 		NB: This list of dependencies must be kept in sync with
