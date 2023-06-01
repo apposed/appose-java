@@ -30,7 +30,6 @@
 import appose
 from appose.service import ResponseType, Service, TaskStatus
 
-
 collatz_groovy = """
 // Computes the stopping time of a given value
 // according to the Collatz conjecture sequence.

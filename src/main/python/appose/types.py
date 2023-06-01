@@ -30,7 +30,6 @@
 import json
 from typing import Any, Dict
 
-
 Args = Dict[str, Any]
 
 
