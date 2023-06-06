@@ -30,9 +30,11 @@
 package org.apposed.appose;
 
 import java.io.BufferedReader;
+import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStreamReader;
+import java.io.PrintStream;
 import java.io.PrintWriter;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -59,6 +61,9 @@ public class Service implements AutoCloseable {
 	private final Thread thread;
 	private final Map<String, Task> tasks = new ConcurrentHashMap<>();
 
+	private Consumer<String> debugListener;
+	private Thread debugThread;
+
 	public Service(File cwd, String... args) throws IOException {
 		ProcessBuilder pb = new ProcessBuilder(args).directory(cwd);
 		process = pb.start();
@@ -68,18 +73,21 @@ public class Service implements AutoCloseable {
 			while (true) {
 				try {
 					String line = stdout.readLine();
+					if (debugListener != null) {
+						String message = line == null ? "<worker stdout closed>" : line;
+						debugListener.accept("[SERVICE] " + message);
+					}
 					if (line == null) return; // pipe closed
 					Map<String, Object> response = Types.decode(line);
 					Object uuid = response.get("task");
 					if (uuid == null) {
-						// TODO: proper logging
-						System.err.println("Invalid service message:\n" + line);
+						debugListener.accept("[SERVICE] Invalid service message:\n" + line);
 						continue;
 					}
 					Task task = tasks.get(uuid.toString());
 					if (task == null) {
 						// TODO: proper logging
-						System.err.println("No such task: " + uuid);
+						System.err.println("[SERVICE] No such task: " + uuid);
 						continue;
 					}
 					task.handle(response);
@@ -100,6 +108,30 @@ public class Service implements AutoCloseable {
 
 	public Task task(String script, Map<String, Object> inputs) {
 		return new Task(script, inputs);
+	}
+
+	public void debug(Consumer<String> listener) {
+		debugListener = listener;
+		if (debugThread != null) return;
+
+		BufferedReader stderr = new BufferedReader(new InputStreamReader(process.getErrorStream()));
+		debugThread = new Thread(() -> {
+			while (true) {
+				try {
+					String line = stderr.readLine();
+					if (line == null) return; // pipe closed
+					debugListener.accept("[WORKER] " + line);
+				}
+				catch (IOException exc) {
+					// Convert exception stack trace to string, and report it.
+					ByteArrayOutputStream baos = new ByteArrayOutputStream();
+					PrintStream s = new PrintStream(baos);
+					exc.printStackTrace(s);
+					debugListener.accept("[WORKER] " + baos.toString());
+				}
+			}
+		}, "Appose-Service-Debugger-" + ++serviceCount);
+		debugThread.start();
 	}
 
 	@Override
@@ -185,9 +217,13 @@ public class Service implements AutoCloseable {
 			request.put("task", uuid);
 			request.put("requestType", requestType.toString());
 			if (args != null) request.putAll(args);
-			stdin.println(Types.encode(request));
+			String encoded = Types.encode(request);
+
+			stdin.println(encoded);
 			// NB: Flush is necessary to ensure worker receives the data!
 			stdin.flush();
+
+			if (debugListener != null) debugListener.accept("[SERVICE] " + encoded);
 		}
 
 		@SuppressWarnings("hiding")
