@@ -156,6 +156,10 @@ public class Appose {
 		return new Builder().base(directory);
 	}
 
+	public static Builder base(String directory) {
+		return base(new File(directory));
+	}
+
 	public static Builder java(String vendor, String version) {
 		return new Builder().java(vendor, version);
 	}

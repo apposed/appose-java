@@ -33,7 +33,6 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
 
-import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
@@ -70,10 +69,7 @@ public class ApposeTest {
 
 	@Test
 	public void testGroovy() throws IOException, InterruptedException {
-		Environment env = Appose
-			// TEMP HACK - for testing - somewhere that has bin/java
-			.base(new File("/home/curtis/mambaforge/envs/pyimagej-dev"))
-			.build();
+		Environment env = Appose.base(".").useSystemPath().build();
 		try (Service service = env.groovy()) {
 			executeAndAssert(service, COLLATZ_GROOVY);
 		}
@@ -81,10 +77,7 @@ public class ApposeTest {
 
 	@Test
 	public void testPython() throws IOException, InterruptedException {
-		Environment env = Appose
-			// TEMP HACK - for testing - somewhere with bin/python and appose
-			.base(new File("/home/curtis/mambaforge/envs/appose-dev"))
-			.build();
+		Environment env = Appose.base(".").useSystemPath().build();
 		try (Service service = env.python()) {
 			executeAndAssert(service, COLLATZ_PYTHON);
 		}
