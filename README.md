@@ -69,7 +69,7 @@ for (i=0; i<iterations; i++) {
         task.cancel()
         break
     }
-    task.status(null, i, iterations)
+    task.update(null, i, iterations)
     v = current
     current += previous
     previous = v
@@ -118,7 +118,7 @@ for i in range(iterations):
     if task.cancel_requested:
         task.cancel()
         break
-    task.status(current=i, maximum=iterations)
+    task.update(current=i, maximum=iterations)
     v = current
     current += previous
     previous = v
@@ -135,8 +135,8 @@ try (Service python = env.python()) {
                 System.out.println("Progress: " + task.current + "/" + task.maximum);
                 break;
             case COMPLETION:
-                long numer = (Long) task.outputs["numer"];
-                long denom = (Long) task.outputs["denom"];
+                long numer = (Long) task.outputs.get("numer");
+                long denom = (Long) task.outputs.get("denom");
                 double ratio = (double) numer / denom;
                 System.out.println("Task complete. Result: " + numer + "/" + denom + " =~ " + ratio);
                 break;
