@@ -31,7 +31,6 @@ package org.apposed.appose;
 
 import java.io.File;
 import java.io.IOException;
-import java.net.URISyntaxException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -39,17 +38,9 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
 
-public class Environment {
+public interface Environment {
 
-	private File base;
-
-	public Environment(File base) {
-		this.base = base;
-	}
-
-	public File base() {
-		return this.base;
-	}
+	default String base() { return "."; }
 
 	/**
 	 * Creates a Python script service.
@@ -63,7 +54,7 @@ public class Environment {
 	 * @see #groovy To create a service for Groovy script execution.
 	 * @throws IOException If something goes wrong starting the worker process.
 	 */
-	public Service python() throws IOException {
+	default Service python() throws IOException {
 		List<String> pythonExes = Arrays.asList(
 			"python", "python.exe",
 			"bin/python", "bin/python.exe"
@@ -91,7 +82,7 @@ public class Environment {
 	 * @see #python()
 	 * @throws IOException If something goes wrong starting the worker process.
 	 */
-	public Service groovy(String... jvmArgs) throws IOException {
+	default Service groovy(String... jvmArgs) throws IOException {
 		return groovy(Collections.emptyList(), jvmArgs);
 	}
 
@@ -116,19 +107,19 @@ public class Environment {
 	 * @see #python()
 	 * @throws IOException If something goes wrong starting the worker process.
 	 */
-	public Service groovy(List<String> classPath, String... jvmArgs)
+	default Service groovy(List<String> classPath, String... jvmArgs)
 		throws IOException
 	{
 		return java(GroovyWorker.class.getName(), classPath, jvmArgs);
 	}
 
-	public Service java(String mainClass, String... jvmArgs)
+	default Service java(String mainClass, String... jvmArgs)
 		throws IOException
 	{
 		return java(mainClass, Collections.emptyList(), jvmArgs);
 	}
 
-	public Service java(String mainClass, List<String> classPath,
+	default Service java(String mainClass, List<String> classPath,
 		String... jvmArgs) throws IOException
 	{
 		// Collect classpath elements into a set, to avoid duplicate entries.
@@ -146,7 +137,7 @@ public class Environment {
 			com.sun.jna.platform.win32.Kernel32.class // ---> com.sun.jna:jna-platform
 		);
 		for (Class<?> depClass : apposeDeps) {
-			File location = location(depClass);
+			File location = FilePaths.location(depClass);
 			if (location != null) cp.add(location.getCanonicalPath());
 		}
 
@@ -186,35 +177,13 @@ public class Environment {
 	 * @see #python To create a service for Python script execution.
 	 * @throws IOException If something goes wrong starting the worker process.
 	 */
-	public Service service(List<String> exes, String... args) throws IOException {
+	default Service service(List<String> exes, String... args) throws IOException {
 		if (args.length == 0) throw new IllegalArgumentException("No executable given");
-		File exe = exes.stream().map(this::exeFile).filter(File::canExecute).findFirst().orElse(null);
-		if (exe == null) throw new IllegalArgumentException("No executables found amonst candidates: " + exes);
+		File exeFile = FilePaths.findExe(Arrays.asList(base()), exes);
+		if (exeFile == null) throw new IllegalArgumentException("No executables found amonst candidates: " + exes);
 		String[] allArgs = new String[args.length + 1];
 		System.arraycopy(args, 0, allArgs, 1, args.length);
-		allArgs[0] = exe.getCanonicalPath();
-		return new Service(base, allArgs);
-	}
-
-	/**
-	 * Gets the path to the JAR file containing the given class. Technically
-	 * speaking, it might not actually be a JAR file, it might be a raw class
-	 * file, or even something weirder... But for our purposes, we'll just
-	 * assume it's going to be something you can put onto a classpath.
-	 */
-	private File location(Class<?> c) {
-		try {
-			return new File(c.getProtectionDomain().getCodeSource().getLocation().toURI());
-		}
-		catch (URISyntaxException exc) {
-//			throw new IllegalArgumentException("Location of class '" + c.getName() + "' is unclear", exc);
-			// If we cannot retrieve the location of a class, just keep going.
-			return null;
-		}
-	}
-
-	private File exeFile(String exe) {
-		File exeFile = new File(exe);
-		return exeFile.isAbsolute() ? exeFile : new File(base, exe);
+		allArgs[0] = exeFile.getCanonicalPath();
+		return new Service(new File(base()), allArgs);
 	}
 }

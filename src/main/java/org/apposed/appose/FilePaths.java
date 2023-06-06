@@ -30,45 +30,46 @@
 package org.apposed.appose;
 
 import java.io.File;
+import java.net.URISyntaxException;
+import java.nio.file.Paths;
+import java.util.List;
 
-public class Builder {
+public final class FilePaths {
 
-	public Environment build() {
-		// TODO Build the thing!~
-		// Hash the state to make a base directory name.
-		// - Construct conda environment from condaEnvironmentYaml.
-		// - Download and unpack JVM of the given vendor+version.
-		// - Populate ${baseDirectory}/jars with Maven artifacts?
-		String base = baseDir.getPath();
-		return new Environment() {
-			@Override public String base() { return base; }
-		};
+	private FilePaths() {
+		// Prevent instantiation of utility class.
 	}
 
-	private File baseDir;
-
-	public Builder base(File directory) {
-		baseDir = directory;
-		return this;
+	/**
+	 * Gets the path to the JAR file containing the given class. Technically
+	 * speaking, it might not actually be a JAR file, it might be a raw class
+	 * file, or even something weirder... But for our purposes, we'll just
+	 * assume it's going to be something you can put onto a classpath.
+	 */
+	public static File location(Class<?> c) {
+		try {
+			return new File(c.getProtectionDomain().getCodeSource().getLocation().toURI());
+		}
+		catch (URISyntaxException exc) {
+			return null;
+		}
 	}
 
-	// -- Conda --
-
-	private File condaEnvironmentYaml;
-
-	public Builder conda(File environmentYaml) {
-		this.condaEnvironmentYaml = environmentYaml;
-		return this;
-	}
-
-	// -- Java --
-
-	private String javaVendor;
-	private String javaVersion;
-
-	public Builder java(String vendor, String version) {
-		this.javaVendor = vendor;
-		this.javaVersion = version;
-		return this;
+	public static File findExe(List<String> dirs, List<String> exes) {
+		for (String exe : exes) {
+			File exeFile = new File(exe);
+			if (exeFile.isAbsolute()) {
+				// Candidate is an absolute path; check it directly.
+				if (exeFile.canExecute()) return exeFile;
+			}
+			else {
+				// Candidate is a relative path; check beneath each given directory.
+				for (String dir : dirs) {
+					File f = Paths.get(dir, exe).toFile();
+					if (f.canExecute()) return f;
+				}
+			}
+		}
+		return null;
 	}
 }
