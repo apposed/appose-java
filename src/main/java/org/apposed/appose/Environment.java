@@ -64,7 +64,11 @@ public class Environment {
 	 * @throws IOException If something goes wrong starting the worker process.
 	 */
 	public Service python() throws IOException {
-		return service("bin/python", "-c",
+		List<String> pythonExes = Arrays.asList(
+			"python", "python.exe",
+			"bin/python", "bin/python.exe"
+		);
+		return service(pythonExes, "-c",
 			"import appose.python_worker; appose.python_worker.main()");
 	}
 
@@ -158,7 +162,12 @@ public class Environment {
 		args.add(mainClass);
 
 		// Create the service.
-		return service(args.toArray(new String[0]));
+		List<String> javaExes = Arrays.asList(
+			"java", "java.exe",
+			"bin/java", "bin/java.exe",
+			"jre/bin/java", "jre/bin/java.exe"
+		);
+		return service(javaExes, args.toArray(new String[0]));
 	}
 
 	/**
@@ -177,17 +186,14 @@ public class Environment {
 	 * @see #python To create a service for Python script execution.
 	 * @throws IOException If something goes wrong starting the worker process.
 	 */
-	public Service service(String... args) throws IOException {
+	public Service service(List<String> exes, String... args) throws IOException {
 		if (args.length == 0) throw new IllegalArgumentException("No executable given");
-		File exe = new File(args[0]);
-		if (!exe.isAbsolute()) exe = new File(base, args[0]);
-		if (!exe.exists()) {
-			// Good ol' Windows! Nothing beats Windows.
-			exe = new File(exe.getAbsolutePath() + ".exe");
-		}
-		if (!exe.exists()) throw new IllegalArgumentException("Executable not found: " + args[0]);
-		args[0] = exe.getCanonicalPath();
-		return new Service(base, args);
+		File exe = exes.stream().map(this::exeFile).filter(File::canExecute).findFirst().orElse(null);
+		if (exe == null) throw new IllegalArgumentException("No executables found amonst candidates: " + exes);
+		String[] allArgs = new String[args.length + 1];
+		System.arraycopy(args, 0, allArgs, 1, args.length);
+		allArgs[0] = exe.getCanonicalPath();
+		return new Service(base, allArgs);
 	}
 
 	/**
@@ -205,5 +211,10 @@ public class Environment {
 			// If we cannot retrieve the location of a class, just keep going.
 			return null;
 		}
+	}
+
+	private File exeFile(String exe) {
+		File exeFile = new File(exe);
+		return exeFile.isAbsolute() ? exeFile : new File(base, exe);
 	}
 }

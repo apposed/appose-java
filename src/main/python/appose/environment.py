@@ -54,12 +54,12 @@ class Environment:
         :see: groovy() To create a service for Groovy script execution.
         :raises IOError: If something goes wrong starting the worker process.
         """
-        return self.service(
-            [
-                "bin/python",
-                "-c",
-                "import appose.python_worker; appose.python_worker.main()",
-            ]
+        python_exes = [
+           "python", "python.exe",
+           "bin/python", "bin/python.exe",
+        ]
+        return self.service(python_exes, "-c",
+            "import appose.python_worker; appose.python_worker.main()",
         )
 
     def groovy(
@@ -123,7 +123,6 @@ class Environment:
 
         # Build up the service arguments.
         args = [
-            "bin/java",
             "-cp",
             os.pathsep.join(cp),
         ]
@@ -132,9 +131,15 @@ class Environment:
         args.append(main_class)
 
         # Create the service.
-        return self.service(args=args)
+        java_exes = [
+            "java", "java.exe",
+            "bin/java", "bin/java.exe",
+            "jre/bin/java", "jre/bin/java.exe",
+            "jre/bin/java", "jre/bin/java.exe",
+        ]
+        return self.service(java_exes, args=args)
 
-    def service(self, args: Sequence[str]) -> Service:
+    def service(self, exes: Sequence[str], *args: Sequence[str]) -> Service:
         """
         Create a service with the given command line arguments.
 
@@ -150,18 +155,20 @@ class Environment:
         :see: python() To create a service for Python script execution.
         :raises IOError: If something goes wrong starting the worker process.
         """
-        if args is None or len(args) == 0:
+        if not exes:
             raise ValueError("No executable given")
-        exe = Path(args[0])
-        if not exe.is_absolute():
-            exe = self.base / args[0]
-        if not exe.exists():
-            # Good ol' Windows! Nothing beats Windows.
-            exe = exe.with_suffix(".exe")
-        if not exe.exists():
-            raise ValueError(f"Executable not found: {args[0]} -- {exe}")
-        args[0] = str(exe)
-        return Service(self.base, args)
+
+        exe_files = (_exe_file(exe) for exe in exes)
+        exe = find_first(exe for exe in exe_files if can_execute(exe))
+        if not exe:
+            raise ValueError(f"No executables found amonst candidates: {exes}");
+
+        all_args = [str(exe)] + args
+        return Service(self.base, all_args)
+
+    def _exe_file(exe: str) -> Path:
+        path = Path(exe)
+        return path if path.is_absolute() else self.base / path
 
 
 class Builder:
@@ -191,3 +198,22 @@ class Builder:
         if version is not None:
             self.java_version: str = version
         return self
+
+
+def find_first(seq: Sequence[Any], or_else: Any = None) -> Any:
+    try:
+        return next(iter(seq))
+    except StopIteration:
+        return or_else
+
+
+def can_execute(exe: Path):
+    # TODO: There must be an easier way to do this in Python. Right?
+    st_mode = exe.stat().st_mode
+    # |----u----| |----g----| |----o----|
+    # 256 128 064 032 016 008 004 002 001
+    #  r   w   x   r   w   x   r   w   x
+    ux = st_mode & 64
+    gx = st_mode & 8
+    ox = st_mode & 1
+    return ux or ox # TODO: check if user belongs to group
