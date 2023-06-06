@@ -41,6 +41,7 @@ import java.util.Set;
 public interface Environment {
 
 	default String base() { return "."; }
+	default boolean useSystemPath() { return false; }
 
 	/**
 	 * Creates a Python script service.
@@ -146,7 +147,6 @@ public interface Environment {
 
 		// Build up the service arguments.
 		List<String> args = new ArrayList<>();
-		args.add("bin/java");
 		args.add("-cp");
 		args.add(String.join(File.pathSeparator, cp));
 		args.addAll(Arrays.asList(jvmArgs));
@@ -179,11 +179,18 @@ public interface Environment {
 	 */
 	default Service service(List<String> exes, String... args) throws IOException {
 		if (args.length == 0) throw new IllegalArgumentException("No executable given");
-		File exeFile = FilePaths.findExe(Arrays.asList(base()), exes);
+
+		List<String> dirs = useSystemPath() //
+			? Arrays.asList(System.getenv("PATH").split(File.pathSeparator)) //
+			: Arrays.asList(base());
+
+		File exeFile = FilePaths.findExe(dirs, exes);
 		if (exeFile == null) throw new IllegalArgumentException("No executables found amonst candidates: " + exes);
+
 		String[] allArgs = new String[args.length + 1];
 		System.arraycopy(args, 0, allArgs, 1, args.length);
 		allArgs[0] = exeFile.getCanonicalPath();
+
 		return new Service(new File(base()), allArgs);
 	}
 }

@@ -40,9 +40,20 @@ public class Builder {
 		// - Download and unpack JVM of the given vendor+version.
 		// - Populate ${baseDirectory}/jars with Maven artifacts?
 		String base = baseDir.getPath();
+		boolean useSystemPath = systemPath;
 		return new Environment() {
 			@Override public String base() { return base; }
+			@Override public boolean useSystemPath() { return useSystemPath; }
 		};
+	}
+
+	// -- Configuration --
+
+	private boolean systemPath;
+
+	public Builder useSystemPath() {
+		systemPath = true;
+		return this;
 	}
 
 	private File baseDir;
