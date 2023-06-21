@@ -28,15 +28,15 @@
 ###
 
 """
-TODO
+The appose.service package contains classes for services and tasks.
 """
 
 import subprocess
-import sys
 import threading
 import uuid
 from enum import Enum
-from typing import Callable, Dict, List, Optional, Sequence
+from traceback import format_exc
+from typing import Any, Callable, Dict, List, Optional, Sequence
 
 from .types import Args, decode, encode
 
@@ -52,23 +52,69 @@ class Service:
     _service_count = 0
 
     def __init__(self, cwd: str, args: Sequence[str]) -> None:
-        print(args)
-        self.process = subprocess.Popen(
-            args, stdin=subprocess.PIPE, stdout=subprocess.PIPE, cwd=cwd, text=True
-        )
-        self.tasks: Dict[str, "Task"] = {}
-
-        self.thread = threading.Thread(
-            target=self._loop, name=f"Appose-Service-{Service._service_count}"
-        )
+        self._cwd = cwd
+        self._args = args[:]
+        self._tasks: Dict[str, "Task"] = {}
+        self._service_id = Service._service_count
         Service._service_count += 1
-        self.thread.start()
+
+    def debug(self, debug_callback: Callable[[Any], Any]) -> None:
+        """
+        Register a callback function to receive messages
+        describing current service/worker activity.
+
+        :param debug_callback:
+            A function that accepts a single string argument.
+        """
+        self.debug_callback = debug_callback
+
+    def start(self) -> None:
+        """
+        Explicitly launch the worker process associated with this service.
+
+        This method is called automatically the first time a task is launched.
+        But you can call it yourself if you want to let the worker process
+        get going asynchronously before running the first task, or if you
+        want to register a debug callback before the process starts to ensure
+        you don't miss any events that occur early in the worker execution.
+        """
+        if self._process is not None:
+            # Already started.
+            return
+
+        prefix = f"Appose-Service-{self._service_id}"
+        self._process = subprocess.Popen(
+            self._args,
+            stdin=subprocess.PIPE,
+            stdout=subprocess.PIPE,
+            cwd=self.cwd,
+            text=True
+        )
+        self._stdout_thread = threading.Thread(
+            target=self._stdout_loop, name=f"{prefix}-Stdout"
+        )
+        self._stderr_thread = threading.Thread(
+            target=self._stderr_loop, name=f"{prefix}-Stderr"
+        )
+        self._stdout_thread.start()
+        self._stderr_thread.start()
 
     def task(self, script: str, inputs: Optional[Args] = None) -> "Task":
+        """
+        Create a new task, passing the given script to the worker for execution.
+        :param script:
+            The script for the worker to execute in its environment.
+        :param inputs:
+            Optional list of key/value pairs to feed into the script as inputs.
+        """
+        self.start()
         return Task(self, script, inputs)
 
     def close(self) -> None:
-        self.process.stdin.close()
+        """
+        Close the worker process's input stream, in order to shut it down.
+        """
+        self._process.stdin.close()
 
     def __enter__(self) -> "Service":
         return self
@@ -76,23 +122,57 @@ class Service:
     def __exit__(self, exc_type, exc_value, exc_tb) -> None:
         self.close()
 
-    def _loop(self) -> None:
-        while True:
-            line = self.process.stdout.readline()
-            if not line:
-                return  # pipe closed
-            response = decode(line)
-            uuid = response.get("task")
-            if uuid is None:
-                # TODO: proper logging
-                print(f"Invalid service message:\n{line}", file=sys.stderr)
-                continue
-            task = self.tasks.get(uuid)
-            if task is None:
-                # TODO: proper logging
-                print(f"No such task: {uuid}", file=sys.stderr)
-                continue
-            task._handle(response)
+    def _stdout_loop(self) -> None:
+        """
+        Input loop processing lines from the worker's stdout stream.
+        """
+        try:
+            while True:
+                line = self._process.stdout.readline()
+                self._debug_service("<worker stdout closed>" if line is None else line)
+
+                if line is None:
+                    return  # pipe closed
+                response = decode(line)
+                uuid = response.get("task")
+                if uuid is None:
+                    self._debug_service("Invalid service message: {line}");
+                    continue
+                task = self._tasks.get(uuid)
+                if task is None:
+                    self._debug_service(f"No such task: {uuid}")
+                    continue
+                task._handle(response)
+        except Exception:
+            self._debug_service(format_exc())
+
+    def _stderr_loop(self) -> None:
+        """
+        Input loop processing lines from the worker's stderr stream.
+        """
+        try:
+            while True:
+                line = self._process.stderr.readline()
+                if line is None:
+                    self._debug_service("<worker stderr closed>")
+                    return
+                self._debug_worker(line)
+        except Exception:
+            self._debug_service(format_exc())
+
+    def _debug_service(self, message: str) -> None:
+        self._debug("SERVICE", message)
+
+    def _debug_worker(self, message: str) -> None:
+        self._debug("WORKER", message)
+
+    def _debug(self, prefix: str, message: str) -> None:
+        """
+        Pass a message to the callback registered via the debug method.
+        """
+        if self.debug_callback is None:
+            return
+        self.debug_callback(f"[{prefix}-{self._service_id}] {message}")
 
 
 class TaskStatus(Enum):
@@ -104,10 +184,13 @@ class TaskStatus(Enum):
     FAILED = "FAILED"
 
     def is_finished(self):
+        """
+        True iff status is COMPLETE, CANCELED, or FAILED.
+        """
         return self in (
             TaskStatus.COMPLETE,
             TaskStatus.CANCELED,
-            self == TaskStatus.FAILED,
+            TaskStatus.FAILED,
         )
 
 
@@ -125,12 +208,18 @@ class ResponseType(Enum):
 
 
 class TaskEvent:
+
     def __init__(self, task: "Task", response_type: ResponseType) -> None:
         self.task: "Task" = task
         self.response_type: ResponseType = response_type
 
 
 class Task:
+    """
+    An Appose *task* is an asynchronous operation performed by its
+    associated Appose *service*. It is analogous to an asyncio.Future.
+    """
+
     def __init__(
         self, service: Service, script: str, inputs: Optional[Args] = None
     ) -> None:
@@ -163,6 +252,9 @@ class Task:
         return self
 
     def listen(self, listener: Callable[["TaskEvent"], None]) -> None:
+        """
+        Register a callback function to be notified of updates to the task.
+        """
         with self.cv:
             if self.status != TaskStatus.INITIAL:
                 raise RuntimeError("Task is not in the INITIAL state")
@@ -180,20 +272,28 @@ class Task:
             self.cv.wait()
 
     def cancel(self) -> None:
-        self._request(RequestType.CANCEL, [])
+        """
+        Send a task cancelation request to the worker process.
+        """
+        self._request(RequestType.CANCEL, {})
 
     def _request(self, request_type: RequestType, args: Args) -> None:
+        """
+        Send a request to the worker process.
+        """
         request = {"task": self.uuid, "requestType": request_type.value}
         if args is not None:
             request.update(args)
 
+        encoded = encode(request)
         # NB: Flush is necessary to ensure worker receives the data!
-        print(encode(request), file=self.service.process.stdin, flush=True)
+        print(encoded, file=self.service.process.stdin, flush=True)
+        self._debug_service(encoded)
 
     def _handle(self, response: Args) -> None:
         maybe_response_type = response.get("responseType")
         if maybe_response_type is None:
-            print("Message type not specified", file=sys.stderr)
+            self._debug_service("Message type not specified")
             return
         response_type = ResponseType(maybe_response_type)
 
@@ -202,8 +302,12 @@ class Task:
                 self.status = TaskStatus.RUNNING
             case ResponseType.UPDATE:
                 self.message = response.get("message")
-                self.current = int(response.get("current", 0))
-                self.maximum = int(response.get("maximum", 1))
+                current = response.get("current")
+                maximum = response.get("maximum")
+                if current is not None:
+                    self.current = int(current)
+                if maximum is not None:
+                    self.maximum = int(maximum)
             case ResponseType.COMPLETION:
                 self.service.tasks.pop(self.uuid, None)
                 self.status = TaskStatus.COMPLETE
@@ -217,6 +321,9 @@ class Task:
                 self.service.tasks.pop(self.uuid, None)
                 self.status = TaskStatus.FAILED
                 self.error = response.get("error")
+            case _:
+                self._debug_service(f"Invalid service message type: {response_type}")
+                return
 
         event = TaskEvent(self, response_type)
         for listener in self.listeners:
@@ -225,5 +332,3 @@ class Task:
         if self.status.is_finished():
             with self.cv:
                 self.cv.notify_all()
-
-        self.service.tasks[self.uuid] = self

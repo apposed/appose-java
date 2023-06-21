@@ -55,103 +55,165 @@ public class Service implements AutoCloseable {
 
 	private static int serviceCount = 0;
 
-	private final Process process;
-	private final PrintWriter stdin;
-	private final BufferedReader stdout;
-	private final Thread thread;
+	private final File cwd;
+	private final String[] args;
 	private final Map<String, Task> tasks = new ConcurrentHashMap<>();
+	private final int serviceID;
+
+	private Process process;
+	private PrintWriter stdin;
+	private Thread stdoutThread;
+	private Thread stderrThread;
 
 	private Consumer<String> debugListener;
-	private Thread debugThread;
 
-	public Service(File cwd, String... args) throws IOException {
+	public Service(File cwd, String... args) {
+		this.cwd = cwd;
+		this.args = args.clone();
+		serviceID = serviceCount++;
+	}
+
+	/**
+	 * Registers a callback function to receive messages
+	 * describing current service/worker activity.
+	 *
+	 * @param debugListener A function that accepts a single string argument.
+	 */
+	public void debug(Consumer<String> debugListener) {
+		this.debugListener = debugListener;
+	}
+
+	/**
+	 * Launches the worker process associated with this service.
+	 *
+	 * @return This service object, for chaining method calls (typically with {@link #task}).
+	 * @throws IOException if the process fails to execute; see {@link ProcessBuilder#start()}
+	 */
+	public Service start() throws IOException {
+		if (process != null) {
+			// Already started.
+			return this;
+		}
+
+		String prefix = "Appose-Service-" + serviceID;
 		ProcessBuilder pb = new ProcessBuilder(args).directory(cwd);
 		process = pb.start();
 		stdin = new PrintWriter(process.getOutputStream());
-		stdout = new BufferedReader(new InputStreamReader(process.getInputStream()));
-		thread = new Thread(() -> {
-			while (true) {
-				try {
-					String line = stdout.readLine();
-					if (debugListener != null) {
-						String message = line == null ? "<worker stdout closed>" : line;
-						debugListener.accept("[SERVICE] " + message);
-					}
-					if (line == null) return; // pipe closed
-					Map<String, Object> response = Types.decode(line);
-					Object uuid = response.get("task");
-					if (uuid == null) {
-						debugListener.accept("[SERVICE] Invalid service message:\n" + line);
-						continue;
-					}
-					Task task = tasks.get(uuid.toString());
-					if (task == null) {
-						// TODO: proper logging
-						System.err.println("[SERVICE] No such task: " + uuid);
-						continue;
-					}
-					task.handle(response);
-				}
-				catch (IOException exc) {
-					// TODO: proper logging
-					exc.printStackTrace();
-					return;
-				}
-			}
-		}, "Appose-Service-" + ++serviceCount);
-		thread.start();
+		stdoutThread = new Thread(this::stdoutLoop, prefix + "-Stdout");
+		stderrThread = new Thread(this::stderrLoop, prefix + "-Stderr");
+		stderrThread.start();
+		stdoutThread.start();
+		return this;
 	}
 
+	/**
+	 * Creates a new task, passing the given script to the worker for execution.
+	 * @param script The script for the worker to execute in its environment.
+	 */
 	public Task task(String script) {
 		return task(script, null);
 	}
 
+	/**
+	 * Creates a new task, passing the given script to the worker for execution.
+	 * @param script The script for the worker to execute in its environment.
+	 * @param inputs Optional list of key/value pairs to feed into the script as inputs.
+	 */
 	public Task task(String script, Map<String, Object> inputs) {
+		if (process == null) {
+			throw new IllegalStateException("Please start() the Service before launching a task");
+		}
 		return new Task(script, inputs);
 	}
 
-	public void debug(Consumer<String> listener) {
-		debugListener = listener;
-		if (debugThread != null) return;
-
-		BufferedReader stderr = new BufferedReader(new InputStreamReader(process.getErrorStream()));
-		debugThread = new Thread(() -> {
-			while (true) {
-				try {
-					String line = stderr.readLine();
-					if (line == null) return; // pipe closed
-					debugListener.accept("[WORKER] " + line);
-				}
-				catch (IOException exc) {
-					// Convert exception stack trace to string, and report it.
-					ByteArrayOutputStream baos = new ByteArrayOutputStream();
-					PrintStream s = new PrintStream(baos);
-					exc.printStackTrace(s);
-					debugListener.accept("[WORKER] " + baos.toString());
-				}
-			}
-		}, "Appose-Service-Debugger-" + ++serviceCount);
-		debugThread.start();
-	}
-
+	/** Closes the worker process's input stream, in order to shut it down. */
 	@Override
 	public void close() {
 		stdin.close();
 	}
 
-	public static enum TaskStatus {
+	/** Input loop processing lines from the worker stdout stream. */
+	private void stdoutLoop() {
+		BufferedReader stdout = new BufferedReader(new InputStreamReader(process.getInputStream()));
+		try {
+			while (true) {
+				String line = stdout.readLine();
+				debugService(line == null ? "<worker stdout closed>" : line);
+
+				if (line == null) return; // pipe closed
+				Map<String, Object> response = Types.decode(line);
+				Object uuid = response.get("task");
+				if (uuid == null) {
+					debugService("Invalid service message:" + line);
+					continue;
+				}
+				Task task = tasks.get(uuid.toString());
+				if (task == null) {
+					debugService("No such task: " + uuid);
+					continue;
+				}
+				task.handle(response);
+			}
+		}
+		catch (IOException exc) {
+			debugService(formatExc(exc));
+		}
+	}
+
+	/** Input loop processing lines from the worker stderr stream. */
+	private void stderrLoop() {
+		BufferedReader stderr = new BufferedReader(new InputStreamReader(process.getErrorStream()));
+		try {
+			while (true) {
+				String line = stderr.readLine();
+				if (line == null) {
+					debugService("<worker stderr closed>");
+					return;
+				}
+				debugWorker(line);
+			}
+		}
+		catch (IOException exc) {
+			debugWorker(formatExc(exc));
+		}
+	}
+
+	/** Converts the given exception, including stack trace, to a string. */
+	private String formatExc(Throwable t) {
+		ByteArrayOutputStream baos = new ByteArrayOutputStream();
+		PrintStream s = new PrintStream(baos);
+		t.printStackTrace(s);
+		return baos.toString();
+	}
+
+	private void debugService(String message) { debug("SERVICE", message); }
+	private void debugWorker(String message) { debug("WORKER", message); }
+
+	/**
+	 * Passes a message to the listener registered
+	 * via the {@link #debug(Consumer)} method.
+	 */
+	private void debug(String prefix, String message) {
+		if (debugListener == null) return;
+		debugListener.accept("[" + prefix + "-" + serviceID + "] " + message);
+	}
+
+	public enum TaskStatus {
 		INITIAL, QUEUED, RUNNING, COMPLETE, CANCELED, FAILED;
 
+		/**
+		 * @return true iff status is {@link #COMPLETE}, {@link #CANCELED}, or {@link #FAILED}.
+		 */
 		public boolean isFinished() {
 			return this == COMPLETE || this == CANCELED || this == FAILED;
 		}
 	}
 
-	public static enum RequestType {
+	public enum RequestType {
 		EXECUTE, CANCEL
 	}
 
-	public static enum ResponseType {
+	public enum ResponseType {
 		LAUNCH, UPDATE, COMPLETION, CANCELATION, FAILURE
 	}
 
@@ -194,9 +256,11 @@ public class Service implements AutoCloseable {
 			return this;
 		}
 
-		/** Registers a callback function to be notified of updates to the task. */
+		/** Registers a listener to be notified of updates to the task. */
 		public synchronized void listen(Consumer<TaskEvent> listener) {
-			if (status != TaskStatus.INITIAL) throw new IllegalStateException();
+			if (status != TaskStatus.INITIAL) {
+				throw new IllegalStateException("Task is not in the INITIAL state");
+			}
 			listeners.add(listener);
 		}
 
@@ -206,12 +270,12 @@ public class Service implements AutoCloseable {
 			wait();
 		}
 
-		/** Sends a task cancelation request to the service executor. */
+		/** Sends a task cancelation request to the worker process. */
 		public void cancel() {
 			request(RequestType.CANCEL, null);
 		}
 
-		/** Sends a request to the service executor. */
+		/** Sends a request to the worker process. */
 		private void request(RequestType requestType, Map<String, Object> args) {
 			Map<String, Object> request = new HashMap<>();
 			request.put("task", uuid);
@@ -222,19 +286,19 @@ public class Service implements AutoCloseable {
 			stdin.println(encoded);
 			// NB: Flush is necessary to ensure worker receives the data!
 			stdin.flush();
-
-			if (debugListener != null) debugListener.accept("[SERVICE] " + encoded);
+			debugService(encoded);
 		}
 
 		@SuppressWarnings("hiding")
 		private void handle(Map<String, Object> response) {
-			String responseType = (String) response.get("responseType");
-			if (responseType == null) {
-				// TODO: proper logging
-				System.err.println("Message type not specified");
+			String maybeResponseType = (String) response.get("responseType");
+			if (maybeResponseType == null) {
+				debugService("Message type not specified");
 				return;
 			}
-			switch (ResponseType.valueOf(responseType)) {
+			ResponseType responseType = ResponseType.valueOf(maybeResponseType);
+
+			switch (responseType) {
 				case LAUNCH:
 					status = TaskStatus.RUNNING;
 					break;
@@ -242,15 +306,14 @@ public class Service implements AutoCloseable {
 					message = (String) response.get("message");
 					Number current = (Number) response.get("current");
 					Number maximum = (Number) response.get("maximum");
-					if (current != null) current = current.longValue();
-					if (maximum != null) maximum = maximum.longValue();
+					if (current != null) this.current = current.longValue();
+					if (maximum != null) this.maximum = maximum.longValue();
 					break;
 				case COMPLETION:
 					tasks.remove(uuid);
 					status = TaskStatus.COMPLETE;
 					@SuppressWarnings({ "rawtypes", "unchecked" })
 					Map<String, Object> outputs = (Map) response.get("outputs");
-					// TODO: Magically convert shared memory image outputs.
 					if (outputs != null) mOutputs.putAll(outputs);
 					break;
 				case CANCELATION:
@@ -261,14 +324,14 @@ public class Service implements AutoCloseable {
 					tasks.remove(uuid);
 					status = TaskStatus.FAILED;
 					Object error = response.get("error");
-					if (error != null) error = error.toString();
+					this.error = error == null ? null : error.toString();
 					break;
 				default:
-					// TODO: proper logging
-					System.err.println("Invalid service message type: " + responseType);
+					debugService("Invalid service message type: " + responseType);
 					return;
 			}
-			TaskEvent event = new TaskEvent(this, ResponseType.valueOf(responseType));
+
+			TaskEvent event = new TaskEvent(this, responseType);
 			listeners.forEach(l -> l.accept(event));
 
 			if (status.isFinished()) {
