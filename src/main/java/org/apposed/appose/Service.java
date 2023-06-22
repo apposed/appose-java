@@ -114,7 +114,6 @@ public class Service implements AutoCloseable {
 	 * @throws IOException If something goes wrong communicating with the worker.
 	 */
 	public Task task(String script) throws IOException {
-		start();
 		return task(script, null);
 	}
 
@@ -126,7 +125,8 @@ public class Service implements AutoCloseable {
 	 * @return The newly created {@link Task} object tracking the execution.
 	 * @throws IOException If something goes wrong communicating with the worker.
 	 */
-	public Task task(String script, Map<String, Object> inputs) {
+	public Task task(String script, Map<String, Object> inputs) throws IOException {
+		start();
 		return new Task(script, inputs);
 	}
 
