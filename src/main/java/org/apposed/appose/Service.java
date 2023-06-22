@@ -87,7 +87,7 @@ public class Service implements AutoCloseable {
 	 * Launches the worker process associated with this service.
 	 *
 	 * @return This service object, for chaining method calls (typically with {@link #task}).
-	 * @throws IOException if the process fails to execute; see {@link ProcessBuilder#start()}
+	 * @throws IOException If the process fails to execute; see {@link ProcessBuilder#start()}.
 	 */
 	public Service start() throws IOException {
 		if (process != null) {
@@ -108,7 +108,10 @@ public class Service implements AutoCloseable {
 
 	/**
 	 * Creates a new task, passing the given script to the worker for execution.
+	 *
 	 * @param script The script for the worker to execute in its environment.
+	 * @return The newly created {@link Task} object tracking the execution.
+	 * @throws IOException If something goes wrong communicating with the worker.
 	 */
 	public Task task(String script) throws IOException {
 		start();
@@ -117,8 +120,11 @@ public class Service implements AutoCloseable {
 
 	/**
 	 * Creates a new task, passing the given script to the worker for execution.
+	 *
 	 * @param script The script for the worker to execute in its environment.
 	 * @param inputs Optional list of key/value pairs to feed into the script as inputs.
+	 * @return The newly created {@link Task} object tracking the execution.
+	 * @throws IOException If something goes wrong communicating with the worker.
 	 */
 	public Task task(String script, Map<String, Object> inputs) {
 		return new Task(script, inputs);
@@ -254,7 +260,11 @@ public class Service implements AutoCloseable {
 			return this;
 		}
 
-		/** Registers a listener to be notified of updates to the task. */
+		/**
+		 * Registers a listener to be notified of updates to the task.
+		 *
+		 * @param listener Function to invoke in response to task status updates.
+		 */
 		public synchronized void listen(Consumer<TaskEvent> listener) {
 			if (status != TaskStatus.INITIAL) {
 				throw new IllegalStateException("Task is not in the INITIAL state");

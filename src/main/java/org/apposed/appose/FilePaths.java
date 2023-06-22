@@ -48,6 +48,9 @@ public final class FilePaths {
 	 * speaking, it might not actually be a JAR file, it might be a raw class
 	 * file, or even something weirder... But for our purposes, we'll just
 	 * assume it's going to be something you can put onto a classpath.
+	 *
+	 * @param c The class whose file path should be discerned.
+	 * @return File path of the JAR file containing the given class.
 	 */
 	public static File location(Class<?> c) {
 		try {

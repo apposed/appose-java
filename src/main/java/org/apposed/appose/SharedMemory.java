@@ -278,12 +278,20 @@ public class SharedMemory {
 		this.buf = new MemoryView(this.mmap);
 	}
 
-	/** A memoryview of contents of the shared memory block. */
+	/**
+	 * A memoryview of contents of the shared memory block.
+	 *
+	 * @return The memoryview buffer.
+	 */
 	public MemoryView buf() {
 		return this.buf;
 	}
 
-	/** Unique name that identifies the shared memory block. */
+	/**
+	 * Unique name that identifies the shared memory block.
+	 *
+	 * @return The name of the shared memory.
+	 */
 	public String name() {
 		String reported_name = this.name;
 		if (USE_POSIX && this.prepend_leading_slash) {
@@ -294,7 +302,11 @@ public class SharedMemory {
 		return reported_name;
 	}
 
-	/** Size in bytes. */
+	/**
+	 * Size in bytes.
+	 *
+	 * @return The length in bytes of the shared memory.
+	 */
 	public long size() {
 		return this.size;
 	}
