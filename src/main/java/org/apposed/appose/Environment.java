@@ -129,7 +129,7 @@ public interface Environment {
 		// Ensure that the classpath includes Appose and its dependencies.
 		// NB: This list must match Appose's dependencies in pom.xml!
 		List<Class<?>> apposeDeps = Arrays.asList(//
-			org.apposed.appose.GroovyWorker.class, // ----> org.apposed:appose
+			org.apposed.appose.GroovyWorker.class, // ------> org.apposed:appose
 			org.apache.groovy.util.ScriptRunner.class, // --> org.codehaus.groovy:groovy
 			groovy.json.JsonOutput.class, // ---------------> org.codehaus.groovy:groovy-json
 			org.apache.ivy.Ivy.class, // -------------------> org.apache.ivy:ivy
