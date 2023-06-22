@@ -1,4 +1,10 @@
-# Appose
+# Appose Java
+
+***WARNING: Appose is currently in incubation.
+Not all features described below are functional.
+This document has some aspirational aspects!***
+
+## What is Appose?
 
 Appose is a library for interprocess cooperation with shared memory.
 The guiding principles are *simplicity* and *efficiency*.
@@ -12,40 +18,63 @@ The steps for using Appose are:
 * Execute scripts on the worker by launching Tasks.
 * Receive status updates from the task asynchronously via callbacks.
 
-## Goals
+For more about Appose as a whole, see https://apposed.org.
 
-Python, Java, and JavaScript, working in harmony, side by side.
-Separate processes, shared memory, minimal dependencies.
+## What is this project?
 
-1. Construct an environment. E.g.:
-   * Java with dependencies from Maven.
-   * Python with dependencies from conda-forge.
-   * JavaScript with dependencies from NPM.
+This is the **Java implementation of Appose**.
 
-2. Invoke routines in that environment:
-   * Routines are run in a separate process.
-   * The routine's inputs and outputs are passed via pipes (stdin/stdout).
-   * NDArrays are passed as named shared memory buffers,
-     for zero-copy access across processes.
+## How do I use it?
+
+The dependency coordinate is `org.apposed:appose:0.1.0`.
+
+### Maven
+
+In your project's `pom.xml`:
+
+```xml
+<dependencies>
+  <dependency>
+    <groupId>org.apposed</groupId>
+    <artifactId>appose</artifactId>
+    <version>0.1.0</version>
+  </dependency>
+</dependencies>
+```
+
+### Gradle
+
+In your project's `build.gradle.kts`:
+
+```kotlin
+repositories {
+    mavenCentral()
+}
+dependencies {
+    implementation("org.apposed:appose:0.1.0")
+}
+```
+
+### Just the JARs!
+
+Clone this repository. Then, from the working copy:
+
+```shell
+mvn package dependency:copy-dependencies
+```
+
+Then grab the JARs:
+* `target/appose-x.y.z-SNAPSHOT.jar`
+* `target/dependency/*.jar`
+
+Where `x.y.z-SNAPSHOT` is the version you built.
 
 ## Examples
 
-Here is a very simple example written in Python:
-
-```python
-import appose
-env = appose.java(vendor="zulu", version="17").build()
-with env.groovy() as groovy:
-    task = groovy.task("5 + 6")
-    task.waitFor()
-    result = task.outputs.get("result")
-    assert 11 == result
-```
-
-The same example, but written in Java and calling into Python:
+Here is a minimal example for calling into Python from Java:
 
 ```java
-Environment env = Appose.conda("/path/to/environment.yml").build();
+Environment env = Appose.system();
 try (Service python = env.python()) {
     Task task = python.task("5 + 6");
     task.waitFor();
@@ -54,60 +83,11 @@ try (Service python = env.python()) {
 }
 ```
 
-Here is a Python example using a few more of Appose's features:
+It requires your active/system Python to have the
+[`appose` Python package](https://github.com/apposed/appose-python)
+available (`python -c 'import appose'` should yield no errors).
 
-```python
-import appose
-from time import sleep
-
-golden_ratio_in_groovy = """
-// Approximate the golden ratio using the Fibonacci sequence.
-previous = 0
-current = 1
-for (i=0; i<iterations; i++) {
-    if (task.cancelRequested) {
-        task.cancel()
-        break
-    }
-    task.update(null, i, iterations)
-    v = current
-    current += previous
-    previous = v
-}
-task.outputs["numer"] = current
-task.outputs["denom"] = previous
-"""
-
-env = appose.java(vendor="zulu", version="17").build()
-with env.groovy() as groovy:
-    task = groovy.task(golden_ratio_in_groovy)
-
-    def task_listener(event):
-        match event.responseType:
-            case ResponseType.UPDATE:
-                print(f"Progress {task.current}/{task.maximum}")
-            case ResponseType.COMPLETION:
-                numer = task.outputs["numer"]
-                denom = task.outputs["denom"]
-                ratio = numer / denom
-                print(f"Task complete. Result: {numer}/{denom} =~ {ratio}");
-            case ResponseType.CANCELATION:
-                print("Task canceled")
-            case ResponseType.FAILURE:
-                print(f"Task failed: {task.error}")
-
-    task.listen(task_listener)
-
-    task.start()
-    sleep(1)
-    if not task.status.is_finished():
-        # Task is taking too long; request a cancelation.
-        task.cancel()
-
-    task.wait_for()
-```
-
-And the Java version:
+Here is an example using a few more of Appose's features:
 
 ```java
 String goldenRatioInPython = """
@@ -158,54 +138,8 @@ try (Service python = env.python()) {
 }
 ```
 
+*Note: The `Appose.conda` builder is planned, but not yet implemented.
+Other features demonstrated above work, though.*
+
 Of course, the above examples could have been done all in one language. But
 hopefully they hint at the possibilities of easy cross-language integration.
-
-## Workers
-
-A *worker* is a separate process created by Appose to do asynchronous
-computation on behalf of the calling process. The calling process interacts
-with a worker via its associated {@link Service}.
-
-Appose comes with built-in support for two worker implementations:
-`python_worker` to run Python scripts, and `GroovyWorker` to run Groovy
-scripts. These workers can be created easily by invoking the environment
-object's `python()` and `groovy()` methods respectively.
-
-But Appose is compatible with any program that abides by the
-*Appose worker process contract*:
-
-1. The worker must accept requests in Appose's *request* format on its
-   standard input (stdin) stream.
-2. The worker must issue responses in Appose's *response* format on its
-   standard output (stdout) stream.
-
-TODO - write up the request and response formats in detail here!
-JSON, one line per request/response.
-
-## FAQ
-
-Q: How about abstracting the transport layer so protocols besides pipes+JSON
-   can be used? Then Appose could work with pipes+pickle, and/or with Google
-   Protocol Buffers, Apache Arrow, NATS.io, over HTTP local loopback,
-   between machines on the cloud...
-
-A: It is tempting. But simplicity is an important core design goal, and
-   additional transport layer implementations would increase complexity.
-   There are already a plethora of existing solutions for interprocess
-   communication, RPC, and data sharing between processes on the same or
-   different machines. The reason Appose exists is to be less complicated
-   than those other solutions, while supporting dynamic construction of
-   subprocess environments, and access to large data in shared memory.
-
-Q: What about more data types for inputs and outputs? Appose could be plugin
-   driven, with extension libraries registering additional externalization
-   routines to convert their own favorite kinds of objects to and from JSON.
-
-A: Again, tempting! But nailing down (via either invention or reuse) a
-   plugin mechanism for each supported language would increase the size of
-   the codebase, and the modularization would make it more complicated to
-   depend on Appose. Have you included the right plugins in your dependency
-   set? Do they all have the right versions? Where is the bill of materials
-   keeping all of the dependencies in sync? Etc. For now, Appose strives to
-   be self-contained with all supported types handled by one single library.
