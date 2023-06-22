@@ -167,4 +167,16 @@ public class Appose {
 	public static Builder conda(File environmentYaml) {
 		return new Builder().conda(environmentYaml);
 	}
+
+	public static Environment system() {
+		return system(new File("."));
+	}
+
+	public static Environment system(File directory) {
+		return new Builder().base(directory).useSystemPath().build();
+	}
+
+	public static Environment system(String directory) {
+		return system(new File(directory));
+	}
 }

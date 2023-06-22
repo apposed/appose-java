@@ -69,7 +69,7 @@ public class ApposeTest {
 
 	@Test
 	public void testGroovy() throws IOException, InterruptedException {
-		Environment env = Appose.base(".").useSystemPath().build();
+		Environment env = Appose.system();
 		try (Service service = env.groovy()) {
 			//service.debug(System.err::println);
 			executeAndAssert(service, COLLATZ_GROOVY);
@@ -78,7 +78,7 @@ public class ApposeTest {
 
 	@Test
 	public void testPython() throws IOException, InterruptedException {
-		Environment env = Appose.base(".").useSystemPath().build();
+		Environment env = Appose.system();
 		try (Service service = env.python()) {
 			//service.debug(System.err::println);
 			executeAndAssert(service, COLLATZ_PYTHON);
