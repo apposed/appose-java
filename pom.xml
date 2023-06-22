@@ -80,7 +80,7 @@
 		<!-- NB: Deploy releases to the SciJava Maven repository. -->
 		<releaseProfiles>sign,deploy-to-scijava</releaseProfiles>
 
-		<ivy.version>2.4.0</ivy.version>
+		<ivy.version>2.5.1</ivy.version>
 	</properties>
 
 	<dependencies>
