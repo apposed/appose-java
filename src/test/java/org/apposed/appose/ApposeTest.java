@@ -78,8 +78,7 @@ public class ApposeTest {
 
 	@Test
 	public void testPython() throws IOException, InterruptedException {
-		// HACK: Assume appose-python working copy is adjacent to appose-java.
-		Environment env = Appose.base("../appose-python/src").useSystemPath().build();
+		Environment env = Appose.base(".").useSystemPath().build();
 		try (Service service = env.python()) {
 			//service.debug(System.err::println);
 			executeAndAssert(service, COLLATZ_PYTHON);
