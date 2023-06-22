@@ -14,7 +14,7 @@
 	<version>0.1.0-SNAPSHOT</version>
 
 	<name>Appose</name>
-	<description>Appose: multi-language interprocess plugins with shared memory ndarrays.</description>
+	<description>Appose: multi-language interprocess cooperation with shared memory.</description>
 	<url>https://github.com/apposed/appose-java</url>
 	<inceptionYear>2023</inceptionYear>
 	<organization>

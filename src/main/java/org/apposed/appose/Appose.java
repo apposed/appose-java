@@ -1,6 +1,6 @@
 /*-
  * #%L
- * Appose: multi-language interprocess plugins with shared memory ndarrays.
+ * Appose: multi-language interprocess cooperation with shared memory.
  * %%
  * Copyright (C) 2023 Appose developers.
  * %%
