@@ -110,7 +110,8 @@ public class Service implements AutoCloseable {
 	 * Creates a new task, passing the given script to the worker for execution.
 	 * @param script The script for the worker to execute in its environment.
 	 */
-	public Task task(String script) {
+	public Task task(String script) throws IOException {
+		start();
 		return task(script, null);
 	}
 

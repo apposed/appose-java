@@ -71,20 +71,23 @@ public class ApposeTest {
 	public void testGroovy() throws IOException, InterruptedException {
 		Environment env = Appose.base(".").useSystemPath().build();
 		try (Service service = env.groovy()) {
+			//service.debug(System.err::println);
 			executeAndAssert(service, COLLATZ_GROOVY);
 		}
 	}
 
 	@Test
 	public void testPython() throws IOException, InterruptedException {
-		Environment env = Appose.base(".").useSystemPath().build();
+		// HACK: Assume appose-python working copy is adjacent to appose-java.
+		Environment env = Appose.base("../appose-python/src").useSystemPath().build();
 		try (Service service = env.python()) {
+			//service.debug(System.err::println);
 			executeAndAssert(service, COLLATZ_PYTHON);
 		}
 	}
 
 	public void executeAndAssert(Service service, String script)
-		throws InterruptedException
+		throws InterruptedException, IOException
 	{
 		Task task = service.task(script);
 
@@ -131,7 +134,7 @@ public class ApposeTest {
 			assertSame(ResponseType.UPDATE, update.responseType);
 			assertSame(TaskStatus.RUNNING, update.status);
 			assertEquals("[" + i + "] -> " + v, update.message);
-			assertEquals(0, update.current); // FIXME: BUG: should be i, not 0.
+			assertEquals(i, update.current);
 			assertEquals(1, update.maximum);
 			assertNull(update.error);
 		}
@@ -139,7 +142,7 @@ public class ApposeTest {
 		assertSame(ResponseType.COMPLETION, completion.responseType);
 		assertSame(TaskStatus.COMPLETE, completion.status);
 		assertEquals("[90] -> 1", completion.message);
-		assertEquals(0, completion.current); // FIXME: BUG: should be 91, not 0.
+		assertEquals(90, completion.current);
 		assertEquals(1, completion.maximum);
 		assertNull(completion.error);
 	}
