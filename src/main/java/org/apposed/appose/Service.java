@@ -121,9 +121,6 @@ public class Service implements AutoCloseable {
 	 * @param inputs Optional list of key/value pairs to feed into the script as inputs.
 	 */
 	public Task task(String script, Map<String, Object> inputs) {
-		if (process == null) {
-			throw new IllegalStateException("Please start() the Service before launching a task");
-		}
 		return new Task(script, inputs);
 	}
 

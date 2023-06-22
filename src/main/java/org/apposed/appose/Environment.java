@@ -169,12 +169,13 @@ public interface Environment {
 	 * contract}, meaning it accepts requests on stdin and produces responses on
 	 * stdout, both formatted according to Appose's assumptions.
 	 * </p>
-	 * 
-	 * @param args Command line arguments to launch the service (e.g.
-	 *          {@code "customApposeWorker.sh" "-v"}.
+	 *
+	 * @param exes List of executables to try for launching the worker process.
+	 * @param args Command line arguments to pass to the worker process
+	 *          (e.g. <code>{"-v", "--enable-everything"}</code>.
 	 * @return The newly created service.
 	 * @see #groovy To create a service for Groovy script execution.
-	 * @see #python To create a service for Python script execution.
+	 * @see #python() To create a service for Python script execution.
 	 * @throws IOException If something goes wrong starting the worker process.
 	 */
 	default Service service(List<String> exes, String... args) throws IOException {
@@ -185,7 +186,7 @@ public interface Environment {
 			: Arrays.asList(base());
 
 		File exeFile = FilePaths.findExe(dirs, exes);
-		if (exeFile == null) throw new IllegalArgumentException("No executables found amonst candidates: " + exes);
+		if (exeFile == null) throw new IllegalArgumentException("No executables found amongst candidates: " + exes);
 
 		String[] allArgs = new String[args.length + 1];
 		System.arraycopy(args, 0, allArgs, 1, args.length);
