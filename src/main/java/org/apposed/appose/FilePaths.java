@@ -34,6 +34,9 @@ import java.net.URISyntaxException;
 import java.nio.file.Paths;
 import java.util.List;
 
+/**
+ * Utility methods for working with file paths.
+ */
 public final class FilePaths {
 
 	private FilePaths() {
