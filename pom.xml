@@ -11,7 +11,7 @@
 
 	<groupId>org.apposed</groupId>
 	<artifactId>appose</artifactId>
-	<version>0.1.0-SNAPSHOT</version>
+	<version>0.1.1-SNAPSHOT</version>
 
 	<name>Appose</name>
 	<description>Appose: multi-language interprocess cooperation with shared memory.</description>
