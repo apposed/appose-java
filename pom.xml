@@ -64,7 +64,7 @@
 	</scm>
 	<issueManagement>
 		<system>GitHub Issues</system>
-		<url>https://github.com/apposed/appose-java/issues</url>
+		<url>https://github.com/apposed/appose/issues</url>
 	</issueManagement>
 	<ciManagement>
 		<system>GitHub Actions</system>
