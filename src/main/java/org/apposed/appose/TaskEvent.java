@@ -40,4 +40,9 @@ public class TaskEvent {
 		this.task = task;
 		this.responseType = responseType;
 	}
+
+	@Override
+	public String toString() {
+		return String.format("[%s] %s", responseType, task);
+	}
 }

@@ -352,5 +352,11 @@ public class Service implements AutoCloseable {
 				}
 			}
 		}
+
+		@Override
+		public String toString() {
+			return String.format("uuid=%s, status=%s, message=%s, current=%d, maximum=%d, error=%s",
+				uuid, status, message, current, maximum, error);
+		}
 	}
 }
