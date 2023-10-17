@@ -137,13 +137,25 @@ public class Service implements AutoCloseable {
 	/** Input loop processing lines from the worker stdout stream. */
 	private void stdoutLoop() {
 		BufferedReader stdout = new BufferedReader(new InputStreamReader(process.getInputStream()));
-		try {
-			while (true) {
-				String line = stdout.readLine();
-				debugService(line == null ? "<worker stdout closed>" : line);
+		while (true) {
+			String line;
+			try {
+				line = stdout.readLine();
+			}
+			catch (IOException exc) {
+				// Something went wrong reading the line. Panic!
+				debugService(Types.stackTrace(exc));
+				break;
+			}
 
-				if (line == null) return; // pipe closed
+			if (line == null) {
+				// pipe closed
+				debugService("<worker stdout closed>");
+				return;
+			}
+			try {
 				Map<String, Object> response = Types.decode(line);
+				debugService(line); // Echo the line to the debug listener.
 				Object uuid = response.get("task");
 				if (uuid == null) {
 					debugService("Invalid service message:" + line);
@@ -156,9 +168,11 @@ public class Service implements AutoCloseable {
 				}
 				task.handle(response);
 			}
-		}
-		catch (IOException exc) {
-			debugService(Types.stackTrace(exc));
+			catch (Exception exc) {
+				// Something went wrong decoding the line of JSON.
+				// Skip it and keep going, but log it first.
+				debugService(String.format("<INVALID> %s", line));
+			}
 		}
 	}
 
