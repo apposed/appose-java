@@ -215,14 +215,7 @@ public class Service implements AutoCloseable {
 		if (taskCount > 0) debugService("<worker process terminated with " + taskCount + " pending tasks>");
 
 		// Notify any remaining tasks about the process crash.
-		for (Task task : tasks.values()) {
-			TaskEvent event = new TaskEvent(task, ResponseType.CRASH);
-			task.status = TaskStatus.CRASHED;
-			task.listeners.forEach(l -> l.accept(event));
-			synchronized (task) {
-				task.notifyAll();
-			}
-		}
+		tasks.values().forEach(Task::crash);
 		tasks.clear();
 	}
 
@@ -382,6 +375,15 @@ public class Service implements AutoCloseable {
 				synchronized (this) {
 					notifyAll();
 				}
+			}
+		}
+
+		private void crash() {
+			TaskEvent event = new TaskEvent(this, ResponseType.CRASH);
+			status = TaskStatus.CRASHED;
+			listeners.forEach(l -> l.accept(event));
+			synchronized (this) {
+				notifyAll();
 			}
 		}
 
