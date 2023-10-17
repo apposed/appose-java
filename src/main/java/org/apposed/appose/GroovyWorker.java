@@ -55,7 +55,7 @@ import groovy.lang.GroovyShell;
  */
 public class GroovyWorker {
 
-	private static Map<String, Task> tasks = new ConcurrentHashMap<>();
+	private static final Map<String, Task> TASKS = new ConcurrentHashMap<>();
 
 	public static void main(String... args) throws IOException {
 		BufferedReader stdin = //
@@ -87,12 +87,12 @@ public class GroovyWorker {
 		Map<String, Object> inputs)
 	{
 		Task task = new Task(uuid);
-		tasks.put(uuid, task);
+		TASKS.put(uuid, task);
 		task.start(script, inputs);
 	}
 
 	private static void cancel(String uuid) {
-		Task task = tasks.get(uuid);
+		Task task = TASKS.get(uuid);
 		if (task == null) {
 			// TODO: proper logging
 			// Maybe should stdout the error back to Appose calling process.
@@ -141,7 +141,7 @@ public class GroovyWorker {
 				Binding binding = new Binding();
 				binding.setVariable("task", Task.this);
 				// TODO: Magically convert shared memory image inputs.
-				inputs.forEach((k, v) -> binding.setVariable(k, v));
+				inputs.forEach(binding::setVariable);
 
 				// Inform the calling process that the script is launching.
 				reportLaunch();
@@ -177,8 +177,7 @@ public class GroovyWorker {
 		}
 
 		private void reportCompletion() {
-			Map<String, Object> args = outputs == null ? null : //
-				Collections.singletonMap("outputs", outputs);
+			Map<String, Object> args = Collections.singletonMap("outputs", outputs);
 			respond(ResponseType.COMPLETION, args);
 		}
 
