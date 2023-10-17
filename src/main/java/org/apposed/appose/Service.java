@@ -152,7 +152,6 @@ public class Service implements AutoCloseable {
 			}
 
 			if (line == null) {
-				// pipe closed
 				debugService("<worker stdout closed>");
 				return;
 			}
