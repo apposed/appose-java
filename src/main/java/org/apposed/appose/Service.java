@@ -62,6 +62,7 @@ public class Service implements AutoCloseable {
 	private PrintWriter stdin;
 	private Thread stdoutThread;
 	private Thread stderrThread;
+	private Thread monitorThread;
 
 	private Consumer<String> debugListener;
 
@@ -99,8 +100,10 @@ public class Service implements AutoCloseable {
 		stdin = new PrintWriter(process.getOutputStream());
 		stdoutThread = new Thread(this::stdoutLoop, prefix + "-Stdout");
 		stderrThread = new Thread(this::stderrLoop, prefix + "-Stderr");
+		monitorThread = new Thread(this::monitorLoop, prefix + "-Monitor");
 		stderrThread.start();
 		stdoutThread.start();
+		monitorThread.start();
 		return this;
 	}
 
@@ -194,6 +197,35 @@ public class Service implements AutoCloseable {
 		}
 	}
 
+	private void monitorLoop() {
+		// Wait until the worker process terminates.
+		while (process.isAlive()) {
+			try {
+				Thread.sleep(50);
+			}
+			catch (InterruptedException exc) {
+				debugService(Types.stackTrace(exc));
+			}
+		}
+
+		// Do some sanity checks.
+		int exitCode = process.exitValue();
+		if (exitCode != 0) debugService("<worker process terminated with exit code " + exitCode + ">");
+		int taskCount = tasks.size();
+		if (taskCount > 0) debugService("<worker process terminated with " + taskCount + " pending tasks>");
+
+		// Notify any remaining tasks about the process crash.
+		for (Task task : tasks.values()) {
+			TaskEvent event = new TaskEvent(task, ResponseType.CRASH);
+			task.status = TaskStatus.CRASHED;
+			task.listeners.forEach(l -> l.accept(event));
+			synchronized (task) {
+				task.notifyAll();
+			}
+		}
+		tasks.clear();
+	}
+
 	private void debugService(String message) { debug("SERVICE", message); }
 	private void debugWorker(String message) { debug("WORKER", message); }
 
@@ -207,13 +239,13 @@ public class Service implements AutoCloseable {
 	}
 
 	public enum TaskStatus {
-		INITIAL, QUEUED, RUNNING, COMPLETE, CANCELED, FAILED;
+		INITIAL, QUEUED, RUNNING, COMPLETE, CANCELED, FAILED, CRASHED;
 
 		/**
-		 * @return true iff status is {@link #COMPLETE}, {@link #CANCELED}, or {@link #FAILED}.
+		 * @return true iff status is {@link #COMPLETE}, {@link #CANCELED}, {@link #FAILED}, or {@link #CRASHED}.
 		 */
 		public boolean isFinished() {
-			return this == COMPLETE || this == CANCELED || this == FAILED;
+			return this == COMPLETE || this == CANCELED || this == FAILED || this == CRASHED;
 		}
 	}
 
@@ -222,7 +254,7 @@ public class Service implements AutoCloseable {
 	}
 
 	public enum ResponseType {
-		LAUNCH, UPDATE, COMPLETION, CANCELATION, FAILURE
+		LAUNCH, UPDATE, COMPLETION, CANCELATION, FAILURE, CRASH
 	}
 
 	/**

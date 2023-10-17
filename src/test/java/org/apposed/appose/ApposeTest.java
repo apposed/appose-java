@@ -114,6 +114,7 @@ public class ApposeTest {
 		task.waitFor();
 
 		// Validate the execution result.
+		assertSame(TaskStatus.COMPLETE, task.status);
 		Number result = (Number) task.outputs.get("result");
 		assertEquals(91, result.intValue());
 
