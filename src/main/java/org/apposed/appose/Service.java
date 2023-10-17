@@ -30,11 +30,9 @@
 package org.apposed.appose;
 
 import java.io.BufferedReader;
-import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStreamReader;
-import java.io.PrintStream;
 import java.io.PrintWriter;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -160,7 +158,7 @@ public class Service implements AutoCloseable {
 			}
 		}
 		catch (IOException exc) {
-			debugService(formatExc(exc));
+			debugService(Types.stackTrace(exc));
 		}
 	}
 
@@ -178,16 +176,8 @@ public class Service implements AutoCloseable {
 			}
 		}
 		catch (IOException exc) {
-			debugWorker(formatExc(exc));
+			debugWorker(Types.stackTrace(exc));
 		}
-	}
-
-	/** Converts the given exception, including stack trace, to a string. */
-	private String formatExc(Throwable t) {
-		ByteArrayOutputStream baos = new ByteArrayOutputStream();
-		PrintStream s = new PrintStream(baos);
-		t.printStackTrace(s);
-		return baos.toString();
 	}
 
 	private void debugService(String message) { debug("SERVICE", message); }

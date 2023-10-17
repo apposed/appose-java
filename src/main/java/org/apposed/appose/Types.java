@@ -28,6 +28,8 @@
  */
 package org.apposed.appose;
 
+import java.io.PrintWriter;
+import java.io.StringWriter;
 import java.util.Map;
 
 import groovy.json.JsonOutput;
@@ -48,4 +50,10 @@ public final class Types {
 		return (Map<String, Object>) new JsonSlurper().parseText(json);
 	}
 
+	/** Dumps the given exception, including stack trace, to a string. */
+	public static String stackTrace(Throwable t) {
+		StringWriter sw = new StringWriter();
+		t.printStackTrace(new PrintWriter(sw));
+		return sw.toString();
+	}
 }
