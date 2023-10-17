@@ -182,7 +182,20 @@ public class GroovyWorker {
 			response.put("task", uuid);
 			response.put("responseType", responseType.toString());
 			if (args != null) response.putAll(args);
-			System.out.println(Types.encode(response));
+			try {
+				System.out.println(Types.encode(response));
+			}
+			catch (Exception exc) {
+				// Encoding can fail due to unsupported types, when the response
+				// or its elements are not supported by JSON encoding.
+				// No matter what goes wrong, we want to tell the caller.
+				if (responseType == ResponseType.FAILURE) {
+					// TODO: How to address this hypothetical case
+					// of a failure message triggering another failure?
+					throw new RuntimeException(exc);
+				}
+				fail(Types.stackTrace(exc));
+			}
 			// NB: Flush is necessary to ensure service receives the data!
 			System.out.flush();
 		}
