@@ -30,17 +30,37 @@
 package org.apposed.appose;
 
 import java.io.File;
+import java.io.IOException;
+import java.nio.file.Paths;
 
 public class Builder {
 
 	public Environment build() {
+		String base = baseDir.getPath();
+		boolean useSystemPath = systemPath;
+
 		// TODO Build the thing!~
 		// Hash the state to make a base directory name.
 		// - Construct conda environment from condaEnvironmentYaml.
 		// - Download and unpack JVM of the given vendor+version.
 		// - Populate ${baseDirectory}/jars with Maven artifacts?
-		String base = baseDir.getPath();
-		boolean useSystemPath = systemPath;
+
+		try {
+			String minicondaBase = Paths.get(System.getProperty("user.home"), ".local", "share", "appose", "miniconda").toString();
+			Conda conda = new Conda(minicondaBase);
+			String envName = "appose";
+			if (conda.getEnvironmentNames().contains( envName )) {
+				// TODO: Should we update it? For now, we just use it.
+			}
+			else {
+				conda.create(envName, "-f", condaEnvironmentYaml.getAbsolutePath());
+			}
+		} catch (IOException e) {
+			throw new RuntimeException(e);
+		} catch (InterruptedException e) {
+			throw new RuntimeException(e);
+		}
+
 		return new Environment() {
 			@Override public String base() { return base; }
 			@Override public boolean useSystemPath() { return useSystemPath; }

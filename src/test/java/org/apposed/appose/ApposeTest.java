@@ -86,6 +86,14 @@ public class ApposeTest {
 		}
 	}
 
+	public void testConda() {
+		Environment env = Appose.conda("appose-environment.yml").build();
+		try (Service service = env.python()) {
+			service.debug(System.err::println);
+			executeAndAssert(service, "import cowsay; ");
+		}
+	}
+
 	@Test
 	public void testServiceStartupFailure() throws IOException {
 		Environment env = Appose.base("no-pythons-to-be-found-here").build();
