@@ -32,6 +32,7 @@ package org.apposed.appose;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
+import static org.junit.jupiter.api.Assertions.fail;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -82,6 +83,21 @@ public class ApposeTest {
 		try (Service service = env.python()) {
 			//service.debug(System.err::println);
 			executeAndAssert(service, COLLATZ_PYTHON);
+		}
+	}
+
+	@Test
+	public void testServiceStartupFailure() throws IOException {
+		Environment env = Appose.base("no-pythons-to-be-found-here").build();
+		try (Service service = env.python()) {
+			fail("Python worker process started successfully!?");
+		}
+		catch (IllegalArgumentException exc) {
+			assertEquals(
+				"No executables found amongst candidates: " +
+				"[python, python.exe, bin/python, bin/python.exe]",
+				exc.getMessage()
+			);
 		}
 	}
 
