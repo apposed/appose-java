@@ -34,6 +34,7 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.fail;
 
+import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
@@ -87,10 +88,13 @@ public class ApposeTest {
 	}
 
 	public void testConda() {
-		Environment env = Appose.conda("appose-environment.yml").build();
+		Environment env = Appose.conda(new File("appose-environment.yml")).build();
 		try (Service service = env.python()) {
 			service.debug(System.err::println);
 			executeAndAssert(service, "import cowsay; ");
+		} catch (IOException | InterruptedException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
 		}
 	}
 
