@@ -26,7 +26,11 @@
  ******************************************************************************/
 package org.apposed.appose;
 
+import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang3.SystemUtils;
+import org.apposed.appose.CondaException.EnvironmentExistsException;
+
+import groovy.json.JsonSlurper;
 
 import java.io.BufferedReader;
 import java.io.File;
@@ -49,6 +53,16 @@ import java.util.stream.Collectors;
  * @author Curtis Rueden
  */
 public class Conda {
+	
+	final String pythonCommand = SystemUtils.IS_OS_WINDOWS ? "python.exe" : "bin/python";
+	
+	final String condaCommand = SystemUtils.IS_OS_WINDOWS ? "condabin\\conda.bat" : "condabin/conda";
+	
+	private String envName = DEFAULT_ENVIRONMENT_NAME;
+	
+	private final String rootdir;
+	
+	public final static String DEFAULT_ENVIRONMENT_NAME = "base";
 
 	private final static int TIMEOUT_MILLIS = 10 * 1000;
 
@@ -117,25 +131,20 @@ public class Conda {
 	{
 		if ( Files.notExists( Paths.get( rootdir ) ) )
 		{
-			String downloadUrl = null;
-			if ( SystemUtils.IS_OS_WINDOWS )
-				downloadUrl = DOWNLOAD_URL_WIN;
-			else if ( SystemUtils.IS_OS_LINUX )
-				downloadUrl = DOWNLOAD_URL_LINUX;
-			else if ( SystemUtils.IS_OS_MAC && System.getProperty( "os.arch" ).equals( "aarch64" ) )
-				downloadUrl = DOWNLOAD_URL_MAC_M1;
-			else if ( SystemUtils.IS_OS_MAC )
-				downloadUrl = DOWNLOAD_URL_MAC;
-			else
-				throw new UnsupportedOperationException();
 
-			final File tempFile = File.createTempFile( "miniconda", SystemUtils.IS_OS_WINDOWS ? ".exe" : ".sh" );
+			final File tempFile = File.createTempFile( "miniconda", SystemUtils.IS_OS_WINDOWS ? ".tar.bz2" : ".sh" );
 			tempFile.deleteOnExit();
 			FileUtils.copyURLToFile(
-					new URL( downloadUrl ),
+					new URL( MICROMAMBA_URL ),
 					tempFile,
 					TIMEOUT_MILLIS,
 					TIMEOUT_MILLIS );
+			
+			String command = "tar xf " + tempFile.getAbsolutePath();
+			// Setting up the ProcessBuilder to use PowerShell
+			ProcessBuilder processBuilder = new ProcessBuilder("powershell.exe", "-Command", command);
+			if ( processBuilder.inheritIO().start().waitFor() != 0 )
+				throw new RuntimeException();
 			final List< String > cmd = getBaseCommand();
 
 			if ( SystemUtils.IS_OS_WINDOWS )
@@ -153,6 +162,22 @@ public class Conda {
 		cmd.addAll( Arrays.asList( condaCommand, "-V" ) );
 		if ( getBuilder( false ).command( cmd ).start().waitFor() != 0 )
 			throw new RuntimeException();
+	}
+
+	/**
+	 * Returns {@code \{"cmd.exe", "/c"\}} for Windows and an empty list for
+	 * Mac/Linux.
+	 * 
+	 * @return {@code \{"cmd.exe", "/c"\}} for Windows and an empty list for
+	 *         Mac/Linux.
+	 * @throws IOException
+	 */
+	private List< String > getBaseCommand()
+	{
+		final List< String > cmd = new ArrayList<>();
+		if ( SystemUtils.IS_OS_WINDOWS )
+			cmd.addAll( Arrays.asList( "cmd.exe", "/c" ) );
+		return cmd;
 	}
 
 	/**
@@ -195,6 +220,54 @@ public class Conda {
 		final List< String > cmd = new ArrayList<>( Arrays.asList( "update", "-y", "-n", envName ) );
 		cmd.addAll( Arrays.asList( args ) );
 		runConda( cmd.stream().toArray( String[]::new ) );
+	}
+
+	/**
+	 * Run {@code conda create} to create a conda environment defined by the input environment yaml file.
+	 * 
+	 * @param envName
+	 *            The environment name to be created.
+	 * @param envYaml
+	 *            The environment yaml file containing the information required to build it 
+	 * @throws IOException
+	 *             If an I/O error occurs.
+	 * @throws InterruptedException
+	 *             If the current thread is interrupted by another thread while it
+	 *             is waiting, then the wait is ended and an InterruptedException is
+	 *             thrown.
+	 */
+	public void createWithYaml( final String envName, final String envYaml ) throws IOException, InterruptedException
+	{
+		createWithYaml(envName, envYaml);
+	}
+
+	/**
+	 * Run {@code conda create} to create a conda environment defined by the input environment yaml file.
+	 * 
+	 * @param envName
+	 *            The environment name to be created.
+	 * @param envYaml
+	 *            The environment yaml file containing the information required to build it  
+	 * @param envName
+	 *            The environment name to be created.
+	 * @param isForceCreation
+	 *            Force creation of the environment if {@code true}. If this value
+	 *            is {@code false} and an environment with the specified name
+	 *            already exists, throw an {@link EnvironmentExistsException}.
+	 * @throws IOException
+	 *             If an I/O error occurs.
+	 * @throws InterruptedException
+	 *             If the current thread is interrupted by another thread while it
+	 *             is waiting, then the wait is ended and an InterruptedException is
+	 *             thrown.
+	 */
+	public void createWithYaml( final String envName, final String envYaml, final boolean isForceCreation ) throws IOException, InterruptedException
+	{
+		if ( !isForceCreation && getEnvironmentNames().contains( envName ) )
+			throw new EnvironmentExistsException();
+		runConda( "env", "create", "--prefix",
+				rootdir + File.separator + "envs", "--force", 
+				"-n", envName, "--file", envYaml, "-y" );
 	}
 
 	/**
@@ -594,6 +667,23 @@ public class Conda {
 				.filter( p -> !p.startsWith( "." ) )
 				.collect( Collectors.toList() ) );
 		return envs;
+	}
+	
+	public static boolean checkDependenciesInEnv(String envDir, List<String> dependencies) {
+		if (!(new File(envDir).isDirectory()))
+			return false;
+		Builder env = new Builder().conda(new File(envDir));
+		// TODO run conda list -p /full/path/to/env
+		return false;
+	}
+	
+	public boolean checkEnvFromYamlExists(String envYaml) {
+		if (envYaml == null || new File(envYaml).isFile() == false 
+				|| (envYaml.endsWith(".yaml") && envYaml.endsWith(".yml"))) {
+			return false;
+		}
+		// TODO parse yaml without adding deps
+		return false;
 	}
 
 }
