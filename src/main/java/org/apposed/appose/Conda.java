@@ -56,7 +56,9 @@ public class Conda {
 	
 	final String pythonCommand = SystemUtils.IS_OS_WINDOWS ? "python.exe" : "bin/python";
 	
-	final String condaCommand = SystemUtils.IS_OS_WINDOWS ? "condabin\\conda.bat" : "condabin/conda";
+	final String condaCommand = SystemUtils.IS_OS_WINDOWS ? 
+			BASE_PATH + File.separator + "Library" + File.separator + "bin" + File.separator + "micromamba.exe" 
+			: BASE_PATH + File.separator + "bin" + File.separator + "micromamba";
 	
 	private String envName = DEFAULT_ENVIRONMENT_NAME;
 	
@@ -66,7 +68,9 @@ public class Conda {
 
 	private final static int TIMEOUT_MILLIS = 10 * 1000;
 
-	final public static String basePath = Paths.get(System.getProperty("user.home"), ".local", "share", "appose", "micromamba").toString();
+	final public static String BASE_PATH = Paths.get(System.getProperty("user.home"), ".local", "share", "appose", "micromamba").toString();
+	
+	final public static String ENVS_PATH = Paths.get(BASE_PATH, "envs").toString();
 	
 	private final static String MICROMAMBA_URL =
 		"https://micro.mamba.pm/api/micromamba/" + microMambaPlatform() + "/latest";
@@ -145,7 +149,7 @@ public class Conda {
 			final File tempTarFile = File.createTempFile( "miniconda", ".tar" );
 			tempTarFile.deleteOnExit();
 			Bzip2Utils.unBZip2(tempFile, tempTarFile);
-			File mambaBaseDir = new File(basePath);
+			File mambaBaseDir = new File(BASE_PATH);
 			if (!mambaBaseDir.isDirectory() && !mambaBaseDir.mkdirs())
     	        throw new IOException("Failed to create Micromamba default directory " + mambaBaseDir.getParentFile().getAbsolutePath());
 			
@@ -180,8 +184,7 @@ public class Conda {
 	{
 		final List< String > cmd = new ArrayList<>();
 		if ( SystemUtils.IS_OS_WINDOWS )
-			cmd.addAll( Arrays.asList( basePath + File.separator + "Library" 
-		+ File.separator + "bin" + File.separator + "micromamba.exe", "/c" ) );
+			cmd.addAll( Arrays.asList( "cmd.exe", "/c" ) );
 		return cmd;
 	}
 
@@ -271,8 +274,7 @@ public class Conda {
 		if ( !isForceCreation && getEnvironmentNames().contains( envName ) )
 			throw new EnvironmentExistsException();
 		runConda( "env", "create", "--prefix",
-				rootdir + File.separator + "envs", "--force", 
-				"-n", envName, "--file", envYaml, "-y" );
+				ENVS_PATH + File.separator + envName, "--force", "--file", envYaml, "-y" );
 	}
 
 	/**
@@ -312,7 +314,7 @@ public class Conda {
 	{
 		if ( !isForceCreation && getEnvironmentNames().contains( envName ) )
 			throw new EnvironmentExistsException();
-		runConda( "create", "-y", "-n", envName );
+		runConda( "create", "-y", "-p", ENVS_PATH + File.separator + envName );
 	}
 
 	/**
@@ -360,7 +362,7 @@ public class Conda {
 	{
 		if ( !isForceCreation && getEnvironmentNames().contains( envName ) )
 			throw new EnvironmentExistsException();
-		final List< String > cmd = new ArrayList<>( Arrays.asList( "env", "create", "--force", "-n", envName ) );
+		final List< String > cmd = new ArrayList<>( Arrays.asList( "env", "create", "--force", "-p", ENVS_PATH + File.separator + envName ) );
 		cmd.addAll( Arrays.asList( args ) );
 		runConda( cmd.stream().toArray( String[]::new ) );
 	}
@@ -554,7 +556,7 @@ public class Conda {
 			envs.put( "Path", Paths.get( envDir, "Library" ).toString() + ";" + envs.get( "Path" ) );
 			envs.put( "Path", Paths.get( envDir, "Library", "Bin" ).toString() + ";" + envs.get( "Path" ) );
 		}
-		builder.environment().putAll( getEnvironmentVariables( envName ) );
+		// TODO find way to get env vars in micromamba builder.environment().putAll( getEnvironmentVariables( envName ) );
 		if ( builder.command( cmd ).start().waitFor() != 0 )
 			throw new RuntimeException();
 	}
@@ -573,7 +575,7 @@ public class Conda {
 	public String getVersion() throws IOException, InterruptedException
 	{
 		final List< String > cmd = getBaseCommand();
-		cmd.addAll( Arrays.asList( condaCommand, "-V" ) );
+		cmd.addAll( Arrays.asList( condaCommand, "--version" ) );
 		final Process process = getBuilder( false ).command( cmd ).start();
 		if ( process.waitFor() != 0 )
 			throw new RuntimeException();
@@ -613,10 +615,12 @@ public class Conda {
 	 *             is waiting, then the wait is ended and an InterruptedException is
 	 *             thrown.
 	 */
+	/* TODO find equivalent in mamba
 	public Map< String, String > getEnvironmentVariables() throws IOException, InterruptedException
 	{
 		return getEnvironmentVariables( envName );
 	}
+	*/
 
 	/**
 	 * Returns environment variables associated with the specified environment as
@@ -632,6 +636,8 @@ public class Conda {
 	 *             is waiting, then the wait is ended and an InterruptedException is
 	 *             thrown.
 	 */
+	/**
+	 * TODO find equivalent in mamba
 	public Map< String, String > getEnvironmentVariables( final String envName ) throws IOException, InterruptedException
 	{
 		final List< String > cmd = getBaseCommand();
@@ -652,6 +658,7 @@ public class Conda {
 		}
 		return map;
 	}
+	*/
 
 	/**
 	 * Returns a list of the Conda environment names as {@code List< String >}.
@@ -667,7 +674,7 @@ public class Conda {
 	public List< String > getEnvironmentNames() throws IOException
 	{
 		final List< String > envs = new ArrayList<>( Arrays.asList( DEFAULT_ENVIRONMENT_NAME ) );
-		envs.addAll( Files.list( Paths.get( rootdir, "envs" ) )
+		envs.addAll( Files.list( Paths.get( ENVS_PATH ) )
 				.map( p -> p.getFileName().toString() )
 				.filter( p -> !p.startsWith( "." ) )
 				.collect( Collectors.toList() ) );
