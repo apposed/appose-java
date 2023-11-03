@@ -159,15 +159,15 @@ public class Conda {
 			if (!mambaBaseDir.isDirectory() && !mambaBaseDir.mkdirs())
     	        throw new IOException("Failed to create Micromamba default directory " + mambaBaseDir.getParentFile().getAbsolutePath());
 			MambaInstallerUtils.unTar(tempTarFile, mambaBaseDir);
+			if (!(new File(ENVS_PATH)).isDirectory() && !new File(ENVS_PATH).mkdirs())
+    	        throw new IOException("Failed to create Micromamba default envs directory " + ENVS_PATH);
+			
 		}
 		this.rootdir = rootdir;
 
 		// The following command will throw an exception if Conda does not work as
 		// expected.
-		final List< String > cmd = getBaseCommand();
-		cmd.addAll( Arrays.asList( condaCommand, "-V" ) );
-		if ( getBuilder( false ).command( cmd ).start().waitFor() != 0 )
-			throw new RuntimeException();
+		getVersion();
 	}
 
 	/**
@@ -244,7 +244,7 @@ public class Conda {
 	 */
 	public void createWithYaml( final String envName, final String envYaml ) throws IOException, InterruptedException
 	{
-		createWithYaml(envName, envYaml);
+		createWithYaml(envName, envYaml, false);
 	}
 
 	/**
