@@ -30,7 +30,6 @@
 package org.apposed.appose;
 
 import java.io.BufferedInputStream;
-import java.io.BufferedOutputStream;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
@@ -38,6 +37,13 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.net.HttpURLConnection;
+import java.net.MalformedURLException;
+import java.net.URI;
+import java.net.URISyntaxException;
+import java.net.URL;
+import java.nio.channels.Channels;
+import java.nio.channels.ReadableByteChannel;
 
 import org.apache.commons.compress.archivers.ArchiveException;
 import org.apache.commons.compress.archivers.ArchiveStreamFactory;
@@ -49,11 +55,9 @@ import org.apache.commons.compress.utils.IOUtils;
 /**
  * Utility methods  unzip bzip2 files
  */
-public final class Bzip2Utils {
+public final class MambaInstallerUtils {
 	
-	final private static int BUFFER_SIZE = 1024 * 20;
-
-	private Bzip2Utils() {
+	private MambaInstallerUtils() {
 		// Prevent instantiation of utility class.
 	}
 	
@@ -88,7 +92,7 @@ public final class Bzip2Utils {
 	 * @throws FileNotFoundException
 	 * @throws ArchiveException 
 	 */
-	private static void unTar(final File inputFile, final File outputDir) throws FileNotFoundException, IOException, ArchiveException {
+	public static void unTar(final File inputFile, final File outputDir) throws FileNotFoundException, IOException, ArchiveException {
 
 		try (
 				InputStream is = new FileInputStream(inputFile);
@@ -117,11 +121,69 @@ public final class Bzip2Utils {
 
 	}
 	
-	public static void main(String[] args) throws FileNotFoundException, IOException, ArchiveException {
+	public static void main(String[] args) throws FileNotFoundException, IOException, ArchiveException, URISyntaxException {
+		String url = Conda.MICROMAMBA_URL;
+		final File tempFile = File.createTempFile( "miniconda", ".tar.bz2" );
+		tempFile.deleteOnExit();
+		URL website = MambaInstallerUtils.redirectedURL(new URL(url));
+		ReadableByteChannel rbc = Channels.newChannel(website.openStream());
+		try (FileOutputStream fos = new FileOutputStream(tempFile)) {
+			long transferred = fos.getChannel().transferFrom(rbc, 0, Long.MAX_VALUE);
+			System.out.print(tempFile.length());
+		}
 		String tarPath = "C:\\Users\\angel\\OneDrive\\Documentos\\pasteur\\git\\micromamba-1.5.1-1.tar";
 		String mambaPath = "C:\\Users\\angel\\OneDrive\\Documentos\\pasteur\\git\\mamba";
 		unBZip2(new File("C:\\Users\\angel\\OneDrive\\Documentos\\pasteur\\git\\micromamba-1.5.1-1.tar.bz2"), 
 			new File(tarPath));
 		unTar(new File(tarPath), new File(mambaPath));
+	}
+	
+	/**
+	 * This method shuold be used when we get the following response codes from 
+	 * a {@link HttpURLConnection}:
+	 * - {@link HttpURLConnection#HTTP_MOVED_TEMP}
+	 * - {@link HttpURLConnection#HTTP_MOVED_PERM}
+	 * - {@link HttpURLConnection#HTTP_SEE_OTHER}
+	 * 
+	 * If that is not the response code or the connection does not work, the url
+	 * returned will be the same as the provided.
+	 * If the method is used corretly, it will return the URL to which the original URL
+	 * has been redirected
+	 * @param url
+	 * 	original url. Connecting to that url must give a 301, 302 or 303 response code
+	 * @param conn
+	 * 	connection to the url
+	 * @return the redirected url
+	 * @throws MalformedURLException 
+	 * @throws URISyntaxException 
+	 */
+	public static URL redirectedURL(URL url) throws MalformedURLException, URISyntaxException {
+		int statusCode;
+		HttpURLConnection conn;
+		try {
+			conn = (HttpURLConnection) url.openConnection();
+			statusCode = conn.getResponseCode();
+		} catch (IOException ex) {
+			return url;
+		}
+		if (statusCode < 300 || statusCode > 308)
+			return url;
+		String newURL = conn.getHeaderField("Location");
+		try {
+			return redirectedURL(new URL(newURL));
+		} catch (MalformedURLException ex) {
+		}
+		try {
+			if (newURL.startsWith("//"))
+				return redirectedURL(new URL("http:" + newURL));
+			else
+				throw new MalformedURLException();
+		} catch (MalformedURLException ex) {
+		}
+        URI uri = url.toURI();
+        String scheme = uri.getScheme();
+        String host = uri.getHost();
+        String mainDomain = scheme + "://" + host;
+		return redirectedURL(new URL(mainDomain + newURL));
 	}
 }

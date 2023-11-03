@@ -26,6 +26,7 @@
  ******************************************************************************/
 package org.apposed.appose;
 
+import org.apache.commons.compress.archivers.ArchiveException;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang3.SystemUtils;
 import org.apposed.appose.CondaException.EnvironmentExistsException;
@@ -34,9 +35,13 @@ import groovy.json.JsonSlurper;
 
 import java.io.BufferedReader;
 import java.io.File;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStreamReader;
+import java.net.URISyntaxException;
 import java.net.URL;
+import java.nio.channels.Channels;
+import java.nio.channels.ReadableByteChannel;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.ArrayList;
@@ -72,7 +77,7 @@ public class Conda {
 	
 	final public static String ENVS_PATH = Paths.get(BASE_PATH, "envs").toString();
 	
-	private final static String MICROMAMBA_URL =
+	public final static String MICROMAMBA_URL =
 		"https://micro.mamba.pm/api/micromamba/" + microMambaPlatform() + "/latest";
 
 	private static String microMambaPlatform() {
@@ -132,35 +137,28 @@ public class Conda {
 	 *             If the current thread is interrupted by another thread while it
 	 *             is waiting, then the wait is ended and an InterruptedException is
 	 *             thrown.
+	 * @throws ArchiveException 
+	 * @throws URISyntaxException 
 	 */
-	public Conda( final String rootdir ) throws IOException, InterruptedException
+	public Conda( final String rootdir ) throws IOException, InterruptedException, ArchiveException, URISyntaxException
 	{
-		if ( Files.notExists( Paths.get( rootdir ) ) )
+		if ( Files.notExists( Paths.get( condaCommand ) ) )
 		{
 
 			final File tempFile = File.createTempFile( "miniconda", ".tar.bz2" );
 			tempFile.deleteOnExit();
-			FileUtils.copyURLToFile(
-					new URL( MICROMAMBA_URL ),
-					tempFile,
-					TIMEOUT_MILLIS,
-					TIMEOUT_MILLIS );
-
+			URL website = MambaInstallerUtils.redirectedURL(new URL(MICROMAMBA_URL));
+			ReadableByteChannel rbc = Channels.newChannel(website.openStream());
+			try (FileOutputStream fos = new FileOutputStream(tempFile)) {
+				fos.getChannel().transferFrom(rbc, 0, Long.MAX_VALUE);
+			}
 			final File tempTarFile = File.createTempFile( "miniconda", ".tar" );
 			tempTarFile.deleteOnExit();
-			Bzip2Utils.unBZip2(tempFile, tempTarFile);
+			MambaInstallerUtils.unBZip2(tempFile, tempTarFile);
 			File mambaBaseDir = new File(BASE_PATH);
 			if (!mambaBaseDir.isDirectory() && !mambaBaseDir.mkdirs())
     	        throw new IOException("Failed to create Micromamba default directory " + mambaBaseDir.getParentFile().getAbsolutePath());
-			
-			final List< String > cmd = getBaseCommand();
-
-			if ( SystemUtils.IS_OS_WINDOWS )
-				cmd.addAll( Arrays.asList( "start", "/wait", "\"\"", tempFile.getAbsolutePath(), "/InstallationType=JustMe", "/AddToPath=0", "/RegisterPython=0", "/S", "/D=" + rootdir ) );
-			else
-				cmd.addAll( Arrays.asList( "bash", tempFile.getAbsolutePath(), "-b", "-p", rootdir ) );
-			if ( new ProcessBuilder().inheritIO().command( cmd ).start().waitFor() != 0 )
-				throw new RuntimeException();
+			MambaInstallerUtils.unTar(tempTarFile, mambaBaseDir);
 		}
 		this.rootdir = rootdir;
 
