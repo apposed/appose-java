@@ -11,7 +11,7 @@
 
 	<groupId>org.apposed</groupId>
 	<artifactId>appose</artifactId>
-	<version>0.1.1-SNAPSHOT</version>
+	<version>0.1.1</version>
 
 	<name>Appose</name>
 	<description>Appose: multi-language interprocess cooperation with shared memory.</description>
@@ -131,6 +131,11 @@
 			<groupId>org.junit.jupiter</groupId>
 			<artifactId>junit-jupiter-engine</artifactId>
 			<scope>test</scope>
+		</dependency>
+		<dependency>
+		    <groupId>org.apache.commons</groupId>
+		    <artifactId>commons-compress</artifactId>
+		    <version>1.24.0</version>
 		</dependency>
 	</dependencies>
 </project>
