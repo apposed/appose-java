@@ -69,7 +69,7 @@ public final class Bzip2Utils {
 	 * @throws FileNotFoundException if the .bzip2 file is not found or does not exist
 	 * @throws IOException if the source file already exists or there is any error with the decompression
 	 */
-	public static void decompress(File source, File destination) throws FileNotFoundException, IOException {
+	public static void unBZip2(File source, File destination) throws FileNotFoundException, IOException {
 	    try (
 	    		BZip2CompressorInputStream input = new BZip2CompressorInputStream(new BufferedInputStream(new FileInputStream(source)));
 	    		FileOutputStream output = new FileOutputStream(destination);
@@ -87,199 +87,42 @@ public final class Bzip2Utils {
 	 * @param outputDir     the output directory file. 
 	 * @throws IOException 
 	 * @throws FileNotFoundException
-	 *  
 	 * @throws ArchiveException 
 	 */
 	private static void unTar(final File inputFile, final File outputDir) throws FileNotFoundException, IOException, ArchiveException {
 
-	    final InputStream is = new FileInputStream(inputFile); 
-	    final TarArchiveInputStream debInputStream = (TarArchiveInputStream) new ArchiveStreamFactory().createArchiveInputStream("tar", is);
-	    TarArchiveEntry entry = null; 
-	    while ((entry = (TarArchiveEntry)debInputStream.getNextEntry()) != null) {
-	        final File outputFile = new File(outputDir, entry.getName());
-	        if (entry.isDirectory()) {
-	            if (!outputFile.exists()) {
-	                if (!outputFile.mkdirs()) {
-	                    throw new IllegalStateException(String.format("Couldn't create directory %s.", outputFile.getAbsolutePath()));
-	                }
-	            }
-	        } else {
-	            final OutputStream outputFileStream = new FileOutputStream(outputFile); 
-	            IOUtils.copy(debInputStream, outputFileStream);
-	            outputFileStream.close();
-	        }
-	    }
-	    debInputStream.close(); 
+		try (
+				InputStream is = new FileInputStream(inputFile);
+				TarArchiveInputStream debInputStream = (TarArchiveInputStream) new ArchiveStreamFactory().createArchiveInputStream("tar", is);
+				) {
+		    TarArchiveEntry entry = null; 
+		    while ((entry = (TarArchiveEntry)debInputStream.getNextEntry()) != null) {
+		        final File outputFile = new File(outputDir, entry.getName());
+		        if (entry.isDirectory()) {
+		            if (!outputFile.exists()) {
+		                if (!outputFile.mkdirs()) {
+		                    throw new IllegalStateException(String.format("Couldn't create directory %s.", outputFile.getAbsolutePath()));
+		                }
+		            }
+		        } else {
+		        	if (!outputFile.getParentFile().exists()) {
+		        	    if (!outputFile.getParentFile().mkdirs()) 
+		        	        throw new IOException("Failed to create directory " + outputFile.getParentFile().getAbsolutePath());
+		        	}
+		            try (OutputStream outputFileStream = new FileOutputStream(outputFile)) {
+		            	IOUtils.copy(debInputStream, outputFileStream);
+		            }
+		        }
+		    }
+		} 
 
 	}
 	
 	public static void main(String[] args) throws FileNotFoundException, IOException, ArchiveException {
 		String tarPath = "C:\\Users\\angel\\OneDrive\\Documentos\\pasteur\\git\\micromamba-1.5.1-1.tar";
 		String mambaPath = "C:\\Users\\angel\\OneDrive\\Documentos\\pasteur\\git\\mamba";
-		decompress(new File("C:\\Users\\angel\\OneDrive\\Documentos\\pasteur\\git\\micromamba-1.5.1-1.tar.bz2"), 
+		unBZip2(new File("C:\\Users\\angel\\OneDrive\\Documentos\\pasteur\\git\\micromamba-1.5.1-1.tar.bz2"), 
 			new File(tarPath));
 		unTar(new File(tarPath), new File(mambaPath));
 	}
-
-    // Size of the block in a standard tar file.
-    private static final int BLOCK_SIZE = 512;
-
-    public static void tarDecompress(String tarFilePath, String outputDirPath) {
-
-        File tarFile = new File(tarFilePath);
-        File outputDir = new File(outputDirPath);
-
-        // Make sure the output directory exists
-        if (!outputDir.isDirectory())
-        	outputDir.mkdirs();
-
-        try (FileInputStream fis = new FileInputStream(tarFile);
-             BufferedInputStream bis = new BufferedInputStream(fis)) {
-
-            boolean endOfArchive = false;
-            byte[] block = new byte[BLOCK_SIZE];
-            while (!endOfArchive) {
-                // Read a block from the tar archive.
-                int bytesRead = bis.read(block);
-                if (bytesRead < BLOCK_SIZE) {
-                    throw new IOException("Incomplete block read.");
-                }
-
-                // Check for the end of the archive. An empty block signals end.
-                endOfArchive = isEndOfArchive(block);
-                if (endOfArchive) {
-                    break;
-                }
-
-                // Read the header from the block.
-                TarHeader header = new TarHeader(block);
-
-                // If the file size is nonzero, create an output file.
-                if (header.fileSize > 0) {
-                    File outputFile = new File(outputDir, header.fileName);
-                    if (header.fileType == TarHeader.FileType.DIRECTORY) {
-                        outputFile.mkdirs();
-                    } else {
-                        try (FileOutputStream fos = new FileOutputStream(outputFile);
-                             BufferedOutputStream bos = new BufferedOutputStream(fos)) {
-                            long fileSizeRemaining = header.fileSize;
-                            while (fileSizeRemaining > 0) {
-                                int toRead = (int) Math.min(fileSizeRemaining, BLOCK_SIZE);
-                                bytesRead = bis.read(block, 0, toRead);
-                                if (bytesRead != toRead) {
-                                    throw new IOException("Unexpected end of file");
-                                }
-                                bos.write(block, 0, bytesRead);
-                                fileSizeRemaining -= bytesRead;
-                            }
-                        }
-                    }
-                }
-
-                // Skip to the next file entry in the tar archive by advancing to the next block boundary.
-                long fileEntrySize = (header.fileSize + BLOCK_SIZE - 1) / BLOCK_SIZE * BLOCK_SIZE;
-                long bytesToSkip = fileEntrySize - header.fileSize;
-                long skipped = bis.skip(bytesToSkip);
-                if (skipped != bytesToSkip) {
-                    throw new IOException("Failed to skip bytes for the next entry");
-                }
-            }
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-    }
-
-    private static boolean isEndOfArchive(byte[] block) {
-        // An empty block signals the end of the archive in a tar file.
-        for (int i = 0; i < BLOCK_SIZE; i++) {
-            if (block[i] != 0) {
-                return false;
-            }
-        }
-        return true;
-    }
-
-    private static class TarHeader {
-        String fileName;
-        int fileMode;
-        int ownerId;
-        int groupId;
-        long fileSize;
-        long modificationTime;
-        int checksum;
-        FileType fileType;
-        String linkName;
-        String magic; // UStar indicator
-        String version;
-        String ownerUserName;
-        String ownerGroupName;
-        String devMajor;
-        String devMinor;
-        String prefix; // Used if the file name is longer than 100 characters
-
-        enum FileType {
-            FILE, DIRECTORY, SYMLINK, CHARACTER_DEVICE, BLOCK_DEVICE, FIFO, CONTIGUOUS_FILE, GLOBAL_EXTENDED_HEADER, EXTENDED_HEADER, OTHER
-        }
-
-        TarHeader(byte[] headerBlock) {
-            fileName = extractString(headerBlock, 0, 100);
-            fileMode = (int) extractOctal(headerBlock, 100, 8);
-            ownerId = (int) extractOctal(headerBlock, 108, 8);
-            groupId = (int) extractOctal(headerBlock, 116, 8);
-            fileSize = extractOctal(headerBlock, 124, 12);
-            modificationTime = extractOctal(headerBlock, 136, 12);
-            checksum = (int) extractOctal(headerBlock, 148, 8);
-            fileType = determineFileType(headerBlock[156]);
-            linkName = extractString(headerBlock, 157, 100);
-            magic = extractString(headerBlock, 257, 6);
-            version = extractString(headerBlock, 263, 2);
-            ownerUserName = extractString(headerBlock, 265, 32);
-            ownerGroupName = extractString(headerBlock, 297, 32);
-            devMajor = extractString(headerBlock, 329, 8);
-            devMinor = extractString(headerBlock, 337, 8);
-            prefix = extractString(headerBlock, 345, 155);
-            // Note: The prefix is used in conjunction with the filename to allow for longer file names.
-        }
-
-        private long extractOctal(byte[] buffer, int offset, int length) {
-            String octalString = extractString(buffer, offset, length);
-            return Long.parseLong(octalString, 8);
-        }
-
-        private String extractString(byte[] buffer, int offset, int length) {
-            StringBuilder stringBuilder = new StringBuilder(length);
-            for (int i = offset; i < offset + length; i++) {
-                if (buffer[i] == 0) break; // Stop at the first null character.
-                stringBuilder.append((char) buffer[i]);
-            }
-            return stringBuilder.toString();
-        }
-
-        private FileType determineFileType(byte typeFlag) {
-            switch (typeFlag) {
-                case '0':
-                case '\0':
-                    return FileType.FILE;
-                case '2':
-                    return FileType.SYMLINK;
-                case '3':
-                    return FileType.CHARACTER_DEVICE;
-                case '4':
-                    return FileType.BLOCK_DEVICE;
-                case '5':
-                    return FileType.DIRECTORY;
-                case '6':
-                    return FileType.FIFO;
-                case '7':
-                    return FileType.CONTIGUOUS_FILE;
-                case 'g':
-                    return FileType.GLOBAL_EXTENDED_HEADER;
-                case 'x':
-                    return FileType.EXTENDED_HEADER;
-                default:
-                    return FileType.OTHER;
-            }
-        }
-    }
-
 }
