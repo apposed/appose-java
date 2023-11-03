@@ -66,6 +66,8 @@ public class Conda {
 
 	private final static int TIMEOUT_MILLIS = 10 * 1000;
 
+	final public static String basePath = Paths.get(System.getProperty("user.home"), ".local", "share", "appose", "micromamba").toString();
+	
 	private final static String MICROMAMBA_URL =
 		"https://micro.mamba.pm/api/micromamba/" + microMambaPlatform() + "/latest";
 
@@ -132,19 +134,21 @@ public class Conda {
 		if ( Files.notExists( Paths.get( rootdir ) ) )
 		{
 
-			final File tempFile = File.createTempFile( "miniconda", SystemUtils.IS_OS_WINDOWS ? ".tar.bz2" : ".sh" );
+			final File tempFile = File.createTempFile( "miniconda", ".tar.bz2" );
 			tempFile.deleteOnExit();
 			FileUtils.copyURLToFile(
 					new URL( MICROMAMBA_URL ),
 					tempFile,
 					TIMEOUT_MILLIS,
 					TIMEOUT_MILLIS );
+
+			final File tempTarFile = File.createTempFile( "miniconda", ".tar" );
+			tempTarFile.deleteOnExit();
+			Bzip2Utils.unBZip2(tempFile, tempTarFile);
+			File mambaBaseDir = new File(basePath);
+			if (!mambaBaseDir.isDirectory() && !mambaBaseDir.mkdirs())
+    	        throw new IOException("Failed to create Micromamba default directory " + mambaBaseDir.getParentFile().getAbsolutePath());
 			
-			String command = "tar xf " + tempFile.getAbsolutePath();
-			// Setting up the ProcessBuilder to use PowerShell
-			ProcessBuilder processBuilder = new ProcessBuilder("powershell.exe", "-Command", command);
-			if ( processBuilder.inheritIO().start().waitFor() != 0 )
-				throw new RuntimeException();
 			final List< String > cmd = getBaseCommand();
 
 			if ( SystemUtils.IS_OS_WINDOWS )
@@ -176,7 +180,8 @@ public class Conda {
 	{
 		final List< String > cmd = new ArrayList<>();
 		if ( SystemUtils.IS_OS_WINDOWS )
-			cmd.addAll( Arrays.asList( "cmd.exe", "/c" ) );
+			cmd.addAll( Arrays.asList( basePath + File.separator + "Library" 
+		+ File.separator + "bin" + File.separator + "micromamba.exe", "/c" ) );
 		return cmd;
 	}
 

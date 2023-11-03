@@ -34,6 +34,7 @@ import java.io.IOException;
 import java.nio.file.Paths;
 
 public class Builder {
+	
 
 	public Environment build() {
 		String base = baseDir.getPath();
@@ -46,8 +47,7 @@ public class Builder {
 		// - Populate ${baseDirectory}/jars with Maven artifacts?
 
 		try {
-			String minicondaBase = Paths.get(System.getProperty("user.home"), ".local", "share", "appose", "miniconda").toString();
-			Conda conda = new Conda(minicondaBase);
+			Conda conda = new Conda(Conda.basePath);
 			String envName = "appose";
 			if (conda.getEnvironmentNames().contains( envName )) {
 				// TODO: Should we update it? For now, we just use it.
