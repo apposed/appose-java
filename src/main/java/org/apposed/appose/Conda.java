@@ -27,11 +27,8 @@
 package org.apposed.appose;
 
 import org.apache.commons.compress.archivers.ArchiveException;
-import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang3.SystemUtils;
 import org.apposed.appose.CondaException.EnvironmentExistsException;
-
-import groovy.json.JsonSlurper;
 
 import java.io.BufferedReader;
 import java.io.File;
@@ -46,7 +43,6 @@ import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -61,9 +57,7 @@ public class Conda {
 	
 	final String pythonCommand = SystemUtils.IS_OS_WINDOWS ? "python.exe" : "bin/python";
 	
-	final String condaCommand = SystemUtils.IS_OS_WINDOWS ? 
-			BASE_PATH + File.separator + "Library" + File.separator + "bin" + File.separator + "micromamba.exe" 
-			: BASE_PATH + File.separator + "bin" + File.separator + "micromamba";
+	final String condaCommand;
 	
 	private String envName = DEFAULT_ENVIRONMENT_NAME;
 	
@@ -72,6 +66,10 @@ public class Conda {
 	public final static String DEFAULT_ENVIRONMENT_NAME = "base";
 
 	private final static int TIMEOUT_MILLIS = 10 * 1000;
+	
+	private final static String CONDA_RELATIVE_PATH = SystemUtils.IS_OS_WINDOWS ? 
+			 File.separator + "Library" + File.separator + "bin" + File.separator + "micromamba.exe" 
+			: File.separator + "bin" + File.separator + "micromamba";
 
 	final public static String BASE_PATH = Paths.get(System.getProperty("user.home"), ".local", "share", "appose", "micromamba").toString();
 	
@@ -142,6 +140,11 @@ public class Conda {
 	 */
 	public Conda( final String rootdir ) throws IOException, InterruptedException, ArchiveException, URISyntaxException
 	{
+		if (rootdir == null)
+			this.rootdir = BASE_PATH;
+		else
+			this.rootdir = rootdir;
+		this.condaCommand = this.rootdir + CONDA_RELATIVE_PATH;
 		if ( Files.notExists( Paths.get( condaCommand ) ) )
 		{
 
@@ -163,7 +166,6 @@ public class Conda {
     	        throw new IOException("Failed to create Micromamba default envs directory " + ENVS_PATH);
 			
 		}
-		this.rootdir = rootdir;
 
 		// The following command will throw an exception if Conda does not work as
 		// expected.
