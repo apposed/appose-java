@@ -328,7 +328,7 @@ public class Conda {
 		if ( !isForceCreation && getEnvironmentNames().contains( envName ) )
 			throw new EnvironmentExistsException();
 		runConda(consumer, "env", "create", "--prefix",
-				ENVS_PATH + File.separator + envName, "-f", envYaml, "-y" );
+				ENVS_PATH + File.separator + envName, "-f", envYaml, "-y", "-vv" );
 	}
 
 	/**
