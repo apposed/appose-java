@@ -41,10 +41,13 @@ import java.nio.channels.Channels;
 import java.nio.channels.ReadableByteChannel;
 import java.nio.file.Files;
 import java.nio.file.Paths;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Calendar;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
 /**
@@ -255,6 +258,27 @@ public class Conda {
 	 * @param envName
 	 *            The environment name to be created.
 	 * @param envYaml
+	 *            The environment yaml file containing the information required to build it 
+	 * @param consumer
+	 *            String consumer that keeps track of the environment creation
+	 * @throws IOException
+	 *             If an I/O error occurs.
+	 * @throws InterruptedException
+	 *             If the current thread is interrupted by another thread while it
+	 *             is waiting, then the wait is ended and an InterruptedException is
+	 *             thrown.
+	 */
+	public void createWithYaml( final String envName, final String envYaml, Consumer<String> consumer ) throws IOException, InterruptedException
+	{
+		createWithYaml(envName, envYaml, false, consumer);
+	}
+
+	/**
+	 * Run {@code conda create} to create a conda environment defined by the input environment yaml file.
+	 * 
+	 * @param envName
+	 *            The environment name to be created.
+	 * @param envYaml
 	 *            The environment yaml file containing the information required to build it  
 	 * @param envName
 	 *            The environment name to be created.
@@ -274,6 +298,36 @@ public class Conda {
 		if ( !isForceCreation && getEnvironmentNames().contains( envName ) )
 			throw new EnvironmentExistsException();
 		runConda( "env", "create", "--prefix",
+				ENVS_PATH + File.separator + envName, "-f", envYaml, "-y" );
+	}
+
+	/**
+	 * Run {@code conda create} to create a conda environment defined by the input environment yaml file.
+	 * 
+	 * @param envName
+	 *            The environment name to be created.
+	 * @param envYaml
+	 *            The environment yaml file containing the information required to build it  
+	 * @param envName
+	 *            The environment name to be created.
+	 * @param isForceCreation
+	 *            Force creation of the environment if {@code true}. If this value
+	 *            is {@code false} and an environment with the specified name
+	 *            already exists, throw an {@link EnvironmentExistsException}.
+	 * @param consumer
+	 *            String consumer that keeps track of the environment creation
+	 * @throws IOException
+	 *             If an I/O error occurs.
+	 * @throws InterruptedException
+	 *             If the current thread is interrupted by another thread while it
+	 *             is waiting, then the wait is ended and an InterruptedException is
+	 *             thrown.
+	 */
+	public void createWithYaml( final String envName, final String envYaml, final boolean isForceCreation, Consumer<String> consumer) throws IOException, InterruptedException
+	{
+		if ( !isForceCreation && getEnvironmentNames().contains( envName ) )
+			throw new EnvironmentExistsException();
+		runConda(consumer, "env", "create", "--prefix",
 				ENVS_PATH + File.separator + envName, "-f", envYaml, "-y" );
 	}
 
@@ -585,6 +639,8 @@ public class Conda {
 	/**
 	 * Run a Conda command with one or more arguments.
 	 * 
+	 * @param consumer
+	 * 			  String consumer that receives the Strings that the process prints to the console
 	 * @param args
 	 *            One or more arguments for the Conda command.
 	 * @throws IOException
@@ -594,7 +650,49 @@ public class Conda {
 	 *             is waiting, then the wait is ended and an InterruptedException is
 	 *             thrown.
 	 */
-	public void runConda( final String... args ) throws RuntimeException, IOException, InterruptedException
+	public void runConda(Consumer<String> consumer, final String... args ) throws RuntimeException, IOException, InterruptedException
+	{
+		Calendar cal = Calendar.getInstance();
+		SimpleDateFormat sdf = new SimpleDateFormat("HH:mm:ss");
+		
+		final List< String > cmd = getBaseCommand();
+		cmd.add( condaCommand );
+		cmd.addAll( Arrays.asList( args ) );
+
+		ProcessBuilder builder = getBuilder(true).command(cmd);
+		Process process = builder.start();
+		try (
+				BufferedReader outReader = new BufferedReader(new InputStreamReader(process.getInputStream()));
+				BufferedReader errReader = new BufferedReader(new InputStreamReader(process.getErrorStream()));
+				) {
+	        String line = outReader.readLine();
+	        String errLine = errReader.readLine();
+	        while (line != null || errLine != null) {
+	        	if (line != null)
+	        		consumer.accept(sdf.format(cal.getTime()) + " -- PROGRESS -> " + line);
+	        	if (errLine != null)
+	        		consumer.accept(sdf.format(cal.getTime()) + " -- ERROR -> " + errLine);
+	            line = outReader.readLine();
+	            errLine = errReader.readLine();
+	        }
+	        if (process.waitFor() != 0)
+	        	throw new RuntimeException("Error executing the following command: " + builder.command());
+		}
+	}
+
+	/**
+	 * Run a Conda command with one or more arguments.
+	 * 
+	 * @param args
+	 *            One or more arguments for the Conda command.
+	 * @throws IOException
+	 *             If an I/O error occurs.
+	 * @throws InterruptedException
+	 *             If the current thread is interrupted by another thread while it
+	 *             is waiting, then the wait is ended and an InterruptedException is
+	 *             thrown.
+	 */
+	public void runConda(final String... args ) throws RuntimeException, IOException, InterruptedException
 	{
 		final List< String > cmd = getBaseCommand();
 		cmd.add( condaCommand );
