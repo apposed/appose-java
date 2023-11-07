@@ -47,6 +47,7 @@ import java.util.Arrays;
 import java.util.Calendar;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
@@ -67,8 +68,6 @@ public class Conda {
 	private final String rootdir;
 	
 	public final static String DEFAULT_ENVIRONMENT_NAME = "base";
-
-	private final static int TIMEOUT_MILLIS = 10 * 1000;
 	
 	private final static String CONDA_RELATIVE_PATH = SystemUtils.IS_OS_WINDOWS ? 
 			 File.separator + "Library" + File.separator + "bin" + File.separator + "micromamba.exe" 
@@ -80,6 +79,8 @@ public class Conda {
 	
 	public final static String MICROMAMBA_URL =
 		"https://micro.mamba.pm/api/micromamba/" + microMambaPlatform() + "/latest";
+	
+	public final static String ERR_STREAM_UUUID = UUID.randomUUID().toString();
 
 	private static String microMambaPlatform() {
 		String osName = System.getProperty("os.name");
@@ -661,8 +662,8 @@ public class Conda {
 		ProcessBuilder builder = getBuilder(false).command(cmd);
 		Process process = builder.start();
 		// Use separate threads to read each stream to avoid a deadlock.
+        long updatePeriod = 300;
 		Thread outputThread = new Thread(() -> {
-	        long updatePeriod = 300;
 			try (BufferedReader outReader = new BufferedReader(new InputStreamReader(process.getInputStream()))) {
 				String line;
 				String chunk = "";
@@ -676,7 +677,7 @@ public class Conda {
 						t0 = System.currentTimeMillis();
 					}
 		        }
-				consumer.accept(chunk);
+				consumer.accept(chunk + sdf.format(Calendar.getInstance().getTime()) + " -- TERMINATED INSTALLATION");
 		    } catch (IOException e) {
 		        e.printStackTrace();
 		    }
@@ -684,9 +685,17 @@ public class Conda {
 
 		Thread errorThread = new Thread(() -> {
 			try (BufferedReader errReader = new BufferedReader(new InputStreamReader(process.getErrorStream()))) {
-		        String line;
+				String line;
+				String chunk = "";
+		        long t0 = System.currentTimeMillis();
 		        while ((line = errReader.readLine()) != null || process.isAlive()) {
-		            if (line != null) System.err.println(sdf.format(Calendar.getInstance().getTime()) + ": " + line);
+		        	if (line == null) continue;
+	            	chunk += ERR_STREAM_UUUID + line + System.lineSeparator();
+					if (System.currentTimeMillis() - t0 > updatePeriod) {
+						consumer.accept(chunk);
+						chunk = "";
+						t0 = System.currentTimeMillis();
+					}
 		        }
 		    } catch (IOException e) {
 		        e.printStackTrace();
