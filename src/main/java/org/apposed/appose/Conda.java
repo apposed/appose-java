@@ -652,32 +652,55 @@ public class Conda {
 	 */
 	public void runConda(Consumer<String> consumer, final String... args ) throws RuntimeException, IOException, InterruptedException
 	{
-		Calendar cal = Calendar.getInstance();
 		SimpleDateFormat sdf = new SimpleDateFormat("HH:mm:ss");
 		
 		final List< String > cmd = getBaseCommand();
 		cmd.add( condaCommand );
 		cmd.addAll( Arrays.asList( args ) );
 
-		ProcessBuilder builder = getBuilder(true).command(cmd);
+		ProcessBuilder builder = getBuilder(false).command(cmd);
 		Process process = builder.start();
-		try (
-				BufferedReader outReader = new BufferedReader(new InputStreamReader(process.getInputStream()));
-				BufferedReader errReader = new BufferedReader(new InputStreamReader(process.getErrorStream()));
-				) {
-	        String line = outReader.readLine();
-	        String errLine = errReader.readLine();
-	        while (line != null || errLine != null) {
-	        	if (line != null)
-	        		consumer.accept(sdf.format(cal.getTime()) + " -- PROGRESS -> " + line);
-	        	if (errLine != null)
-	        		consumer.accept(sdf.format(cal.getTime()) + " -- ERROR -> " + errLine);
-	            line = outReader.readLine();
-	            errLine = errReader.readLine();
-	        }
-	        if (process.waitFor() != 0)
-	        	throw new RuntimeException("Error executing the following command: " + builder.command());
-		}
+		// Use separate threads to read each stream to avoid a deadlock.
+		Thread outputThread = new Thread(() -> {
+	        long updatePeriod = 300;
+			try (BufferedReader outReader = new BufferedReader(new InputStreamReader(process.getInputStream()))) {
+				String line;
+				String chunk = "";
+		        long t0 = System.currentTimeMillis();
+		        while ((line = outReader.readLine()) != null || process.isAlive()) {
+		            if (line == null) continue;
+	            	chunk += sdf.format(Calendar.getInstance().getTime()) + " -- " + line + System.lineSeparator();
+					if (System.currentTimeMillis() - t0 > updatePeriod) {
+						consumer.accept(chunk);
+						chunk = "";
+						t0 = System.currentTimeMillis();
+					}
+		        }
+				consumer.accept(chunk);
+		    } catch (IOException e) {
+		        e.printStackTrace();
+		    }
+		});
+
+		Thread errorThread = new Thread(() -> {
+			try (BufferedReader errReader = new BufferedReader(new InputStreamReader(process.getErrorStream()))) {
+		        String line;
+		        while ((line = errReader.readLine()) != null || process.isAlive()) {
+		            if (line != null) System.err.println(sdf.format(Calendar.getInstance().getTime()) + ": " + line);
+		        }
+		    } catch (IOException e) {
+		        e.printStackTrace();
+		    }
+		});
+		// Start reading threads
+		outputThread.start();
+		errorThread.start();
+		int processResult = process.waitFor();
+		// Wait for all output to be read
+		outputThread.join();
+		errorThread.join();
+		if (processResult != 0)
+        	throw new RuntimeException("Error executing the following command: " + builder.command());
 	}
 
 	/**
