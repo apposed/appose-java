@@ -116,6 +116,37 @@ public class Conda {
 	}
 
 	/**
+	 * Create a new Conda object. The root dir for the Micromamba installation
+	 * will be /user/.local/share/appose/micromamba.
+	 * If there is no directory found at the specified
+	 * path, Miniconda will be automatically installed in the path. It is expected
+	 * that the Conda installation has executable commands as shown below:
+	 * 
+	 * <pre>
+	 * CONDA_ROOT
+	 * ├── condabin
+	 * │   ├── conda(.bat)
+	 * │   ... 
+	 * ├── envs
+	 * │   ├── your_env
+	 * │   │   ├── python(.exe)
+	 * </pre>
+	 * 
+	 * @throws IOException
+	 *             If an I/O error occurs.
+	 * @throws InterruptedException
+	 *             If the current thread is interrupted by another thread while it
+	 *             is waiting, then the wait is ended and an InterruptedException is
+	 *             thrown.
+	 * @throws ArchiveException 
+	 * @throws URISyntaxException 
+	 */
+	public Conda() throws IOException, InterruptedException, ArchiveException, URISyntaxException
+	{
+		this(BASE_PATH);
+	}
+
+	/**
 	 * Create a new Conda object. The root dir for Conda installation can be
 	 * specified as {@code String}. If there is no directory found at the specified
 	 * path, Miniconda will be automatically installed in the path. It is expected
@@ -171,6 +202,13 @@ public class Conda {
 			
 		}
 
+		// The following command will throw an exception if Conda does not work as
+		// expected.
+		boolean executableSet = new File(condaCommand).setExecutable(true);
+		if (!executableSet)
+			throw new IOException("Cannot set file as executable due to missing permissions, "
+					+ "please do it manually: " + condaCommand);
+		
 		// The following command will throw an exception if Conda does not work as
 		// expected.
 		getVersion();
@@ -662,7 +700,8 @@ public class Conda {
 		ProcessBuilder builder = getBuilder(false).command(cmd);
 		Process process = builder.start();
 		// Use separate threads to read each stream to avoid a deadlock.
-        long updatePeriod = 300;
+		consumer.accept(sdf.format(Calendar.getInstance().getTime()) + " -- STARTING INSTALLATION" + System.lineSeparator());
+		long updatePeriod = 300;
 		Thread outputThread = new Thread(() -> {
 			try (BufferedReader outReader = new BufferedReader(new InputStreamReader(process.getInputStream()))) {
 				String line;
