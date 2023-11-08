@@ -67,6 +67,8 @@ public class Conda {
 	
 	private final String rootdir;
 	
+	private final String envsdir;
+	
 	public final static String DEFAULT_ENVIRONMENT_NAME = "base";
 	
 	private final static String CONDA_RELATIVE_PATH = SystemUtils.IS_OS_WINDOWS ? 
@@ -75,7 +77,7 @@ public class Conda {
 
 	final public static String BASE_PATH = Paths.get(System.getProperty("user.home"), ".local", "share", "appose", "micromamba").toString();
 	
-	final public static String ENVS_PATH = Paths.get(BASE_PATH, "envs").toString();
+	final public static String ENVS_NAME = "envs";
 	
 	public final static String MICROMAMBA_URL =
 		"https://micro.mamba.pm/api/micromamba/" + microMambaPlatform() + "/latest";
@@ -180,6 +182,7 @@ public class Conda {
 		else
 			this.rootdir = rootdir;
 		this.condaCommand = this.rootdir + CONDA_RELATIVE_PATH;
+		this.envsdir = this.rootdir + File.separator + "envs";
 		if ( Files.notExists( Paths.get( condaCommand ) ) )
 		{
 
@@ -193,12 +196,12 @@ public class Conda {
 			final File tempTarFile = File.createTempFile( "miniconda", ".tar" );
 			tempTarFile.deleteOnExit();
 			MambaInstallerUtils.unBZip2(tempFile, tempTarFile);
-			File mambaBaseDir = new File(BASE_PATH);
+			File mambaBaseDir = new File(rootdir);
 			if (!mambaBaseDir.isDirectory() && !mambaBaseDir.mkdirs())
     	        throw new IOException("Failed to create Micromamba default directory " + mambaBaseDir.getParentFile().getAbsolutePath());
 			MambaInstallerUtils.unTar(tempTarFile, mambaBaseDir);
-			if (!(new File(ENVS_PATH)).isDirectory() && !new File(ENVS_PATH).mkdirs())
-    	        throw new IOException("Failed to create Micromamba default envs directory " + ENVS_PATH);
+			if (!(new File(envsdir)).isDirectory() && !new File(envsdir).mkdirs())
+    	        throw new IOException("Failed to create Micromamba default envs directory " + envsdir);
 			
 		}
 
@@ -212,6 +215,10 @@ public class Conda {
 		// The following command will throw an exception if Conda does not work as
 		// expected.
 		getVersion();
+	}
+	
+	public String getEnvsDir() {
+		return this.envsdir;
 	}
 
 	/**
@@ -337,7 +344,7 @@ public class Conda {
 		if ( !isForceCreation && getEnvironmentNames().contains( envName ) )
 			throw new EnvironmentExistsException();
 		runConda( "env", "create", "--prefix",
-				ENVS_PATH + File.separator + envName, "-f", envYaml, "-y" );
+				envsdir + File.separator + envName, "-f", envYaml, "-y" );
 	}
 
 	/**
@@ -367,7 +374,7 @@ public class Conda {
 		if ( !isForceCreation && getEnvironmentNames().contains( envName ) )
 			throw new EnvironmentExistsException();
 		runConda(consumer, "env", "create", "--prefix",
-				ENVS_PATH + File.separator + envName, "-f", envYaml, "-y", "-vv" );
+				envsdir + File.separator + envName, "-f", envYaml, "-y", "-vv" );
 	}
 
 	/**
@@ -407,7 +414,7 @@ public class Conda {
 	{
 		if ( !isForceCreation && getEnvironmentNames().contains( envName ) )
 			throw new EnvironmentExistsException();
-		runConda( "create", "-y", "-p", ENVS_PATH + File.separator + envName );
+		runConda( "create", "-y", "-p", envsdir + File.separator + envName );
 	}
 
 	/**
@@ -455,7 +462,7 @@ public class Conda {
 	{
 		if ( !isForceCreation && getEnvironmentNames().contains( envName ) )
 			throw new EnvironmentExistsException();
-		final List< String > cmd = new ArrayList<>( Arrays.asList( "env", "create", "--force", "-p", ENVS_PATH + File.separator + envName ) );
+		final List< String > cmd = new ArrayList<>( Arrays.asList( "env", "create", "--force", "-p", envsdir + File.separator + envName ) );
 		cmd.addAll( Arrays.asList( args ) );
 		runConda( cmd.stream().toArray( String[]::new ) );
 	}
@@ -701,7 +708,7 @@ public class Conda {
 		Process process = builder.start();
 		// Use separate threads to read each stream to avoid a deadlock.
 		consumer.accept(sdf.format(Calendar.getInstance().getTime()) + " -- STARTING INSTALLATION" + System.lineSeparator());
-		long updatePeriod = 300;
+		long updatePeriod = 500;
 		Thread outputThread = new Thread(() -> {
 			try (BufferedReader outReader = new BufferedReader(new InputStreamReader(process.getInputStream()))) {
 				String line;
@@ -843,7 +850,7 @@ public class Conda {
 	public List< String > getEnvironmentNames() throws IOException
 	{
 		final List< String > envs = new ArrayList<>( Arrays.asList( DEFAULT_ENVIRONMENT_NAME ) );
-		envs.addAll( Files.list( Paths.get( ENVS_PATH ) )
+		envs.addAll( Files.list( Paths.get( envsdir ) )
 				.map( p -> p.getFileName().toString() )
 				.filter( p -> !p.startsWith( "." ) )
 				.collect( Collectors.toList() ) );
