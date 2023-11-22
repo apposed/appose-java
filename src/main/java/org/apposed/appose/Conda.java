@@ -708,7 +708,7 @@ public class Conda {
 		Process process = builder.start();
 		// Use separate threads to read each stream to avoid a deadlock.
 		consumer.accept(sdf.format(Calendar.getInstance().getTime()) + " -- STARTING INSTALLATION" + System.lineSeparator());
-		long updatePeriod = 500;
+		long updatePeriod = 00;
 		Thread outputThread = new Thread(() -> {
 			try (BufferedReader outReader = new BufferedReader(new InputStreamReader(process.getInputStream()))) {
 				String line;
