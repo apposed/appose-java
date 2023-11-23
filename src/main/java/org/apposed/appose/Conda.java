@@ -34,11 +34,13 @@ import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.net.URISyntaxException;
 import java.net.URL;
 import java.nio.channels.Channels;
 import java.nio.channels.ReadableByteChannel;
+import java.nio.channels.Selector;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.text.SimpleDateFormat;
@@ -710,6 +712,54 @@ public class Conda {
 		consumer.accept(sdf.format(Calendar.getInstance().getTime()) + " -- STARTING INSTALLATION" + System.lineSeparator());
 		long updatePeriod = 200;
 		Thread outputThread = new Thread(() -> {
+			try (
+			        InputStream inputStream = process.getInputStream();
+			        InputStream errStream = process.getErrorStream();
+					){
+		        byte[] buffer = new byte[1024]; // Buffer size can be adjusted
+		        StringBuilder processBuff = new StringBuilder();
+		        StringBuilder errBuff = new StringBuilder();
+		        String processChunk = "";
+		        String errChunk = "";
+		        long t0 = System.currentTimeMillis();
+		        while (process.isAlive() || inputStream.available() > 0) {
+		            if (inputStream.available() > 0) {
+		                String current = new String(buffer, 0, inputStream.read(buffer));
+		                processBuff.append(current);
+		                int newLineIndex;
+		                while ((newLineIndex = processBuff.indexOf(System.lineSeparator())) != -1) {
+		                	processChunk += sdf.format(Calendar.getInstance().getTime()) + " -- " + processBuff.substring(0, newLineIndex + 1).trim();
+		                	processBuff.delete(0, newLineIndex + 1);
+		                }
+		            }
+		            if (errStream.available() > 0) {
+		                String current = new String(buffer, 0, errStream.read(buffer));
+		                errBuff.append(current);
+		                int newLineIndex;
+		                while ((newLineIndex = errBuff.indexOf(System.lineSeparator())) != -1) {
+		                	errChunk += ERR_STREAM_UUUID + errBuff.substring(0, newLineIndex + 1).trim();
+		                	errBuff.delete(0, newLineIndex + 1);
+		                }
+		            }
+		            
+	                // No data available, sleep for a bit to avoid busy waiting
+	                Thread.sleep(50);
+	                if (System.currentTimeMillis() - t0 > updatePeriod) {
+						consumer.accept(processChunk);
+						consumer.accept(errChunk);
+						processChunk = "";
+						errChunk = "";
+						t0 = System.currentTimeMillis();
+					}
+		        }
+
+		        // Process any remaining data in the buffer
+		        if (processBuff.length() > 0) {
+		            // Process remaining partial line here
+		        }
+		    } catch (IOException | InterruptedException e) {
+		        e.printStackTrace();
+		    }
 			try (BufferedReader outReader = new BufferedReader(new InputStreamReader(process.getInputStream()))) {
 				String line;
 				String chunk = "";
