@@ -721,89 +721,53 @@ public class Conda {
 		        StringBuilder errBuff = new StringBuilder();
 		        String processChunk = "";
 		        String errChunk = "";
+                int newLineIndex;
 		        long t0 = System.currentTimeMillis();
 		        while (process.isAlive() || inputStream.available() > 0) {
 		            if (inputStream.available() > 0) {
-		                String current = new String(buffer, 0, inputStream.read(buffer));
-		                processBuff.append(current);
-		                int newLineIndex;
+		                processBuff.append(new String(buffer, 0, inputStream.read(buffer)));
 		                while ((newLineIndex = processBuff.indexOf(System.lineSeparator())) != -1) {
 		                	processChunk += sdf.format(Calendar.getInstance().getTime()) + " -- " + processBuff.substring(0, newLineIndex + 1).trim();
 		                	processBuff.delete(0, newLineIndex + 1);
 		                }
 		            }
 		            if (errStream.available() > 0) {
-		                String current = new String(buffer, 0, errStream.read(buffer));
-		                errBuff.append(current);
-		                int newLineIndex;
+		                errBuff.append(new String(buffer, 0, errStream.read(buffer)));
 		                while ((newLineIndex = errBuff.indexOf(System.lineSeparator())) != -1) {
 		                	errChunk += ERR_STREAM_UUUID + errBuff.substring(0, newLineIndex + 1).trim();
 		                	errBuff.delete(0, newLineIndex + 1);
 		                }
 		            }
-		            
-	                // No data available, sleep for a bit to avoid busy waiting
+	                // Sleep for a bit to avoid busy waiting
 	                Thread.sleep(50);
 	                if (System.currentTimeMillis() - t0 > updatePeriod) {
+						consumer.accept(errChunk.equals("") ? null : errChunk);
 						consumer.accept(processChunk);
-						consumer.accept(errChunk);
 						processChunk = "";
 						errChunk = "";
 						t0 = System.currentTimeMillis();
 					}
 		        }
-
-		        // Process any remaining data in the buffer
-		        if (processBuff.length() > 0) {
-		            // Process remaining partial line here
-		        }
+		        if (inputStream.available() > 0) {
+	                processBuff.append(new String(buffer, 0, inputStream.read(buffer)));
+                	processChunk += sdf.format(Calendar.getInstance().getTime()) + " -- " + processBuff.toString().trim();
+	            }
+	            if (errStream.available() > 0) {
+	                errBuff.append(new String(buffer, 0, errStream.read(buffer)));
+	                errChunk += ERR_STREAM_UUUID + errBuff.toString().trim();
+	            }
+				consumer.accept(errChunk);
+				consumer.accept(processChunk + System.lineSeparator() 
+								+ sdf.format(Calendar.getInstance().getTime()) + " -- TERMINATED INSTALLATION");
 		    } catch (IOException | InterruptedException e) {
-		        e.printStackTrace();
-		    }
-			try (BufferedReader outReader = new BufferedReader(new InputStreamReader(process.getInputStream()))) {
-				String line;
-				String chunk = "";
-		        long t0 = System.currentTimeMillis();
-		        while ((line = outReader.readLine()) != null || process.isAlive()) {
-		            if (line == null) continue;
-	            	chunk += sdf.format(Calendar.getInstance().getTime()) + " -- " + line + System.lineSeparator();
-					if (System.currentTimeMillis() - t0 > updatePeriod) {
-						consumer.accept(chunk);
-						chunk = "";
-						t0 = System.currentTimeMillis();
-					}
-		        }
-				consumer.accept(chunk + sdf.format(Calendar.getInstance().getTime()) + " -- TERMINATED INSTALLATION");
-		    } catch (IOException e) {
-		        e.printStackTrace();
-		    }
-		});
-
-		Thread errorThread = new Thread(() -> {
-			try (BufferedReader errReader = new BufferedReader(new InputStreamReader(process.getErrorStream()))) {
-				String line;
-				String chunk = "";
-		        long t0 = System.currentTimeMillis();
-		        while ((line = errReader.readLine()) != null || process.isAlive()) {
-		        	if (line == null) continue;
-	            	chunk += ERR_STREAM_UUUID + line + System.lineSeparator();
-					if (System.currentTimeMillis() - t0 > updatePeriod) {
-						consumer.accept(chunk);
-						chunk = "";
-						t0 = System.currentTimeMillis();
-					}
-		        }
-		    } catch (IOException e) {
 		        e.printStackTrace();
 		    }
 		});
 		// Start reading threads
 		outputThread.start();
-		errorThread.start();
 		int processResult = process.waitFor();
 		// Wait for all output to be read
 		outputThread.join();
-		errorThread.join();
 		if (processResult != 0)
         	throw new RuntimeException("Error executing the following command: " + builder.command());
 	}
