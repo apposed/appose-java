@@ -710,7 +710,7 @@ public class Conda {
 		Process process = builder.start();
 		// Use separate threads to read each stream to avoid a deadlock.
 		consumer.accept(sdf.format(Calendar.getInstance().getTime()) + " -- STARTING INSTALLATION" + System.lineSeparator());
-		long updatePeriod = 200;
+		long updatePeriod = 300;
 		Thread outputThread = new Thread(() -> {
 			try (
 			        InputStream inputStream = process.getInputStream();
@@ -740,9 +740,9 @@ public class Conda {
 		                }
 		            }
 	                // Sleep for a bit to avoid busy waiting
-	                Thread.sleep(50);
+	                Thread.sleep(60);
 	                if (System.currentTimeMillis() - t0 > updatePeriod) {
-						consumer.accept(errChunk.equals("") ? null : errChunk);
+						// TODO decide what to do with the err stream consumer.accept(errChunk.equals("") ? null : errChunk);
 						consumer.accept(processChunk);
 						processChunk = "";
 						errChunk = "";
