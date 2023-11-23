@@ -727,14 +727,15 @@ public class Conda {
 		            if (inputStream.available() > 0) {
 		                processBuff.append(new String(buffer, 0, inputStream.read(buffer)));
 		                while ((newLineIndex = processBuff.indexOf(System.lineSeparator())) != -1) {
-		                	processChunk += sdf.format(Calendar.getInstance().getTime()) + " -- " + processBuff.substring(0, newLineIndex + 1).trim();
+		                	processChunk += sdf.format(Calendar.getInstance().getTime()) + " -- " 
+		                					+ processBuff.substring(0, newLineIndex + 1).trim() + System.lineSeparator();
 		                	processBuff.delete(0, newLineIndex + 1);
 		                }
 		            }
 		            if (errStream.available() > 0) {
 		                errBuff.append(new String(buffer, 0, errStream.read(buffer)));
 		                while ((newLineIndex = errBuff.indexOf(System.lineSeparator())) != -1) {
-		                	errChunk += ERR_STREAM_UUUID + errBuff.substring(0, newLineIndex + 1).trim();
+		                	errChunk += ERR_STREAM_UUUID + errBuff.substring(0, newLineIndex + 1).trim() + System.lineSeparator();
 		                	errBuff.delete(0, newLineIndex + 1);
 		                }
 		            }
