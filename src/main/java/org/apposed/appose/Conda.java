@@ -926,7 +926,7 @@ public class Conda {
 			if (ind == -1) return checkDependencyInEnv(envDir, dep);
 			String packName = dep.substring(0, ind);
 			String vv = dep.substring(ind + 1);
-			return checkDependencyInEnv(envDir, dep, vv);
+			return checkDependencyInEnv(envDir, packName, vv);
 		}).collect(Collectors.toList());
 		return uninstalled;
 	}
@@ -955,12 +955,16 @@ public class Conda {
 		return true;
 	}
 	
+	/**
+	 * TODO figure out whether to use a dependency or not to parse the yaml file
+	 * @param envYaml
+	 * @return
+	 */
 	public boolean checkEnvFromYamlExists(String envYaml) {
 		if (envYaml == null || new File(envYaml).isFile() == false 
 				|| (envYaml.endsWith(".yaml") && envYaml.endsWith(".yml"))) {
 			return false;
 		}
-		// TODO parse yaml without adding deps
 		return false;
 	}
 
