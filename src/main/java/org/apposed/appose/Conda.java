@@ -913,23 +913,43 @@ public class Conda {
 		return envs;
 	}
 	
-	public static boolean checkDependenciesInEnv(String envDir, List<String> dependencies) {
-		File envFile = new File(envDir);
-		if (!envFile.isDirectory())
-			return false;
-		runPythonIn(envFile, );
-		// TODO run conda list -p /full/path/to/env
-		return false;
+	public static boolean checkAllDependenciesInEnv(String envDir, List<String> dependencies) {
+		return checkUninstalledDependenciesInEnv(envDir, dependencies).size() == 0;
 	}
 	
-	public static boolean checkDependencyInEnv(String envDir, String dependencies, String version) {
+	public static List<String>  checkUninstalledDependenciesInEnv(String envDir, List<String> dependencies) {
+		File envFile = new File(envDir);
+		if (!envFile.isDirectory())
+			return dependencies;
+		List<String> uninstalled = dependencies.stream().filter(dep -> {
+			int ind = dep.indexOf("=");
+			if (ind == -1) return checkDependencyInEnv(envDir, dep);
+			String packName = dep.substring(0, ind);
+			String vv = dep.substring(ind + 1);
+			return checkDependencyInEnv(envDir, dep, vv);
+		}).collect(Collectors.toList());
+		return uninstalled;
+	}
+	
+	public static boolean checkDependencyInEnv(String envDir, String dependency) {
+		return checkDependencyInEnv(envDir, dependency, null);
+	}
+	
+	public static boolean checkDependencyInEnv(String envDir, String dependency, String version) {
 		File envFile = new File(envDir);
 		if (!envFile.isDirectory())
 			return false;
-		String checkDepCode = "";
+		String checkDepCode;
+		if ( version == null) {
+			checkDepCode = "import importlib, sys; pkg = %s; desired_version = %s; spec = importlib.util.find_spec(pkg); sys.exit(0) if spec and spec.version == desired_version else sys.exit(1)";
+			checkDepCode = String.format(checkDepCode, dependency, version);
+		} else {
+			checkDepCode = "import importlib, sys; sys.exit(0) if importlib.util.find_spec(%s) else sys.exit(1)";
+			checkDepCode = String.format(checkDepCode, dependency);
+		}
 		try {
 			runPythonIn(envFile, checkDepCode);
-		} catch (IOException | InterruptedException e) {
+		} catch (RuntimeException | IOException | InterruptedException e) {
 			return false;
 		}
 		return true;
