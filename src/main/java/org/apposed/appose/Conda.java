@@ -61,7 +61,7 @@ import java.util.stream.Collectors;
  */
 public class Conda {
 	
-	final String pythonCommand = SystemUtils.IS_OS_WINDOWS ? "python.exe" : "bin/python";
+	final static String PYTHON_COMMAND = SystemUtils.IS_OS_WINDOWS ? "python.exe" : "bin/python";
 	
 	final String condaCommand;
 	
@@ -231,7 +231,7 @@ public class Conda {
 	 *         Mac/Linux.
 	 * @throws IOException
 	 */
-	private List< String > getBaseCommand()
+	private static List< String > getBaseCommand()
 	{
 		final List< String > cmd = new ArrayList<>();
 		if ( SystemUtils.IS_OS_WINDOWS )
@@ -644,15 +644,56 @@ public class Conda {
 	{
 		final List< String > cmd = getBaseCommand();
 		if ( envName.equals( DEFAULT_ENVIRONMENT_NAME ) )
-			cmd.add( pythonCommand );
+			cmd.add( PYTHON_COMMAND );
 		else
-			cmd.add( Paths.get( "envs", envName, pythonCommand ).toString() );
+			cmd.add( Paths.get( "envs", envName, PYTHON_COMMAND ).toString() );
 		cmd.addAll( Arrays.asList( args ) );
 		final ProcessBuilder builder = getBuilder( true );
 		if ( SystemUtils.IS_OS_WINDOWS )
 		{
 			final Map< String, String > envs = builder.environment();
 			final String envDir = Paths.get( rootdir, "envs", envName ).toString();
+			envs.put( "Path", envDir + ";" + envs.get( "Path" ) );
+			envs.put( "Path", Paths.get( envDir, "Scripts" ).toString() + ";" + envs.get( "Path" ) );
+			envs.put( "Path", Paths.get( envDir, "Library" ).toString() + ";" + envs.get( "Path" ) );
+			envs.put( "Path", Paths.get( envDir, "Library", "Bin" ).toString() + ";" + envs.get( "Path" ) );
+		}
+		// TODO find way to get env vars in micromamba builder.environment().putAll( getEnvironmentVariables( envName ) );
+		if ( builder.command( cmd ).start().waitFor() != 0 )
+			throw new RuntimeException();
+	}
+
+	/**
+	 * Run a Python command in the specified environment. This method automatically
+	 * sets environment variables associated with the specified environment. In
+	 * Windows, this method also sets the {@code PATH} environment variable so that
+	 * the specified environment runs as expected.
+	 * 
+	 * @param envName
+	 *            The environment name used to run the Python command.
+	 * @param args
+	 *            One or more arguments for the Python command.
+	 * @throws IOException
+	 *             If an I/O error occurs.
+	 * @throws InterruptedException
+	 *             If the current thread is interrupted by another thread while it
+	 *             is waiting, then the wait is ended and an InterruptedException is
+	 *             thrown.
+	 */
+	public static void runPythonIn( final File envFile, final String... args ) throws IOException, InterruptedException
+	{
+		if (!Paths.get( envFile.getAbsolutePath(), PYTHON_COMMAND ).toFile().isFile())
+			throw new IOException("No Python found in the environment provided. The following "
+					+ "file does not exist: " + Paths.get( envFile.getAbsolutePath(), PYTHON_COMMAND ).toAbsolutePath());
+		final List< String > cmd = getBaseCommand();
+		cmd.add( Paths.get( envFile.getAbsolutePath(), PYTHON_COMMAND ).toAbsolutePath().toString() );
+		cmd.addAll( Arrays.asList( args ) );
+		final ProcessBuilder builder = new ProcessBuilder().directory( envFile );
+		builder.inheritIO();
+		if ( SystemUtils.IS_OS_WINDOWS )
+		{
+			final Map< String, String > envs = builder.environment();
+			final String envDir = envFile.getAbsolutePath();
 			envs.put( "Path", envDir + ";" + envs.get( "Path" ) );
 			envs.put( "Path", Paths.get( envDir, "Scripts" ).toString() + ";" + envs.get( "Path" ) );
 			envs.put( "Path", Paths.get( envDir, "Library" ).toString() + ";" + envs.get( "Path" ) );
@@ -873,11 +914,25 @@ public class Conda {
 	}
 	
 	public static boolean checkDependenciesInEnv(String envDir, List<String> dependencies) {
-		if (!(new File(envDir).isDirectory()))
+		File envFile = new File(envDir);
+		if (!envFile.isDirectory())
 			return false;
-		Builder env = new Builder().conda(new File(envDir));
+		runPythonIn(envFile, );
 		// TODO run conda list -p /full/path/to/env
 		return false;
+	}
+	
+	public static boolean checkDependencyInEnv(String envDir, String dependencies, String version) {
+		File envFile = new File(envDir);
+		if (!envFile.isDirectory())
+			return false;
+		String checkDepCode = "";
+		try {
+			runPythonIn(envFile, checkDepCode);
+		} catch (IOException | InterruptedException e) {
+			return false;
+		}
+		return true;
 	}
 	
 	public boolean checkEnvFromYamlExists(String envYaml) {
