@@ -936,16 +936,32 @@ public class Conda {
 	}
 	
 	public static boolean checkDependencyInEnv(String envDir, String dependency, String version) {
+		return checkDependencyInEnv(envDir, dependency, version, version);
+	}
+	
+	public static boolean checkDependencyInEnv(String envDir, String dependency, String minversion, String maxversion) {
 		File envFile = new File(envDir);
 		if (!envFile.isDirectory())
 			return false;
 		String checkDepCode;
-		if ( version == null) {
+		if (minversion != null && maxversion != null && minversion.equals(maxversion)) {
 			checkDepCode = "import importlib, sys; pkg = %s; desired_version = %s; spec = importlib.util.find_spec(pkg); sys.exit(0) if spec and spec.version == desired_version else sys.exit(1)";
-			checkDepCode = String.format(checkDepCode, dependency, version);
-		} else {
+			checkDepCode = String.format(checkDepCode, dependency, maxversion);
+		} else if (minversion == null && maxversion == null) {
 			checkDepCode = "import importlib, sys; sys.exit(0) if importlib.util.find_spec(%s) else sys.exit(1)";
 			checkDepCode = String.format(checkDepCode, dependency);
+		} else if (maxversion == null) {
+			checkDepCode = "import importlib, sys; "
+					+ "pkg = '%s'; desired_version = '%s'; "
+					+ "spec = importlib.util.find_spec(pkg); "
+					+ "sys.exit(0) if spec and spec.version == desired_version else sys.exit(1)";
+			checkDepCode = String.format(checkDepCode, dependency, minversion);
+		} else {
+			checkDepCode = "import importlib, sys; "
+					+ "pkg = '%s'; desired_version = '%s'; "
+					+ "spec = importlib.util.find_spec(pkg); "
+					+ "sys.exit(0) if spec and spec.version == desired_version else sys.exit(1)";
+			checkDepCode = String.format(checkDepCode, dependency, maxversion);
 		}
 		try {
 			runPythonIn(envFile, checkDepCode);
