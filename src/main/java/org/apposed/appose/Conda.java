@@ -932,14 +932,71 @@ public class Conda {
 	}
 	
 	public static boolean checkDependencyInEnv(String envDir, String dependency) {
-		return checkDependencyInEnv(envDir, dependency, null);
+		if (dependency.contains("==")) {
+			int ind = dependency.indexOf("==");
+			return checkDependencyInEnv(envDir, dependency.substring(0, ind).trim(), dependency.substring(ind + 2).trim());
+		} else if (dependency.contains(">=") && dependency.contains("<=") && dependency.contains(",")) {
+			int commaInd = dependency.indexOf(",");
+			int highInd = dependency.indexOf(">=");
+			int lowInd = dependency.indexOf("<=");
+			int minInd = Math.min(Math.min(commaInd, lowInd), highInd);
+			String packName = dependency.substring(0, minInd).trim();
+			String minV = dependency.substring(lowInd + 1, lowInd < highInd ? commaInd : dependency.length());
+			String maxV = dependency.substring(highInd + 1, lowInd < highInd ? dependency.length() : commaInd);
+			return checkDependencyInEnv(envDir, packName, minV, maxV, false);
+		} else if (dependency.contains(">=") && dependency.contains("<") && dependency.contains(",")) {
+			int commaInd = dependency.indexOf(",");
+			int highInd = dependency.indexOf(">=");
+			int lowInd = dependency.indexOf("<");
+			int minInd = Math.min(Math.min(commaInd, lowInd), highInd);
+			String packName = dependency.substring(0, minInd).trim();
+			String minV = dependency.substring(lowInd + 1, lowInd < highInd ? commaInd : dependency.length());
+			String maxV = dependency.substring(highInd + 1, lowInd < highInd ? dependency.length() : commaInd);
+			return checkDependencyInEnv(envDir, packName, minV, null, false) && checkDependencyInEnv(envDir, packName, null, maxV, true);
+		} else if (dependency.contains(">") && dependency.contains("<=") && dependency.contains(",")) {
+			int commaInd = dependency.indexOf(",");
+			int highInd = dependency.indexOf(">");
+			int lowInd = dependency.indexOf("<=");
+			int minInd = Math.min(Math.min(commaInd, lowInd), highInd);
+			String packName = dependency.substring(0, minInd).trim();
+			String minV = dependency.substring(lowInd + 1, lowInd < highInd ? commaInd : dependency.length());
+			String maxV = dependency.substring(highInd + 1, lowInd < highInd ? dependency.length() : commaInd);
+			return checkDependencyInEnv(envDir, packName, minV, null, true) && checkDependencyInEnv(envDir, packName, null, maxV, false);
+		} else if (dependency.contains(">") && dependency.contains("<") && dependency.contains(",")) {
+			int commaInd = dependency.indexOf(",");
+			int highInd = dependency.indexOf(">");
+			int lowInd = dependency.indexOf(">");
+			int minInd = Math.min(Math.min(commaInd, lowInd), highInd);
+			String packName = dependency.substring(0, minInd).trim();
+			String minV = dependency.substring(lowInd + 1, lowInd < highInd ? commaInd : dependency.length());
+			String maxV = dependency.substring(highInd + 1, lowInd < highInd ? dependency.length() : commaInd);
+			return checkDependencyInEnv(envDir, packName, minV, maxV, true);
+		} else if (dependency.contains(">")) {
+			int ind = dependency.indexOf(">");
+			return checkDependencyInEnv(envDir, null, dependency.substring(0, ind).trim(), dependency.substring(ind + 2).trim(), true);
+		} else if (dependency.contains(">=")) {
+			int ind = dependency.indexOf(">=");
+			return checkDependencyInEnv(envDir, null, dependency.substring(0, ind).trim(), dependency.substring(ind + 2).trim(), false);
+		} else if (dependency.contains("<=")) {
+			int ind = dependency.indexOf("<=");
+			return checkDependencyInEnv(envDir, dependency.substring(0, ind).trim(), dependency.substring(ind + 2).trim(), null, false);
+		} else if (dependency.contains("<")) {
+			int ind = dependency.indexOf("<");
+			return checkDependencyInEnv(envDir, dependency.substring(0, ind).trim(), dependency.substring(ind + 1).trim(), null, true);
+		} else {
+			return checkDependencyInEnv(envDir, dependency, null);
+		}
 	}
 	
 	public static boolean checkDependencyInEnv(String envDir, String dependency, String version) {
-		return checkDependencyInEnv(envDir, dependency, version, version);
+		return checkDependencyInEnv(envDir, dependency, version, version, true);
 	}
 	
 	public static boolean checkDependencyInEnv(String envDir, String dependency, String minversion, String maxversion) {
+		return checkDependencyInEnv(envDir, dependency, minversion, maxversion, true);
+	}
+	
+	public static boolean checkDependencyInEnv(String envDir, String dependency, String minversion, String maxversion, boolean strictlyBiggerOrSmaller) {
 		File envFile = new File(envDir);
 		if (!envFile.isDirectory())
 			return false;
@@ -961,24 +1018,24 @@ public class Conda {
 					+ "from packaging import version as vv; "
 					+ "pkg = '%s'; desired_version = '%s'; "
 					+ "spec = importlib.util.find_spec(pkg); "
-					+ "sys.exit(0) if spec and vv.parse(version(pkg)) >= vv.parse(desired_version) else sys.exit(1)";
-			checkDepCode = String.format(checkDepCode, dependency, minversion);
+					+ "sys.exit(0) if spec and vv.parse(version(pkg)) %s vv.parse(desired_version) else sys.exit(1)";
+			checkDepCode = String.format(checkDepCode, dependency, minversion, strictlyBiggerOrSmaller ? ">" : ">=");
 		} else if (minversion == null) {
 			checkDepCode = "import importlib, sys; "
 					+ "from importlib.metadata import version; "
 					+ "from packaging import version as vv; "
 					+ "pkg = '%s'; desired_version = '%s'; "
 					+ "spec = importlib.util.find_spec(pkg); "
-					+ "sys.exit(0) if spec and vv.parse(version(pkg)) <= vv.parse(desired_version) else sys.exit(1)";
-			checkDepCode = String.format(checkDepCode, dependency, maxversion);
+					+ "sys.exit(0) if spec and vv.parse(version(pkg)) %s vv.parse(desired_version) else sys.exit(1)";
+			checkDepCode = String.format(checkDepCode, dependency, maxversion, strictlyBiggerOrSmaller ? "<" : "<=");
 		} else {
 			checkDepCode = "import importlib, sys; "
 					+ "from importlib.metadata import version; "
 					+ "from packaging import version as vv; "
 					+ "pkg = '%s'; min_v = '%s'; max_v = '%s'; "
 					+ "spec = importlib.util.find_spec(pkg); "
-					+ "sys.exit(0) if spec and vv.parse(version(pkg)) >= vv.parse(min_v) and vv.parse(version(pkg)) <= vv.parse(max_v) else sys.exit(1)";
-			checkDepCode = String.format(checkDepCode, dependency, minversion, maxversion);
+					+ "sys.exit(0) if spec and vv.parse(version(pkg)) %s vv.parse(min_v) and vv.parse(version(pkg)) %s vv.parse(max_v) else sys.exit(1)";
+			checkDepCode = String.format(checkDepCode, dependency, minversion, maxversion, strictlyBiggerOrSmaller ? ">" : ">=", strictlyBiggerOrSmaller ? "<" : ">=");
 		}
 		try {
 			runPythonIn(envFile, checkDepCode);
