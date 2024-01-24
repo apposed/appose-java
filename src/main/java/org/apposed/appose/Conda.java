@@ -1000,6 +1000,7 @@ public class Conda {
 		File envFile = new File(envDir);
 		if (!envFile.isDirectory())
 			return false;
+		if (dependency.trim().equals("python")) return checkPythonInstallation(envDir, minversion, maxversion, strictlyBiggerOrSmaller);
 		String checkDepCode;
 		if (minversion != null && maxversion != null && minversion.equals(maxversion)) {
 			checkDepCode = "import importlib, sys; "
@@ -1036,6 +1037,37 @@ public class Conda {
 					+ "spec = importlib.util.find_spec(pkg); "
 					+ "sys.exit(0) if spec and vv.parse(version(pkg)) %s vv.parse(min_v) and vv.parse(version(pkg)) %s vv.parse(max_v) else sys.exit(1)";
 			checkDepCode = String.format(checkDepCode, dependency, minversion, maxversion, strictlyBiggerOrSmaller ? ">" : ">=", strictlyBiggerOrSmaller ? "<" : ">=");
+		}
+		try {
+			runPythonIn(envFile, checkDepCode);
+		} catch (RuntimeException | IOException | InterruptedException e) {
+			return false;
+		}
+		return true;
+	}
+	
+	private static boolean checkPythonInstallation(String envDir, String minversion, String maxversion, boolean strictlyBiggerOrSmaller) {
+		File envFile = new File(envDir);
+		String checkDepCode;
+		if (minversion != null && maxversion != null && minversion.equals(maxversion)) {
+			checkDepCode = "import platform; from packaging import version as vv; desired_version = '%s'; "
+					+ "sys.exit(0) if vv.parse(version(pkg)) == vv.parse(desired_version) else sys.exit(1)";
+			checkDepCode = String.format(checkDepCode, maxversion);
+		} else if (minversion == null && maxversion == null) {
+			return true;
+		} else if (maxversion == null) {
+			checkDepCode = "import platform; from packaging import version as vv; desired_version = '%s'; "
+					+ "sys.exit(0) if vv.parse(version(platform.python_version())) %s vv.parse(desired_version) else sys.exit(1)";
+			checkDepCode = String.format(checkDepCode, minversion, strictlyBiggerOrSmaller ? ">" : ">=");
+		} else if (minversion == null) {
+			checkDepCode = "import platform; from packaging import version as vv; desired_version = '%s'; "
+					+ "sys.exit(0) if vv.parse(version(platform.python_version())) %s vv.parse(desired_version) else sys.exit(1)";
+			checkDepCode = String.format(checkDepCode, maxversion, strictlyBiggerOrSmaller ? "<" : "<=");
+		} else {
+			checkDepCode = "import platform; "
+					+ "from packaging import version as vv; min_v = '%s'; max_v = '%s'; "
+					+ "sys.exit(0) if vv.parse(platform.python_version()) %s vv.parse(min_v) and vv.parse(platform.python_version()) %s vv.parse(max_v) else sys.exit(1)";
+			checkDepCode = String.format(checkDepCode, minversion, maxversion, strictlyBiggerOrSmaller ? ">" : ">=", strictlyBiggerOrSmaller ? "<" : ">=");
 		}
 		try {
 			runPythonIn(envFile, checkDepCode);
