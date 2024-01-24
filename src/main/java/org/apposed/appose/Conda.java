@@ -945,23 +945,40 @@ public class Conda {
 			return false;
 		String checkDepCode;
 		if (minversion != null && maxversion != null && minversion.equals(maxversion)) {
-			checkDepCode = "import importlib, sys; pkg = %s; desired_version = %s; spec = importlib.util.find_spec(pkg); sys.exit(0) if spec and spec.version == desired_version else sys.exit(1)";
+			checkDepCode = "import importlib, sys; "
+					+ "from importlib.metadata import version; "
+					+ "from packaging import version as vv; "
+					+ "pkg = %s; wanted_v = %s; "
+					+ "spec = importlib.util.find_spec(pkg); "
+					+ "sys.exit(0) if spec and vv.parse(version(pkg)) == vv.parse(wanted_v) else sys.exit(1)";
 			checkDepCode = String.format(checkDepCode, dependency, maxversion);
 		} else if (minversion == null && maxversion == null) {
 			checkDepCode = "import importlib, sys; sys.exit(0) if importlib.util.find_spec(%s) else sys.exit(1)";
 			checkDepCode = String.format(checkDepCode, dependency);
 		} else if (maxversion == null) {
 			checkDepCode = "import importlib, sys; "
+					+ "from importlib.metadata import version; "
+					+ "from packaging import version as vv; "
 					+ "pkg = '%s'; desired_version = '%s'; "
 					+ "spec = importlib.util.find_spec(pkg); "
-					+ "sys.exit(0) if spec and spec.version == desired_version else sys.exit(1)";
+					+ "sys.exit(0) if spec and vv.parse(version(pkg)) >= vv.parse(desired_version) else sys.exit(1)";
 			checkDepCode = String.format(checkDepCode, dependency, minversion);
+		} else if (minversion == null) {
+			checkDepCode = "import importlib, sys; "
+					+ "from importlib.metadata import version; "
+					+ "from packaging import version as vv; "
+					+ "pkg = '%s'; desired_version = '%s'; "
+					+ "spec = importlib.util.find_spec(pkg); "
+					+ "sys.exit(0) if spec and vv.parse(version(pkg)) <= vv.parse(desired_version) else sys.exit(1)";
+			checkDepCode = String.format(checkDepCode, dependency, maxversion);
 		} else {
 			checkDepCode = "import importlib, sys; "
-					+ "pkg = '%s'; desired_version = '%s'; "
+					+ "from importlib.metadata import version; "
+					+ "from packaging import version as vv; "
+					+ "pkg = '%s'; min_v = '%s'; max_v = '%s'; "
 					+ "spec = importlib.util.find_spec(pkg); "
-					+ "sys.exit(0) if spec and spec.version == desired_version else sys.exit(1)";
-			checkDepCode = String.format(checkDepCode, dependency, maxversion);
+					+ "sys.exit(0) if spec and vv.parse(version(pkg)) >= vv.parse(min_v) and vv.parse(version(pkg)) <= vv.parse(max_v) else sys.exit(1)";
+			checkDepCode = String.format(checkDepCode, dependency, minversion, maxversion);
 		}
 		try {
 			runPythonIn(envFile, checkDepCode);
