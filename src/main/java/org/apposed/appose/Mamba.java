@@ -158,8 +158,7 @@ public class Mamba {
 	/**
 	 * Create a new {@link Mamba} object. The root dir for the Micromamba installation
 	 * will be the default base path defined at {@link BASE_PATH}
-	 * If there is no Micromamba found at the specified
-	 * path, a {@link MambaInstallException} will be thrown
+	 * If there is no Micromamba found at the base path {@link BASE_PATH}, a {@link MambaInstallException} will be thrown
 	 * 
 	 * It is expected that the Micromamba installation has executable commands as shown below:
 	 * 
@@ -181,9 +180,11 @@ public class Mamba {
 	 *             thrown.
 	 * @throws ArchiveException 
 	 * @throws URISyntaxException 
-	 * @throws MambaInstallException if Micromamba has not been already installed in the default path {@link #BASE_PATH}
+	 * @throws MambaInstallException if Micromamba has not been installed in the default path {@link #BASE_PATH}
 	 */
-	public Mamba() throws IOException, InterruptedException, ArchiveException, URISyntaxException, MambaInstallException
+	public Mamba() throws IOException, 
+							InterruptedException, ArchiveException, 
+							URISyntaxException, MambaInstallException
 	{
 		this(BASE_PATH, false);
 	}
@@ -192,7 +193,8 @@ public class Mamba {
 	 * Create a new {@link Mamba} object. The root dir for the Micromamba installation
 	 * will be the default base path defined at {@link BASE_PATH}
 	 * If there is no Micromamba found at the specified
-	 * path, it will be installed automatically. 
+	 * path, it will be installed automatically if the parameter 'installIfNeeded'
+	 * is true. If not a {@link MambaInstallException} will be thrown.
 	 * 
 	 * It is expected that the Micromamba installation has executable commands as shown below:
 	 * 
@@ -206,6 +208,10 @@ public class Mamba {
 	 * │   │   ├── python(.exe)
 	 * </pre>
 	 * 
+	 * @param installIfNeeded
+	 * 	if Micormamba is not installed in the default dir {@link #BASE_PATH}, Appose installs it
+	 * 	automatically
+	 * 
 	 * @throws IOException
 	 *             If an I/O error occurs.
 	 * @throws InterruptedException
@@ -214,20 +220,25 @@ public class Mamba {
 	 *             thrown.
 	 * @throws ArchiveException 
 	 * @throws URISyntaxException 
+	 * @throws MambaInstallException if Micromamba has not been installed in the default path {@link #BASE_PATH} 
+	 *  and 'installIfNeeded' is false
 	 */
-	public Mamba(boolean installIfNeeded) throws IOException, InterruptedException, ArchiveException, URISyntaxException
+	public Mamba(boolean installIfNeeded) throws IOException, 
+													InterruptedException, ArchiveException, 
+													URISyntaxException, MambaInstallException
 	{
 		this(BASE_PATH, installIfNeeded);
 	}
 
 	/**
-	 * Create a new Conda object. The root dir for Conda installation can be
-	 * specified as {@code String}. If there is no directory found at the specified
-	 * path, Miniconda will be automatically installed in the path. It is expected
-	 * that the Conda installation has executable commands as shown below:
+	 * Create a new Mamba object. The root dir for Mamba installation can be
+	 * specified as {@code String}. 
+	 * If there is no Micromamba found at the specified path, a {@link MambaInstallException} will be thrown.
+	 * 
+	 * It is expected that the Micromamba installation has executable commands as shown below:
 	 * 
 	 * <pre>
-	 * CONDA_ROOT
+	 * MAMBA_ROOT
 	 * ├── bin
 	 * │   ├── micromamba(.exe)
 	 * │   ... 
@@ -246,20 +257,25 @@ public class Mamba {
 	 *             thrown.
 	 * @throws ArchiveException 
 	 * @throws URISyntaxException 
+	 * @throws MambaInstallException if Micromamba has not been installed in the provided 'rootdir' path
 	 */
-	public Mamba( final String rootdir) throws IOException, InterruptedException, ArchiveException, URISyntaxException
+	public Mamba( final String rootdir) throws IOException, 
+												InterruptedException, ArchiveException, 
+												URISyntaxException, MambaInstallException
 	{
 		this(rootdir, false);
 	}
 
 	/**
 	 * Create a new Conda object. The root dir for Conda installation can be
-	 * specified as {@code String}. If there is no directory found at the specified
-	 * path, Miniconda will be automatically installed in the path. It is expected
-	 * that the Conda installation has executable commands as shown below:
+	 * specified as {@code String}. 
+	 * If there is no Micromamba found at the specified path, it will be installed automatically 
+	 * if the parameter 'installIfNeeded' is true. If not a {@link MambaInstallException} will be thrown.
+	 * 
+	 * It is expected that the Conda installation has executable commands as shown below:
 	 * 
 	 * <pre>
-	 * CONDA_ROOT
+	 * MAMBA_ROOT
 	 * ├── bin
 	 * │   ├── micromamba(.exe)
 	 * │   ... 
@@ -269,7 +285,10 @@ public class Mamba {
 	 * </pre>
 	 * 
 	 * @param rootdir
-	 *            The root dir for Mamba installation.
+	 *  The root dir for Mamba installation.
+	 * @param installIfNeeded
+	 * 	if Micormamba is not installed in the path specified by 'rootdir', Appose installs it
+	 * 	automatically
 	 * @throws IOException
 	 *             If an I/O error occurs.
 	 * @throws InterruptedException
@@ -278,36 +297,55 @@ public class Mamba {
 	 *             thrown.
 	 * @throws ArchiveException 
 	 * @throws URISyntaxException 
+	 * @throws MambaInstallException if Micromamba has not been installed in the dir defined by 'rootdir' 
+	 *  and 'installIfNeeded' is false
 	 */
-	public Mamba( final String rootdir, boolean installIfMissing) throws IOException, InterruptedException, ArchiveException, URISyntaxException
+	public Mamba( final String rootdir, boolean installIfMissing) throws IOException, 
+																			InterruptedException, ArchiveException, 
+																			URISyntaxException, MambaInstallException
 	{
 		if (rootdir == null)
 			this.rootdir = BASE_PATH;
 		else
 			this.rootdir = rootdir;
 		this.mambaCommand = this.rootdir + MICROMAMBA_RELATIVE_PATH;
-		this.envsdir = this.rootdir + File.separator + "envs";
-		if ( Files.notExists( Paths.get( mambaCommand ) ) )
-		{
-
-			final File tempFile = File.createTempFile( "miniconda", ".tar.bz2" );
-			tempFile.deleteOnExit();
-			URL website = MambaInstallerUtils.redirectedURL(new URL(MICROMAMBA_URL));
-			ReadableByteChannel rbc = Channels.newChannel(website.openStream());
-			try (FileOutputStream fos = new FileOutputStream(tempFile)) {
-				fos.getChannel().transferFrom(rbc, 0, Long.MAX_VALUE);
-			}
-			final File tempTarFile = File.createTempFile( "miniconda", ".tar" );
-			tempTarFile.deleteOnExit();
-			MambaInstallerUtils.unBZip2(tempFile, tempTarFile);
-			File mambaBaseDir = new File(rootdir);
-			if (!mambaBaseDir.isDirectory() && !mambaBaseDir.mkdirs())
-    	        throw new IOException("Failed to create Micromamba default directory " + mambaBaseDir.getParentFile().getAbsolutePath());
-			MambaInstallerUtils.unTar(tempTarFile, mambaBaseDir);
-			if (!(new File(envsdir)).isDirectory() && !new File(envsdir).mkdirs())
-    	        throw new IOException("Failed to create Micromamba default envs directory " + envsdir);
-			
+		this.envsdir = this.rootdir + File.separator + ENVS_NAME;
+		boolean filesExist = Files.notExists( Paths.get( mambaCommand ) );
+		if (!filesExist && !installIfMissing)
+			throw new MambaInstallException();
+		boolean installed = true;
+		try {
+			getVersion();
+		} catch (RuntimeException ex) {
+			installed = false;
 		}
+		if (!installed && !installIfMissing)
+			throw new MambaInstallException("Even though Micromamba installation has been found, "
+					+ "it did not work as expected. Re-installation is advised. Path of installation found: " + this.rootdir);
+		if (installed)
+			return;
+		installMicromamba();
+	}
+	
+	private void installMicromamba() throws IOException, InterruptedException, ArchiveException, URISyntaxException {
+
+		final File tempFile = File.createTempFile( "micromamba", ".tar.bz2" );
+		tempFile.deleteOnExit();
+		URL website = MambaInstallerUtils.redirectedURL(new URL(MICROMAMBA_URL));
+		ReadableByteChannel rbc = Channels.newChannel(website.openStream());
+		try (FileOutputStream fos = new FileOutputStream(tempFile)) {
+			fos.getChannel().transferFrom(rbc, 0, Long.MAX_VALUE);
+		}
+		final File tempTarFile = File.createTempFile( "micromamba", ".tar" );
+		tempTarFile.deleteOnExit();
+		MambaInstallerUtils.unBZip2(tempFile, tempTarFile);
+		File mambaBaseDir = new File(rootdir);
+		if (!mambaBaseDir.isDirectory() && !mambaBaseDir.mkdirs())
+	        throw new IOException("Failed to create Micromamba default directory " + mambaBaseDir.getParentFile().getAbsolutePath());
+		MambaInstallerUtils.unTar(tempTarFile, mambaBaseDir);
+		if (!(new File(envsdir)).isDirectory() && !new File(envsdir).mkdirs())
+	        throw new IOException("Failed to create Micromamba default envs directory " + envsdir);
+			
 
 		// The following command will throw an exception if Conda does not work as
 		// expected.
@@ -315,10 +353,6 @@ public class Mamba {
 		if (!executableSet)
 			throw new IOException("Cannot set file as executable due to missing permissions, "
 					+ "please do it manually: " + mambaCommand);
-		
-		// The following command will throw an exception if Conda does not work as
-		// expected.
-		getVersion();
 	}
 	
 	public String getEnvsDir() {
@@ -748,13 +782,13 @@ public class Mamba {
 		if ( envName.equals( DEFAULT_ENVIRONMENT_NAME ) )
 			cmd.add( PYTHON_COMMAND );
 		else
-			cmd.add( Paths.get( "envs", envName, PYTHON_COMMAND ).toString() );
+			cmd.add( Paths.get( ENVS_NAME, envName, PYTHON_COMMAND ).toString() );
 		cmd.addAll( Arrays.asList( args ) );
 		final ProcessBuilder builder = getBuilder( true );
 		if ( SystemUtils.IS_OS_WINDOWS )
 		{
 			final Map< String, String > envs = builder.environment();
-			final String envDir = Paths.get( rootdir, "envs", envName ).toString();
+			final String envDir = Paths.get( rootdir, ENVS_NAME, envName ).toString();
 			envs.put( "Path", envDir + ";" + envs.get( "Path" ) );
 			envs.put( "Path", Paths.get( envDir, "Scripts" ).toString() + ";" + envs.get( "Path" ) );
 			envs.put( "Path", Paths.get( envDir, "Library" ).toString() + ";" + envs.get( "Path" ) );
