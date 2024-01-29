@@ -48,6 +48,7 @@ import java.util.Arrays;
 import java.util.Calendar;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.UUID;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
@@ -560,14 +561,16 @@ public class Mamba {
 	 * specified packages.
 	 * 
 	 * @param envName
-	 *            The environment name to be created.
+	 *            The environment name to be created. CAnnot be null.
 	 * @param isForceCreation
 	 *            Force creation of the environment if {@code true}. If this value
 	 *            is {@code false} and an environment with the specified name
 	 *            already exists, throw an {@link EnvironmentExistsException}.
-	 * @param args
-	 *            The list of packages to be installed on environment creation and
-	 *            extra parameters as {@code String...}.
+	 * @param channels
+	 *            the channels from where the packages can be installed. Can be null
+	 * @param packages
+	 * 			  the packages that want to be installed during env creation. They can contain the version.
+	 * 			  For example, "python" or "python=3.10.1", "numpy" or "numpy=1.20.1". CAn be null if no packages want to be installed
 	 * @throws IOException
 	 *             If an I/O error occurs.
 	 * @throws InterruptedException
@@ -575,12 +578,16 @@ public class Mamba {
 	 *             is waiting, then the wait is ended and an InterruptedException is
 	 *             thrown.
 	 */
-	public void create( final String envName, final boolean isForceCreation, final String... args ) throws IOException, InterruptedException
+	public void create( final String envName, final boolean isForceCreation, List<String> channels, List<String> packages ) throws IOException, InterruptedException
 	{
+		Objects.requireNonNull(envName, "The name of the environment of interest needs to be provided.");
 		if ( !isForceCreation && getEnvironmentNames().contains( envName ) )
 			throw new EnvironmentExistsException();
 		final List< String > cmd = new ArrayList<>( Arrays.asList( "env", "create", "--force", "-p", envsdir + File.separator + envName ) );
-		cmd.addAll( Arrays.asList( args ) );
+		if (channels == null) channels = new ArrayList<String>();
+		for (String chan : channels) { cmd.add("-c"); cmd.add(chan);}
+		if (packages == null) packages = new ArrayList<String>();
+		for (String pack : packages) { cmd.add(pack);}
 		runMamba( cmd.stream().toArray( String[]::new ) );
 	}
 
@@ -654,6 +661,56 @@ public class Mamba {
 	}
 
 	/**
+	 * Run {@code conda install} in the activated environment. A list of packages to
+	 * install and extra parameters can be specified as {@code args}.
+	 * 
+	 * @param channels
+	 *            the channels from where the packages can be installed. Can be null
+	 * @param packages
+	 * 			  the packages that want to be installed during env creation. They can contain the version.
+	 * 			  For example, "python" or "python=3.10.1", "numpy" or "numpy=1.20.1". CAn be null if no packages want to be installed
+	 * @throws IOException
+	 *             If an I/O error occurs.
+	 * @throws InterruptedException
+	 *             If the current thread is interrupted by another thread while it
+	 *             is waiting, then the wait is ended and an InterruptedException is
+	 *             thrown.
+	 */
+	public void install( List<String> channels, List<String> packages ) throws IOException, InterruptedException
+	{
+		installIn( envName, channels, packages );
+	}
+
+	/**
+	 * Run {@code conda install} in the specified environment. A list of packages to
+	 * install and extra parameters can be specified as {@code args}.
+	 * 
+	 * @param envName
+	 *            The environment name to be used for the install command.
+	 * @param channels
+	 *            the channels from where the packages can be installed. Can be null
+	 * @param packages
+	 * 			  the packages that want to be installed during env creation. They can contain the version.
+	 * 			  For example, "python" or "python=3.10.1", "numpy" or "numpy=1.20.1". CAn be null if no packages want to be installed
+	 * @throws IOException
+	 *             If an I/O error occurs.
+	 * @throws InterruptedException
+	 *             If the current thread is interrupted by another thread while it
+	 *             is waiting, then the wait is ended and an InterruptedException is
+	 *             thrown.
+	 */
+	public void installIn( final String envName, List<String> channels, List<String> packages ) throws IOException, InterruptedException
+	{
+		Objects.requireNonNull(envName, "The name of the environment of interest needs to be provided.");		
+		final List< String > cmd = new ArrayList<>( Arrays.asList( "install", "-y", "-p", this.envsdir + File.separator + envName ) );
+		if (channels == null) channels = new ArrayList<String>();
+		for (String chan : channels) { cmd.add("-c"); cmd.add(chan);}
+		if (packages == null) packages = new ArrayList<String>();
+		for (String pack : packages) { cmd.add(pack);}
+		runMamba( cmd.stream().toArray( String[]::new ) );
+	}
+
+	/**
 	 * Run {@code conda install} in the specified environment. A list of packages to
 	 * install and extra parameters can be specified as {@code args}.
 	 * 
@@ -671,7 +728,7 @@ public class Mamba {
 	 */
 	public void installIn( final String envName, final String... args ) throws IOException, InterruptedException
 	{
-		final List< String > cmd = new ArrayList<>( Arrays.asList( "install", "-y", "-n", envName ) );
+		final List< String > cmd = new ArrayList<>( Arrays.asList( "install", "-y", "-p", this.envsdir + File.separator + envName ) );
 		cmd.addAll( Arrays.asList( args ) );
 		runMamba( cmd.stream().toArray( String[]::new ) );
 	}
