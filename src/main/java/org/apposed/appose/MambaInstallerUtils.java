@@ -122,7 +122,7 @@ public final class MambaInstallerUtils {
 	}
 	
 	public static void main(String[] args) throws FileNotFoundException, IOException, ArchiveException, URISyntaxException {
-		String url = Conda.MICROMAMBA_URL;
+		String url = Mamba.MICROMAMBA_URL;
 		final File tempFile = File.createTempFile( "miniconda", ".tar.bz2" );
 		tempFile.deleteOnExit();
 		URL website = MambaInstallerUtils.redirectedURL(new URL(url));

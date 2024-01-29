@@ -50,7 +50,7 @@ public class Builder {
 		// - Populate ${baseDirectory}/jars with Maven artifacts?
 
 		try {
-			Conda conda = new Conda(Conda.BASE_PATH);
+			Mamba conda = new Mamba(Mamba.BASE_PATH);
 			String envName = "appose";
 			if (conda.getEnvironmentNames().contains( envName )) {
 				// TODO: Should we update it? For now, we just use it.

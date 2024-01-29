@@ -40,7 +40,6 @@ import java.net.URISyntaxException;
 import java.net.URL;
 import java.nio.channels.Channels;
 import java.nio.channels.ReadableByteChannel;
-import java.nio.channels.Selector;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.text.SimpleDateFormat;
@@ -54,16 +53,16 @@ import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
 /**
- * Conda environment manager, implemented by delegating to micromamba.
+ * Python environment manager, implemented by delegating to micromamba.
  * 
  * @author Ko Sugawara
  * @author Curtis Rueden
  */
-public class Conda {
+public class Mamba {
 	
 	final static String PYTHON_COMMAND = SystemUtils.IS_OS_WINDOWS ? "python.exe" : "bin/python";
 	
-	final String condaCommand;
+	final String mambaCommand;
 	
 	private String envName = DEFAULT_ENVIRONMENT_NAME;
 	
@@ -73,7 +72,7 @@ public class Conda {
 	
 	public final static String DEFAULT_ENVIRONMENT_NAME = "base";
 	
-	private final static String CONDA_RELATIVE_PATH = SystemUtils.IS_OS_WINDOWS ? 
+	private final static String MICROMAMBA_RELATIVE_PATH = SystemUtils.IS_OS_WINDOWS ? 
 			 File.separator + "Library" + File.separator + "bin" + File.separator + "micromamba.exe" 
 			: File.separator + "bin" + File.separator + "micromamba";
 
@@ -145,9 +144,78 @@ public class Conda {
 	 * @throws ArchiveException 
 	 * @throws URISyntaxException 
 	 */
-	public Conda() throws IOException, InterruptedException, ArchiveException, URISyntaxException
+	public Mamba() throws IOException, InterruptedException, ArchiveException, URISyntaxException
 	{
 		this(BASE_PATH);
+	}
+
+	/**
+	 * Create a new Conda object. The root dir for Conda installation can be
+	 * specified as {@code String}. If there is no directory found at the specified
+	 * path, Miniconda will be automatically installed in the path. It is expected
+	 * that the Conda installation has executable commands as shown below:
+	 * 
+	 * <pre>
+	 * CONDA_ROOT
+	 * ├── bin
+	 * │   ├── micromamba(.exe)
+	 * │   ... 
+	 * ├── envs
+	 * │   ├── your_env
+	 * │   │   ├── python(.exe)
+	 * </pre>
+	 * 
+	 * @param rootdir
+	 *            The root dir for Mamba installation.
+	 * @throws IOException
+	 *             If an I/O error occurs.
+	 * @throws InterruptedException
+	 *             If the current thread is interrupted by another thread while it
+	 *             is waiting, then the wait is ended and an InterruptedException is
+	 *             thrown.
+	 * @throws ArchiveException 
+	 * @throws URISyntaxException 
+	 */
+	public Mamba( final String rootdir, boolean installIfMissing) throws IOException, InterruptedException, ArchiveException, URISyntaxException
+	{
+		if (rootdir == null)
+			this.rootdir = BASE_PATH;
+		else
+			this.rootdir = rootdir;
+		this.mambaCommand = this.rootdir + MICROMAMBA_RELATIVE_PATH;
+		this.envsdir = this.rootdir + File.separator + "envs";
+		if ( Files.notExists( Paths.get( mambaCommand ) ) )
+		{
+
+			final File tempFile = File.createTempFile( "miniconda", ".tar.bz2" );
+			tempFile.deleteOnExit();
+			URL website = MambaInstallerUtils.redirectedURL(new URL(MICROMAMBA_URL));
+			ReadableByteChannel rbc = Channels.newChannel(website.openStream());
+			try (FileOutputStream fos = new FileOutputStream(tempFile)) {
+				fos.getChannel().transferFrom(rbc, 0, Long.MAX_VALUE);
+			}
+			final File tempTarFile = File.createTempFile( "miniconda", ".tar" );
+			tempTarFile.deleteOnExit();
+			MambaInstallerUtils.unBZip2(tempFile, tempTarFile);
+			File mambaBaseDir = new File(rootdir);
+			if (!mambaBaseDir.isDirectory() && !mambaBaseDir.mkdirs())
+    	        throw new IOException("Failed to create Micromamba default directory " + mambaBaseDir.getParentFile().getAbsolutePath());
+			MambaInstallerUtils.unTar(tempTarFile, mambaBaseDir);
+			if (!(new File(envsdir)).isDirectory() && !new File(envsdir).mkdirs())
+    	        throw new IOException("Failed to create Micromamba default envs directory " + envsdir);
+			
+		}
+
+		// The following command will throw an exception if Conda does not work as
+		// expected.
+		boolean executableSet = new File(mambaCommand).setExecutable(true);
+		if (!executableSet)
+			throw new IOException("Cannot set file as executable due to missing permissions, "
+					+ "please do it manually: " + mambaCommand);
+		
+		// The following command will throw an exception if Conda does not work as
+		// expected.
+		getVersion();
 	}
 
 	/**
@@ -177,15 +245,15 @@ public class Conda {
 	 * @throws ArchiveException 
 	 * @throws URISyntaxException 
 	 */
-	public Conda( final String rootdir ) throws IOException, InterruptedException, ArchiveException, URISyntaxException
+	public Mamba( final String rootdir ) throws IOException, InterruptedException, ArchiveException, URISyntaxException
 	{
 		if (rootdir == null)
 			this.rootdir = BASE_PATH;
 		else
 			this.rootdir = rootdir;
-		this.condaCommand = this.rootdir + CONDA_RELATIVE_PATH;
+		this.mambaCommand = this.rootdir + MICROMAMBA_RELATIVE_PATH;
 		this.envsdir = this.rootdir + File.separator + "envs";
-		if ( Files.notExists( Paths.get( condaCommand ) ) )
+		if ( Files.notExists( Paths.get( mambaCommand ) ) )
 		{
 
 			final File tempFile = File.createTempFile( "miniconda", ".tar.bz2" );
@@ -209,10 +277,10 @@ public class Conda {
 
 		// The following command will throw an exception if Conda does not work as
 		// expected.
-		boolean executableSet = new File(condaCommand).setExecutable(true);
+		boolean executableSet = new File(mambaCommand).setExecutable(true);
 		if (!executableSet)
 			throw new IOException("Cannot set file as executable due to missing permissions, "
-					+ "please do it manually: " + condaCommand);
+					+ "please do it manually: " + mambaCommand);
 		
 		// The following command will throw an exception if Conda does not work as
 		// expected.
@@ -278,7 +346,7 @@ public class Conda {
 	{
 		final List< String > cmd = new ArrayList<>( Arrays.asList( "update", "-y", "-n", envName ) );
 		cmd.addAll( Arrays.asList( args ) );
-		runConda( cmd.stream().toArray( String[]::new ) );
+		runMamba( cmd.stream().toArray( String[]::new ) );
 	}
 
 	/**
@@ -345,7 +413,7 @@ public class Conda {
 	{
 		if ( !isForceCreation && getEnvironmentNames().contains( envName ) )
 			throw new EnvironmentExistsException();
-		runConda( "env", "create", "--prefix",
+		runMamba( "env", "create", "--prefix",
 				envsdir + File.separator + envName, "-f", envYaml, "-y" );
 	}
 
@@ -375,7 +443,7 @@ public class Conda {
 	{
 		if ( !isForceCreation && getEnvironmentNames().contains( envName ) )
 			throw new EnvironmentExistsException();
-		runConda(consumer, "env", "create", "--prefix",
+		runMamba(consumer, "env", "create", "--prefix",
 				envsdir + File.separator + envName, "-f", envYaml, "-y", "-vv" );
 	}
 
@@ -416,7 +484,7 @@ public class Conda {
 	{
 		if ( !isForceCreation && getEnvironmentNames().contains( envName ) )
 			throw new EnvironmentExistsException();
-		runConda( "create", "-y", "-p", envsdir + File.separator + envName );
+		runMamba( "create", "-y", "-p", envsdir + File.separator + envName );
 	}
 
 	/**
@@ -466,12 +534,12 @@ public class Conda {
 			throw new EnvironmentExistsException();
 		final List< String > cmd = new ArrayList<>( Arrays.asList( "env", "create", "--force", "-p", envsdir + File.separator + envName ) );
 		cmd.addAll( Arrays.asList( args ) );
-		runConda( cmd.stream().toArray( String[]::new ) );
+		runMamba( cmd.stream().toArray( String[]::new ) );
 	}
 
 	/**
 	 * This method works as if the user runs {@code conda activate envName}. This
-	 * method internally calls {@link Conda#setEnvName(String)}.
+	 * method internally calls {@link Mamba#setEnvName(String)}.
 	 * 
 	 * @param envName
 	 *            The environment name to be activated.
@@ -558,7 +626,7 @@ public class Conda {
 	{
 		final List< String > cmd = new ArrayList<>( Arrays.asList( "install", "-y", "-n", envName ) );
 		cmd.addAll( Arrays.asList( args ) );
-		runConda( cmd.stream().toArray( String[]::new ) );
+		runMamba( cmd.stream().toArray( String[]::new ) );
 	}
 
 	/**
@@ -718,7 +786,7 @@ public class Conda {
 	public String getVersion() throws IOException, InterruptedException
 	{
 		final List< String > cmd = getBaseCommand();
-		cmd.addAll( Arrays.asList( condaCommand, "--version" ) );
+		cmd.addAll( Arrays.asList( mambaCommand, "--version" ) );
 		final Process process = getBuilder( false ).command( cmd ).start();
 		if ( process.waitFor() != 0 )
 			throw new RuntimeException();
@@ -739,12 +807,12 @@ public class Conda {
 	 *             is waiting, then the wait is ended and an InterruptedException is
 	 *             thrown.
 	 */
-	public void runConda(Consumer<String> consumer, final String... args ) throws RuntimeException, IOException, InterruptedException
+	public void runMamba(Consumer<String> consumer, final String... args ) throws RuntimeException, IOException, InterruptedException
 	{
 		SimpleDateFormat sdf = new SimpleDateFormat("HH:mm:ss");
 		
 		final List< String > cmd = getBaseCommand();
-		cmd.add( condaCommand );
+		cmd.add( mambaCommand );
 		cmd.addAll( Arrays.asList( args ) );
 
 		ProcessBuilder builder = getBuilder(false).command(cmd);
@@ -826,10 +894,10 @@ public class Conda {
 	 *             is waiting, then the wait is ended and an InterruptedException is
 	 *             thrown.
 	 */
-	public void runConda(final String... args ) throws RuntimeException, IOException, InterruptedException
+	public void runMamba(final String... args ) throws RuntimeException, IOException, InterruptedException
 	{
 		final List< String > cmd = getBaseCommand();
-		cmd.add( condaCommand );
+		cmd.add( mambaCommand );
 		cmd.addAll( Arrays.asList( args ) );
 		if ( getBuilder( true ).command( cmd ).start().waitFor() != 0 )
 			throw new RuntimeException();
