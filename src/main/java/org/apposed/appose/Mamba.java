@@ -561,27 +561,6 @@ public class Mamba {
 	 * 
 	 * @param envName
 	 *            The environment name to be created.
-	 * @param args
-	 *            The list of packages to be installed on environment creation and
-	 *            extra parameters as {@code String...}.
-	 * @throws IOException
-	 *             If an I/O error occurs.
-	 * @throws InterruptedException
-	 *             If the current thread is interrupted by another thread while it
-	 *             is waiting, then the wait is ended and an InterruptedException is
-	 *             thrown.
-	 */
-	public void create( final String envName, final String... args ) throws IOException, InterruptedException
-	{
-		create( envName, false, args );
-	}
-
-	/**
-	 * Run {@code conda create} to create a new conda environment with a list of
-	 * specified packages.
-	 * 
-	 * @param envName
-	 *            The environment name to be created.
 	 * @param isForceCreation
 	 *            Force creation of the environment if {@code true}. If this value
 	 *            is {@code false} and an environment with the specified name
