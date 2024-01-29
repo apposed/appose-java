@@ -412,7 +412,7 @@ public class Mamba {
 	 */
 	public void updateIn( final String envName, final String... args ) throws IOException, InterruptedException
 	{
-		final List< String > cmd = new ArrayList<>( Arrays.asList( "update", "-y", "-n", envName ) );
+		final List< String > cmd = new ArrayList<>( Arrays.asList( "update", "-y", "-p", this.envsdir + File.separator + envName ) );
 		cmd.addAll( Arrays.asList( args ) );
 		runMamba( cmd.stream().toArray( String[]::new ) );
 	}
