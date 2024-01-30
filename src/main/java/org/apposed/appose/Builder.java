@@ -56,7 +56,7 @@ public class Builder {
 				// TODO: Should we update it? For now, we just use it.
 			}
 			else {
-				conda.create(envName, "-f", condaEnvironmentYaml.getAbsolutePath());
+				conda.createWithYaml(envName, condaEnvironmentYaml.getAbsolutePath());
 			}
 		} catch (IOException e) {
 			throw new RuntimeException(e);
@@ -65,6 +65,8 @@ public class Builder {
 		} catch (ArchiveException e) {
 			throw new RuntimeException(e);
 		} catch (URISyntaxException e) {
+			throw new RuntimeException(e);
+		} catch (MambaInstallException e) {
 			throw new RuntimeException(e);
 		}
 
