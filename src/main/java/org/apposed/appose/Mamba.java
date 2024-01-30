@@ -1349,16 +1349,13 @@ public class Mamba {
 	 * @return true if the package is installed or false otherwise
 	 */
 	public boolean checkDependencyInEnv(String envDir, String dependency, String minversion, String maxversion, boolean strictlyBiggerOrSmaller) {
-		File envFile = new File(this.envsdir, envName);
-		File envFile2 = new File(envName);
-		if (!envFile.isDirectory() && !envFile2.isDirectory())
+		File envFile = new File(envDir);
+		if (!envFile.isDirectory())
 			return false;
-		else if (!envFile.isDirectory())
-			envFile = envFile2;
 		if (dependency.trim().equals("python")) return checkPythonInstallation(envDir, minversion, maxversion, strictlyBiggerOrSmaller);
 		String checkDepCode;
 		if (minversion != null && maxversion != null && minversion.equals(maxversion)) {
-			checkDepCode = "import importlib, sys; "
+			checkDepCode = "import importlib.util, sys; "
 					+ "from importlib.metadata import version; "
 					+ "from packaging import version as vv; "
 					+ "pkg = %s; wanted_v = %s; "
@@ -1366,10 +1363,10 @@ public class Mamba {
 					+ "sys.exit(0) if spec and vv.parse(version(pkg)) == vv.parse(wanted_v) else sys.exit(1)";
 			checkDepCode = String.format(checkDepCode, dependency, maxversion);
 		} else if (minversion == null && maxversion == null) {
-			checkDepCode = "import importlib, sys; sys.exit(0) if importlib.util.find_spec(%s) else sys.exit(1)";
+			checkDepCode = "import importlib.util, sys; sys.exit(0) if importlib.util.find_spec('%s') else sys.exit(1)";
 			checkDepCode = String.format(checkDepCode, dependency);
 		} else if (maxversion == null) {
-			checkDepCode = "import importlib, sys; "
+			checkDepCode = "import importlib.util, sys; "
 					+ "from importlib.metadata import version; "
 					+ "from packaging import version as vv; "
 					+ "pkg = '%s'; desired_version = '%s'; "
@@ -1377,7 +1374,7 @@ public class Mamba {
 					+ "sys.exit(0) if spec and vv.parse(version(pkg)) %s vv.parse(desired_version) else sys.exit(1)";
 			checkDepCode = String.format(checkDepCode, dependency, minversion, strictlyBiggerOrSmaller ? ">" : ">=");
 		} else if (minversion == null) {
-			checkDepCode = "import importlib, sys; "
+			checkDepCode = "import importlib.util, sys; "
 					+ "from importlib.metadata import version; "
 					+ "from packaging import version as vv; "
 					+ "pkg = '%s'; desired_version = '%s'; "
@@ -1385,7 +1382,7 @@ public class Mamba {
 					+ "sys.exit(0) if spec and vv.parse(version(pkg)) %s vv.parse(desired_version) else sys.exit(1)";
 			checkDepCode = String.format(checkDepCode, dependency, maxversion, strictlyBiggerOrSmaller ? "<" : "<=");
 		} else {
-			checkDepCode = "import importlib, sys; "
+			checkDepCode = "import importlib.util, sys; "
 					+ "from importlib.metadata import version; "
 					+ "from packaging import version as vv; "
 					+ "pkg = '%s'; min_v = '%s'; max_v = '%s'; "
@@ -1394,7 +1391,7 @@ public class Mamba {
 			checkDepCode = String.format(checkDepCode, dependency, minversion, maxversion, strictlyBiggerOrSmaller ? ">" : ">=", strictlyBiggerOrSmaller ? "<" : ">=");
 		}
 		try {
-			runPythonIn(envFile, checkDepCode);
+			runPythonIn(envFile, "-c", checkDepCode);
 		} catch (RuntimeException | IOException | InterruptedException e) {
 			return false;
 		}
@@ -1425,7 +1422,7 @@ public class Mamba {
 			checkDepCode = String.format(checkDepCode, minversion, maxversion, strictlyBiggerOrSmaller ? ">" : ">=", strictlyBiggerOrSmaller ? "<" : ">=");
 		}
 		try {
-			runPythonIn(envFile, checkDepCode);
+			runPythonIn(envFile, "-c", checkDepCode);
 		} catch (RuntimeException | IOException | InterruptedException e) {
 			return false;
 		}
