@@ -1349,9 +1349,12 @@ public class Mamba {
 	 * @return true if the package is installed or false otherwise
 	 */
 	public boolean checkDependencyInEnv(String envDir, String dependency, String minversion, String maxversion, boolean strictlyBiggerOrSmaller) {
-		File envFile = new File(envDir);
-		if (!envFile.isDirectory())
+		File envFile = new File(this.envsdir, envDir);
+		File envFile2 = new File(envDir);
+		if (!envFile.isDirectory() && !envFile2.isDirectory())
 			return false;
+		else if (!envFile.isDirectory())
+			envFile = envFile2;
 		if (dependency.trim().equals("python")) return checkPythonInstallation(envDir, minversion, maxversion, strictlyBiggerOrSmaller);
 		String checkDepCode;
 		if (minversion != null && maxversion != null && minversion.equals(maxversion)) {
@@ -1399,7 +1402,12 @@ public class Mamba {
 	}
 	
 	private boolean checkPythonInstallation(String envDir, String minversion, String maxversion, boolean strictlyBiggerOrSmaller) {
-		File envFile = new File(envDir);
+		File envFile = new File(this.envsdir, envDir);
+		File envFile2 = new File(envDir);
+		if (!envFile.isDirectory() && !envFile2.isDirectory())
+			return false;
+		else if (!envFile.isDirectory())
+			envFile = envFile2;
 		String checkDepCode;
 		if (minversion != null && maxversion != null && minversion.equals(maxversion)) {
 			checkDepCode = "import platform; from packaging import version as vv; desired_version = '%s'; "
