@@ -1197,10 +1197,10 @@ public class Mamba {
 			return dependencies;
 		List<String> uninstalled = dependencies.stream().filter(dep -> {
 			int ind = dep.indexOf("=");
-			if (ind == -1) return checkDependencyInEnv(envName, dep);
+			if (ind == -1) return !checkDependencyInEnv(envName, dep);
 			String packName = dep.substring(0, ind);
 			String vv = dep.substring(ind + 1);
-			return checkDependencyInEnv(envName, packName, vv);
+			return !checkDependencyInEnv(envName, packName, vv);
 		}).collect(Collectors.toList());
 		return uninstalled;
 	}
