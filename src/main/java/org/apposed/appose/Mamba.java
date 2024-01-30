@@ -88,24 +88,58 @@ public class Mamba {
 	 */
 	private final String envsdir;
 	/**
+	 * Progress made on the download from the Internet of the micromamba software. VAlue between 0 and 1.
+	 * 
+	 */
+	private double mambaDnwldProgress = 0.0;
+	/**
+	 * Progress made on the decompressing the micromamba files downloaded from the Internet of the micromamba 
+	 * software. VAlue between 0 and 1.
+	 */
+	private double mambaDecompressProgress = 0.0;
+	/**
 	 * Consumer that tracks the progress in the download of micromamba, the software used 
 	 * by this class to manage Python environments
 	 */
-	private Consumer<Double> mambaDnwldProgress;
+	private Consumer<Double> mambaDnwldProgressConsumer;
 	/**
 	 * Consumer that tracks the progress decompressing the downloaded micromamba files.
 	 */
-	private Consumer<Double> mambaDecompressProgress;
+	private Consumer<Double> mambaDecompressProgressConsumer;
+	/**
+	 * String that contains all the console output produced by micromamba ever since the {@link Mamba} was instantiated
+	 */
+	private String mambaConsoleOut = "";
+	/**
+	 * String that contains all the error output produced by micromamba ever since the {@link Mamba} was instantiated
+	 */
+	private String mambaConsoleErr = "";
+	/**
+	 * User custom consumer that tracks the console output produced by the micromamba process when it is executed.
+	 */
+	private Consumer<String> customConsoleConsumer;
+	/**
+	 * User custom consumer that tracks the error output produced by the micromamba process when it is executed.
+	 */
+	private Consumer<String> customErrorConsumer;
 	/**
 	 * Consumer that tracks the console output produced by the micromamba process when it is executed.
 	 * This consumer saves all the log of every micromamba execution
 	 */
-	private Consumer<String> consoleConsumer;
+	private Consumer<String> consoleConsumer = (str) -> {
+		mambaConsoleOut += str;
+		if (customConsoleConsumer != null)
+			customConsoleConsumer.accept(str);
+	};
 	/**
 	 * Consumer that tracks the error output produced by the micromamba process when it is executed.
 	 * This consumer saves all the log of every micromamba execution
 	 */
-	private Consumer<String> errConsumer;
+	private Consumer<String> errConsumer = (str) -> {
+		mambaConsoleErr += str;
+		if (customErrorConsumer != null)
+			customErrorConsumer.accept(str);
+	};
 	/*
 	 * Path to Python executable from the environment directory
 	 */
@@ -349,7 +383,7 @@ public class Mamba {
 	
 	/**
 	 * 
-	 * @return the progress downloading the micromamba software from the Interenet, useful to track a fresh micromamba installation
+	 * @return the progress made on the download from the Internet of the micromamba software. VAlue between 0 and 1.
 	 */
 	public double getMicromambaDownloadProgress(){
 		return this.mambaDnwldProgress;
@@ -357,11 +391,11 @@ public class Mamba {
 	
 	/**
 	 * 
-	 * @returnthe progress decompressing the micromamba software downloaded from the Interenet,
-	 *  useful to track a fresh micromamba installation
+	 * @returnthe the progress made on the decompressing the micromamba files downloaded from the Internet of the micromamba 
+	 * software. VAlue between 0 and 1.
 	 */
 	public double getMicromambaDecompressProgress(){
-		return this.mambaDnwldProgress;
+		return this.mambaDecompressProgress;
 	}
 	
 	/**
@@ -981,8 +1015,9 @@ public class Mamba {
 	 *             is waiting, then the wait is ended and an InterruptedException is
 	 *             thrown.
 	 */
-	public void runMamba(Consumer<String> consumer, final String... args ) throws RuntimeException, IOException, InterruptedException
+	public void runMamba(final String... args ) throws RuntimeException, IOException, InterruptedException
 	{
+		Thread mainThread = Thread.currentThread();
 		SimpleDateFormat sdf = new SimpleDateFormat("HH:mm:ss");
 		
 		final List< String > cmd = getBaseCommand();
@@ -992,7 +1027,7 @@ public class Mamba {
 		ProcessBuilder builder = getBuilder(false).command(cmd);
 		Process process = builder.start();
 		// Use separate threads to read each stream to avoid a deadlock.
-		consumer.accept(sdf.format(Calendar.getInstance().getTime()) + " -- STARTING INSTALLATION" + System.lineSeparator());
+		this.consoleConsumer.accept(sdf.format(Calendar.getInstance().getTime()) + " -- STARTING INSTALLATION" + System.lineSeparator());
 		long updatePeriod = 300;
 		Thread outputThread = new Thread(() -> {
 			try (
@@ -1007,6 +1042,7 @@ public class Mamba {
                 int newLineIndex;
 		        long t0 = System.currentTimeMillis();
 		        while (process.isAlive() || inputStream.available() > 0) {
+		        	if (mainThread.isInterrupted()) return;
 		            if (inputStream.available() > 0) {
 		                processBuff.append(new String(buffer, 0, inputStream.read(buffer)));
 		                while ((newLineIndex = processBuff.indexOf(System.lineSeparator())) != -1) {
@@ -1025,8 +1061,7 @@ public class Mamba {
 	                // Sleep for a bit to avoid busy waiting
 	                Thread.sleep(60);
 	                if (System.currentTimeMillis() - t0 > updatePeriod) {
-						// TODO decide what to do with the err stream consumer.accept(errChunk.equals("") ? null : errChunk);
-						consumer.accept(processChunk);
+						this.consoleConsumer.accept(processChunk);
 						processChunk = "";
 						errChunk = "";
 						t0 = System.currentTimeMillis();
@@ -1040,9 +1075,9 @@ public class Mamba {
 	                errBuff.append(new String(buffer, 0, errStream.read(buffer)));
 	                errChunk += ERR_STREAM_UUUID + errBuff.toString().trim();
 	            }
-				consumer.accept(errChunk);
-				consumer.accept(processChunk + System.lineSeparator() 
-								+ sdf.format(Calendar.getInstance().getTime()) + " -- TERMINATED INSTALLATION");
+				this.errConsumer.accept(errChunk);
+				this.consoleConsumer.accept(processChunk + System.lineSeparator() 
+								+ sdf.format(Calendar.getInstance().getTime()) + " -- TERMINATED PROCESS");
 		    } catch (IOException | InterruptedException e) {
 		        e.printStackTrace();
 		    }
