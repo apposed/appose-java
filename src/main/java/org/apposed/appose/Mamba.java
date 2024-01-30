@@ -538,8 +538,9 @@ public class Mamba {
 	 */
 	public void updateIn( final String envName, final String... args ) throws IOException, InterruptedException
 	{
-		final List< String > cmd = new ArrayList<>( Arrays.asList( "update", "-y", "-p", this.envsdir + File.separator + envName ) );
+		final List< String > cmd = new ArrayList<>( Arrays.asList( "update", "-p", this.envsdir + File.separator + envName ) );
 		cmd.addAll( Arrays.asList( args ) );
+		if (!cmd.contains("--yes") && !cmd.contains("-y")) cmd.add("--yes");
 		runMamba( cmd.stream().toArray( String[]::new ) );
 	}
 
@@ -675,8 +676,9 @@ public class Mamba {
 	{
 		if ( !isForceCreation && getEnvironmentNames().contains( envName ) )
 			throw new EnvironmentExistsException();
-		final List< String > cmd = new ArrayList<>( Arrays.asList( "env", "create", "-p", envsdir + File.separator + envName ) );
+		final List< String > cmd = new ArrayList<>( Arrays.asList( "create", "-p", envsdir + File.separator + envName ) );
 		cmd.addAll( Arrays.asList( args ) );
+		if (!cmd.contains("--yes") && !cmd.contains("-y")) cmd.add("--yes");
 		runMamba( cmd.stream().toArray( String[]::new ) );
 	}
 
@@ -707,11 +709,12 @@ public class Mamba {
 		Objects.requireNonNull(envName, "The name of the environment of interest needs to be provided.");
 		if ( !isForceCreation && getEnvironmentNames().contains( envName ) )
 			throw new EnvironmentExistsException();
-		final List< String > cmd = new ArrayList<>( Arrays.asList( "env", "create", "-p", envsdir + File.separator + envName ) );
+		final List< String > cmd = new ArrayList<>( Arrays.asList( "create", "-p", envsdir + File.separator + envName ) );
 		if (channels == null) channels = new ArrayList<String>();
 		for (String chan : channels) { cmd.add("-c"); cmd.add(chan);}
 		if (packages == null) packages = new ArrayList<String>();
 		for (String pack : packages) { cmd.add(pack);}
+		cmd.add("--yes");
 		runMamba( cmd.stream().toArray( String[]::new ) );
 	}
 
@@ -852,8 +855,9 @@ public class Mamba {
 	 */
 	public void installIn( final String envName, final String... args ) throws IOException, InterruptedException
 	{
-		final List< String > cmd = new ArrayList<>( Arrays.asList( "install", "-y", "-p", this.envsdir + File.separator + envName ) );
+		final List< String > cmd = new ArrayList<>( Arrays.asList( "install", "-p", this.envsdir + File.separator + envName ) );
 		cmd.addAll( Arrays.asList( args ) );
+		if (!cmd.contains("--yes") && !cmd.contains("-y")) cmd.add("--yes");
 		runMamba( cmd.stream().toArray( String[]::new ) );
 	}
 
