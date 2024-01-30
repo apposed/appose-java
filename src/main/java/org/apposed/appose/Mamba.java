@@ -32,6 +32,7 @@ import org.apposed.appose.CondaException.EnvironmentExistsException;
 
 import java.io.BufferedReader;
 import java.io.File;
+import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
@@ -101,11 +102,15 @@ public class Mamba {
 	 * Consumer that tracks the progress in the download of micromamba, the software used 
 	 * by this class to manage Python environments
 	 */
-	private Consumer<Double> mambaDnwldProgressConsumer;
+	private Consumer<Double> mambaDnwldProgressConsumer = (p) -> {
+		mambaDnwldProgress = p;
+	};
 	/**
 	 * Consumer that tracks the progress decompressing the downloaded micromamba files.
 	 */
-	private Consumer<Double> mambaDecompressProgressConsumer;
+	private Consumer<Double> mambaDecompressProgressConsumer = (p) -> {
+		mambaDecompressProgress = p;
+	};
 	/**
 	 * String that contains all the console output produced by micromamba ever since the {@link Mamba} was instantiated
 	 */
@@ -432,15 +437,31 @@ public class Mamba {
 		this.customErrorConsumer = custom;
 	}
 	
-	private void installMicromamba() throws IOException, InterruptedException, ArchiveException, URISyntaxException {
-
+	private File downloadMicromamba() throws IOException, URISyntaxException {
 		final File tempFile = File.createTempFile( "micromamba", ".tar.bz2" );
 		tempFile.deleteOnExit();
 		URL website = MambaInstallerUtils.redirectedURL(new URL(MICROMAMBA_URL));
-		ReadableByteChannel rbc = Channels.newChannel(website.openStream());
-		try (FileOutputStream fos = new FileOutputStream(tempFile)) {
-			fos.getChannel().transferFrom(rbc, 0, Long.MAX_VALUE);
-		}
+		long size = MambaInstallerUtils.getFileSize(website);
+		Thread currentThread = Thread.currentThread();
+		Thread dwnldThread = new Thread(() -> {
+			try (
+					ReadableByteChannel rbc = Channels.newChannel(website.openStream());
+					FileOutputStream fos = new FileOutputStream(tempFile);
+					) {
+				new FileDownloader(rbc, fos).call(currentThread);
+			} catch (IOException | InterruptedException e) {
+				e.printStackTrace();
+			}
+		});
+		dwnldThread.start();
+		while (dwnldThread.isAlive()) 
+			this.mambaDnwldProgressConsumer.accept(((double) tempFile.length()) / ((double) size));
+		if ((((double) tempFile.length()) / ((double) size)) < 1)
+			throw new IOException("Error downloading micromamba from: " + MICROMAMBA_URL);
+		return tempFile;
+	}
+	
+	private void decompressMicromamba(final File tempFile) throws FileNotFoundException, IOException, ArchiveException {
 		final File tempTarFile = File.createTempFile( "micromamba", ".tar" );
 		tempTarFile.deleteOnExit();
 		MambaInstallerUtils.unBZip2(tempFile, tempTarFile);
@@ -450,14 +471,14 @@ public class Mamba {
 		MambaInstallerUtils.unTar(tempTarFile, mambaBaseDir);
 		if (!(new File(envsdir)).isDirectory() && !new File(envsdir).mkdirs())
 	        throw new IOException("Failed to create Micromamba default envs directory " + envsdir);
-			
-
-		// The following command will throw an exception if Conda does not work as
-		// expected.
 		boolean executableSet = new File(mambaCommand).setExecutable(true);
 		if (!executableSet)
 			throw new IOException("Cannot set file as executable due to missing permissions, "
 					+ "please do it manually: " + mambaCommand);
+	}
+	
+	private void installMicromamba() throws IOException, InterruptedException, ArchiveException, URISyntaxException {
+		decompressMicromamba(downloadMicromamba());
 	}
 	
 	public String getEnvsDir() {
@@ -539,34 +560,6 @@ public class Mamba {
 	public void createWithYaml( final String envName, final String envYaml ) throws IOException, InterruptedException
 	{
 		createWithYaml(envName, envYaml, false);
-	}
-
-	/**
-	 * Run {@code conda create} to create a conda environment defined by the input environment yaml file.
-	 * 
-	 * @param envName
-	 *            The environment name to be created.
-	 * @param envYaml
-	 *            The environment yaml file containing the information required to build it  
-	 * @param envName
-	 *            The environment name to be created.
-	 * @param isForceCreation
-	 *            Force creation of the environment if {@code true}. If this value
-	 *            is {@code false} and an environment with the specified name
-	 *            already exists, throw an {@link EnvironmentExistsException}.
-	 * @throws IOException
-	 *             If an I/O error occurs.
-	 * @throws InterruptedException
-	 *             If the current thread is interrupted by another thread while it
-	 *             is waiting, then the wait is ended and an InterruptedException is
-	 *             thrown.
-	 */
-	public void createWithYaml( final String envName, final String envYaml, final boolean isForceCreation ) throws IOException, InterruptedException
-	{
-		if ( !isForceCreation && getEnvironmentNames().contains( envName ) )
-			throw new EnvironmentExistsException();
-		runMamba( "env", "create", "--prefix",
-				envsdir + File.separator + envName, "-f", envYaml, "-y" );
 	}
 
 	/**

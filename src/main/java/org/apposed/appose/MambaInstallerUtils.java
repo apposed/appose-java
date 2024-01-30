@@ -53,7 +53,7 @@ import org.apache.commons.compress.compressors.bzip2.BZip2CompressorInputStream;
 import org.apache.commons.compress.utils.IOUtils;
 
 /**
- * Utility methods  unzip bzip2 files
+ * Utility methods  unzip bzip2 files and to enable the download of micromamba
  */
 public final class MambaInstallerUtils {
 	
@@ -185,5 +185,33 @@ public final class MambaInstallerUtils {
         String host = uri.getHost();
         String mainDomain = scheme + "://" + host;
 		return redirectedURL(new URL(mainDomain + newURL));
+	}
+
+	/**
+	 * Get the size of the file stored in the given URL
+	 * @param url
+	 * 	url where the file is stored
+	 * @return the size of the file
+	 */
+	public static long getFileSize(URL url) {
+		HttpURLConnection conn = null;
+		try {
+			conn = (HttpURLConnection) url.openConnection();
+			conn.setRequestProperty("User-Agent", "Appose/0.1.0(" + System.getProperty("os.name") + "; Java " + System.getProperty("java.version"));
+			if (conn.getResponseCode() >= 300 && conn.getResponseCode() <= 308)
+				return getFileSize(redirectedURL(url));
+			if (conn.getResponseCode() != 200)
+				throw new Exception("Unable to connect to: " + url.toString());
+			long size = conn.getContentLengthLong();
+			conn.disconnect();
+			return size;
+		} catch (IOException e) {
+			throw new RuntimeException(e);
+		} catch (Exception ex) {
+			ex.printStackTrace();
+			String msg = "Unable to connect to " + url.toString();
+			System.out.println(msg);
+			return 1;
+		}
 	}
 }
