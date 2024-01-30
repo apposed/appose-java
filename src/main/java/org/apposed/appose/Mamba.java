@@ -547,27 +547,6 @@ public class Mamba {
 	 * @param envName
 	 *            The environment name to be created.
 	 * @param envYaml
-	 *            The environment yaml file containing the information required to build it 
-	 * @param consumer
-	 *            String consumer that keeps track of the environment creation
-	 * @throws IOException
-	 *             If an I/O error occurs.
-	 * @throws InterruptedException
-	 *             If the current thread is interrupted by another thread while it
-	 *             is waiting, then the wait is ended and an InterruptedException is
-	 *             thrown.
-	 */
-	public void createWithYaml( final String envName, final String envYaml, Consumer<String> consumer ) throws IOException, InterruptedException
-	{
-		createWithYaml(envName, envYaml, false, consumer);
-	}
-
-	/**
-	 * Run {@code conda create} to create a conda environment defined by the input environment yaml file.
-	 * 
-	 * @param envName
-	 *            The environment name to be created.
-	 * @param envYaml
 	 *            The environment yaml file containing the information required to build it  
 	 * @param envName
 	 *            The environment name to be created.
@@ -603,8 +582,6 @@ public class Mamba {
 	 *            Force creation of the environment if {@code true}. If this value
 	 *            is {@code false} and an environment with the specified name
 	 *            already exists, throw an {@link EnvironmentExistsException}.
-	 * @param consumer
-	 *            String consumer that keeps track of the environment creation
 	 * @throws IOException
 	 *             If an I/O error occurs.
 	 * @throws InterruptedException
@@ -612,11 +589,11 @@ public class Mamba {
 	 *             is waiting, then the wait is ended and an InterruptedException is
 	 *             thrown.
 	 */
-	public void createWithYaml( final String envName, final String envYaml, final boolean isForceCreation, Consumer<String> consumer) throws IOException, InterruptedException
+	public void createWithYaml( final String envName, final String envYaml, final boolean isForceCreation) throws IOException, InterruptedException
 	{
 		if ( !isForceCreation && getEnvironmentNames().contains( envName ) )
 			throw new EnvironmentExistsException();
-		runMamba(consumer, "env", "create", "--prefix",
+		runMamba("env", "create", "--prefix",
 				envsdir + File.separator + envName, "-f", envYaml, "-y", "-vv" );
 	}
 
@@ -1008,6 +985,9 @@ public class Mamba {
 	 * 			  String consumer that receives the Strings that the process prints to the console
 	 * @param args
 	 *            One or more arguments for the Conda command.
+	 * @param isInheritIO
+	 *            Sets the source and destination for subprocess standard I/O to be
+	 *            the same as those of the current Java process.
 	 * @throws IOException
 	 *             If an I/O error occurs.
 	 * @throws InterruptedException
@@ -1015,7 +995,7 @@ public class Mamba {
 	 *             is waiting, then the wait is ended and an InterruptedException is
 	 *             thrown.
 	 */
-	public void runMamba(final String... args ) throws RuntimeException, IOException, InterruptedException
+	public void runMamba(boolean isInheritIO, final String... args ) throws RuntimeException, IOException, InterruptedException
 	{
 		Thread mainThread = Thread.currentThread();
 		SimpleDateFormat sdf = new SimpleDateFormat("HH:mm:ss");
@@ -1024,7 +1004,7 @@ public class Mamba {
 		cmd.add( mambaCommand );
 		cmd.addAll( Arrays.asList( args ) );
 
-		ProcessBuilder builder = getBuilder(false).command(cmd);
+		ProcessBuilder builder = getBuilder(isInheritIO).command(cmd);
 		Process process = builder.start();
 		// Use separate threads to read each stream to avoid a deadlock.
 		this.consoleConsumer.accept(sdf.format(Calendar.getInstance().getTime()) + " -- STARTING INSTALLATION" + System.lineSeparator());
@@ -1105,11 +1085,7 @@ public class Mamba {
 	 */
 	public void runMamba(final String... args ) throws RuntimeException, IOException, InterruptedException
 	{
-		final List< String > cmd = getBaseCommand();
-		cmd.add( mambaCommand );
-		cmd.addAll( Arrays.asList( args ) );
-		if ( getBuilder( true ).command( cmd ).start().waitFor() != 0 )
-			throw new RuntimeException();
+		runMamba(false, args);
 	}
 
 	/**
