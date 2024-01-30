@@ -87,6 +87,25 @@ public class Mamba {
 	 * Path to the folder that contains the directories
 	 */
 	private final String envsdir;
+	/**
+	 * Consumer that tracks the progress in the download of micromamba, the software used 
+	 * by this class to manage Python environments
+	 */
+	private Consumer<Double> mambaDnwldProgress;
+	/**
+	 * Consumer that tracks the progress decompressing the downloaded micromamba files.
+	 */
+	private Consumer<Double> mambaDecompressProgress;
+	/**
+	 * Consumer that tracks the console output produced by the micromamba process when it is executed.
+	 * This consumer saves all the log of every micromamba execution
+	 */
+	private Consumer<String> consoleConsumer;
+	/**
+	 * Consumer that tracks the error output produced by the micromamba process when it is executed.
+	 * This consumer saves all the log of every micromamba execution
+	 */
+	private Consumer<String> errConsumer;
 	/*
 	 * Path to Python executable from the environment directory
 	 */
@@ -326,6 +345,57 @@ public class Mamba {
 		if (installed)
 			return;
 		installMicromamba();
+	}
+	
+	/**
+	 * 
+	 * @return the progress downloading the micromamba software from the Interenet, useful to track a fresh micromamba installation
+	 */
+	public double getMicromambaDownloadProgress(){
+		return this.mambaDnwldProgress;
+	}
+	
+	/**
+	 * 
+	 * @returnthe progress decompressing the micromamba software downloaded from the Interenet,
+	 *  useful to track a fresh micromamba installation
+	 */
+	public double getMicromambaDecompressProgress(){
+		return this.mambaDnwldProgress;
+	}
+	
+	/**
+	 * 
+	 * @return all the console output produced by micromamba ever since the {@link Mamba} was instantiated
+	 */
+	public String getMicromambaConsoleStream(){
+		return this.mambaConsoleOut;
+	}
+	
+	/**
+	 * 
+	 * @return all the error output produced by micromamba ever since the {@link Mamba} was instantiated
+	 */
+	public String getMicromambaErrStream(){
+		return mambaConsoleErr;
+	}
+	
+	/**
+	 * Set a custom consumer for the console output of every micromamba call
+	 * @param custom
+	 * 	custom consumer that receives every console line outputed by ecery micromamba call
+	 */
+	public void setConsoleOutputConsumer(Consumer<String> custom) {
+		this.customConsoleConsumer = custom;
+	}
+	
+	/**
+	 * Set a custom consumer for the error output of every micromamba call
+	 * @param custom
+	 * 	custom consumer that receives every error line outputed by ecery micromamba call
+	 */
+	public void setErrorOutputConsumer(Consumer<String> custom) {
+		this.customErrorConsumer = custom;
 	}
 	
 	private void installMicromamba() throws IOException, InterruptedException, ArchiveException, URISyntaxException {
