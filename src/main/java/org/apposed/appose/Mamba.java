@@ -1085,10 +1085,37 @@ public class Mamba {
 		return envs;
 	}
 	
+	/**
+	 * Check whether a list of dependencies provided is installed in the wanted environment.
+	 * 
+	 * @param envName
+	 * 	The name of the environment of interest. Should be one of the environments of the current Mamba instance.
+	 * 	This parameter can also be the full path to an independent environment.
+	 * @param dependencies
+	 * 	The list of dependencies that should be installed in the environment.
+	 * 	They can contain version requirements. The names should be the ones used to import the package inside python,
+	 * 	"skimage", not "scikit-image" or "sklearn", not "scikit-learn"
+	 * 	An example list: "numpy", "numba>=0.43.1", "torch==1.6", "torch>=1.6, <2.0"
+	 * @return true if the packages are installed or false otherwise
+	 */
 	public boolean checkAllDependenciesInEnv(String envName, List<String> dependencies) {
 		return checkUninstalledDependenciesInEnv(envName, dependencies).size() == 0;
 	}
 	
+	/**
+	 * Returns a list containing the packages that are not installed in the wanted environment
+	 * from the list of dependencies provided
+	 * 
+	 * @param envName
+	 * 	The name of the environment of interest. Should be one of the environments of the current Mamba instance.
+	 * 	This parameter can also be the full path to an independent environment.
+	 * @param dependencies
+	 * 	The list of dependencies that should be installed in the environment.
+	 * 	They can contain version requirements. The names should be the ones used to import the package inside python,
+	 * 	"skimage", not "scikit-image" or "sklearn", not "scikit-learn"
+	 * 	An example list: "numpy", "numba>=0.43.1", "torch==1.6", "torch>=1.6, <2.0"
+	 * @return true if the packages are installed or false otherwise
+	 */
 	public List<String>  checkUninstalledDependenciesInEnv(String envName, List<String> dependencies) {
 		File envFile = new File(this.envsdir, envName);
 		File envFile2 = new File(envName);
@@ -1104,6 +1131,19 @@ public class Mamba {
 		return uninstalled;
 	}
 	
+	/**
+	 * Checks whether a package is installed in the wanted environment.
+	 * 
+	 * @param envName
+	 * 	The name of the environment of interest. Should be one of the environments of the current Mamba instance.
+	 * 	This parameter can also be the full path to an independent environment.
+	 * @param dependencies
+	 * 	The name of the package that should be installed in the env
+	 * 	They can contain version requirements. The names should be the ones used to import the package inside python,
+	 * 	"skimage", not "scikit-image" or "sklearn", not "scikit-learn"
+	 * 	An example list: "numpy", "numba>=0.43.1", "torch==1.6", "torch>=1.6, <2.0"
+	 * @return true if the package is installed or false otherwise
+	 */
 	public boolean checkDependencyInEnv(String envName, String dependency) {
 		if (dependency.contains("==")) {
 			int ind = dependency.indexOf("==");
@@ -1161,14 +1201,79 @@ public class Mamba {
 		}
 	}
 	
+	/**
+	 * Checks whether a package of a specific version is installed in the wanted environment.
+	 * 
+	 * @param envName
+	 * 	The name of the environment of interest. Should be one of the environments of the current Mamba instance.
+	 * 	This parameter can also be the full path to an independent environment.
+	 * @param dependencies
+	 * 	The name of the package that should be installed in the env. The String should only contain the name, no version,
+	 * 	and the name should be the one used to import the package inside python. For example, "skimage", not "scikit-image"
+	 *  or "sklearn", not "scikit-learn".
+	 * @param version
+	 * 	the specific version of the package that needs to be installed. For example:, "0.43.1", "1.6", "2.0"
+	 * @return true if the package is installed or false otherwise
+	 */
 	public boolean checkDependencyInEnv(String envDir, String dependency, String version) {
 		return checkDependencyInEnv(envDir, dependency, version, version, true);
 	}
 	
+	/**
+	 * Checks whether a package with specific version constraints is installed in the wanted environment.
+	 * In this method the minversion argument should be strictly smaller than the version of interest and
+	 * the maxversion strictly bigger.
+	 * This method checks that: dependency >minversion, <maxversion
+	 * For smaller or equal or bigger or equal (dependency >=minversion, <=maxversion) look at the method
+	 * {@link #checkDependencyInEnv(String, String, String, String, boolean)} with the lst parameter set to false.
+	 * 
+	 * @param envName
+	 * 	The name of the environment of interest. Should be one of the environments of the current Mamba instance.
+	 * 	This parameter can also be the full path to an independent environment.
+	 * @param dependencies
+	 * 	The name of the package that should be installed in the env. The String should only contain the name, no version,
+	 * 	and the name should be the one used to import the package inside python. For example, "skimage", not "scikit-image"
+	 *  or "sklearn", not "scikit-learn".
+	 * @param minversion
+	 * 	the minimum required version of the package that needs to be installed. For example:, "0.43.1", "1.6", "2.0".
+	 * 	This version should be strictly smaller than the one of interest, if for example "1.9" is given, it is assumed that
+	 * 	pacakge_version>1.9.
+	 * 	If there is no minimum version requirement for the package of interest, set this argument to null.
+	 * @param maxversion
+	 * 	the maximum required version of the package that needs to be installed. For example:, "0.43.1", "1.6", "2.0".
+	 * 	This version should be strictly bigger than the one of interest, if for example "1.9" is given, it is assumed that
+	 * 	pacakge_version<1.9.
+	 * 	If there is no maximum version requirement for the package of interest, set this argument to null.
+	 * @return true if the package is installed or false otherwise
+	 */
 	public boolean checkDependencyInEnv(String envDir, String dependency, String minversion, String maxversion) {
 		return checkDependencyInEnv(envDir, dependency, minversion, maxversion, true);
 	}
 	
+	/**
+	 * Checks whether a package with specific version constraints is installed in the wanted environment.
+	 * Depending on the last argument ('strictlyBiggerOrSmaller') 'minversion' and 'maxversion'
+	 * will be strictly bigger(>=) or smaller(<) or bigger or equal (>=) or smaller or equal<>=)
+	 * In this method the minversion argument should be strictly smaller than the version of interest and
+	 * the maxversion strictly bigger.
+	 * 
+	 * @param envName
+	 * 	The name of the environment of interest. Should be one of the environments of the current Mamba instance.
+	 * 	This parameter can also be the full path to an independent environment.
+	 * @param dependencies
+	 * 	The name of the package that should be installed in the env. The String should only contain the name, no version,
+	 * 	and the name should be the one used to import the package inside python. For example, "skimage", not "scikit-image"
+	 *  or "sklearn", not "scikit-learn".
+	 * @param minversion
+	 * 	the minimum required version of the package that needs to be installed. For example:, "0.43.1", "1.6", "2.0".
+	 * 	If there is no minimum version requirement for the package of interest, set this argument to null.
+	 * @param maxversion
+	 * 	the maximum required version of the package that needs to be installed. For example:, "0.43.1", "1.6", "2.0".
+	 * 	If there is no maximum version requirement for the package of interest, set this argument to null.
+	 * @param strictlyBiggerOrSmaller
+	 * 	Whether the minversion and maxversion shuld be strictly smaller and bigger or not
+	 * @return true if the package is installed or false otherwise
+	 */
 	public boolean checkDependencyInEnv(String envDir, String dependency, String minversion, String maxversion, boolean strictlyBiggerOrSmaller) {
 		File envFile = new File(this.envsdir, envName);
 		File envFile2 = new File(envName);
