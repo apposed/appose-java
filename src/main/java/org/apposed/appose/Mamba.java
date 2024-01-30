@@ -1085,28 +1085,29 @@ public class Mamba {
 		return envs;
 	}
 	
-	public static boolean checkAllDependenciesInEnv(String envDir, List<String> dependencies) {
-		return checkUninstalledDependenciesInEnv(envDir, dependencies).size() == 0;
+	public boolean checkAllDependenciesInEnv(String envName, List<String> dependencies) {
+		return checkUninstalledDependenciesInEnv(envName, dependencies).size() == 0;
 	}
 	
-	public static List<String>  checkUninstalledDependenciesInEnv(String envDir, List<String> dependencies) {
-		File envFile = new File(envDir);
-		if (!envFile.isDirectory())
+	public List<String>  checkUninstalledDependenciesInEnv(String envName, List<String> dependencies) {
+		File envFile = new File(this.envsdir, envName);
+		File envFile2 = new File(envName);
+		if (!envFile.isDirectory() && !envFile2.isDirectory())
 			return dependencies;
 		List<String> uninstalled = dependencies.stream().filter(dep -> {
 			int ind = dep.indexOf("=");
-			if (ind == -1) return checkDependencyInEnv(envDir, dep);
+			if (ind == -1) return checkDependencyInEnv(envName, dep);
 			String packName = dep.substring(0, ind);
 			String vv = dep.substring(ind + 1);
-			return checkDependencyInEnv(envDir, packName, vv);
+			return checkDependencyInEnv(envName, packName, vv);
 		}).collect(Collectors.toList());
 		return uninstalled;
 	}
 	
-	public static boolean checkDependencyInEnv(String envDir, String dependency) {
+	public boolean checkDependencyInEnv(String envName, String dependency) {
 		if (dependency.contains("==")) {
 			int ind = dependency.indexOf("==");
-			return checkDependencyInEnv(envDir, dependency.substring(0, ind).trim(), dependency.substring(ind + 2).trim());
+			return checkDependencyInEnv(envName, dependency.substring(0, ind).trim(), dependency.substring(ind + 2).trim());
 		} else if (dependency.contains(">=") && dependency.contains("<=") && dependency.contains(",")) {
 			int commaInd = dependency.indexOf(",");
 			int highInd = dependency.indexOf(">=");
@@ -1115,7 +1116,7 @@ public class Mamba {
 			String packName = dependency.substring(0, minInd).trim();
 			String minV = dependency.substring(lowInd + 1, lowInd < highInd ? commaInd : dependency.length());
 			String maxV = dependency.substring(highInd + 1, lowInd < highInd ? dependency.length() : commaInd);
-			return checkDependencyInEnv(envDir, packName, minV, maxV, false);
+			return checkDependencyInEnv(envName, packName, minV, maxV, false);
 		} else if (dependency.contains(">=") && dependency.contains("<") && dependency.contains(",")) {
 			int commaInd = dependency.indexOf(",");
 			int highInd = dependency.indexOf(">=");
@@ -1124,7 +1125,7 @@ public class Mamba {
 			String packName = dependency.substring(0, minInd).trim();
 			String minV = dependency.substring(lowInd + 1, lowInd < highInd ? commaInd : dependency.length());
 			String maxV = dependency.substring(highInd + 1, lowInd < highInd ? dependency.length() : commaInd);
-			return checkDependencyInEnv(envDir, packName, minV, null, false) && checkDependencyInEnv(envDir, packName, null, maxV, true);
+			return checkDependencyInEnv(envName, packName, minV, null, false) && checkDependencyInEnv(envName, packName, null, maxV, true);
 		} else if (dependency.contains(">") && dependency.contains("<=") && dependency.contains(",")) {
 			int commaInd = dependency.indexOf(",");
 			int highInd = dependency.indexOf(">");
@@ -1133,7 +1134,7 @@ public class Mamba {
 			String packName = dependency.substring(0, minInd).trim();
 			String minV = dependency.substring(lowInd + 1, lowInd < highInd ? commaInd : dependency.length());
 			String maxV = dependency.substring(highInd + 1, lowInd < highInd ? dependency.length() : commaInd);
-			return checkDependencyInEnv(envDir, packName, minV, null, true) && checkDependencyInEnv(envDir, packName, null, maxV, false);
+			return checkDependencyInEnv(envName, packName, minV, null, true) && checkDependencyInEnv(envName, packName, null, maxV, false);
 		} else if (dependency.contains(">") && dependency.contains("<") && dependency.contains(",")) {
 			int commaInd = dependency.indexOf(",");
 			int highInd = dependency.indexOf(">");
@@ -1142,36 +1143,39 @@ public class Mamba {
 			String packName = dependency.substring(0, minInd).trim();
 			String minV = dependency.substring(lowInd + 1, lowInd < highInd ? commaInd : dependency.length());
 			String maxV = dependency.substring(highInd + 1, lowInd < highInd ? dependency.length() : commaInd);
-			return checkDependencyInEnv(envDir, packName, minV, maxV, true);
+			return checkDependencyInEnv(envName, packName, minV, maxV, true);
 		} else if (dependency.contains(">")) {
 			int ind = dependency.indexOf(">");
-			return checkDependencyInEnv(envDir, null, dependency.substring(0, ind).trim(), dependency.substring(ind + 2).trim(), true);
+			return checkDependencyInEnv(envName, null, dependency.substring(0, ind).trim(), dependency.substring(ind + 2).trim(), true);
 		} else if (dependency.contains(">=")) {
 			int ind = dependency.indexOf(">=");
-			return checkDependencyInEnv(envDir, null, dependency.substring(0, ind).trim(), dependency.substring(ind + 2).trim(), false);
+			return checkDependencyInEnv(envName, null, dependency.substring(0, ind).trim(), dependency.substring(ind + 2).trim(), false);
 		} else if (dependency.contains("<=")) {
 			int ind = dependency.indexOf("<=");
-			return checkDependencyInEnv(envDir, dependency.substring(0, ind).trim(), dependency.substring(ind + 2).trim(), null, false);
+			return checkDependencyInEnv(envName, dependency.substring(0, ind).trim(), dependency.substring(ind + 2).trim(), null, false);
 		} else if (dependency.contains("<")) {
 			int ind = dependency.indexOf("<");
-			return checkDependencyInEnv(envDir, dependency.substring(0, ind).trim(), dependency.substring(ind + 1).trim(), null, true);
+			return checkDependencyInEnv(envName, dependency.substring(0, ind).trim(), dependency.substring(ind + 1).trim(), null, true);
 		} else {
-			return checkDependencyInEnv(envDir, dependency, null);
+			return checkDependencyInEnv(envName, dependency, null);
 		}
 	}
 	
-	public static boolean checkDependencyInEnv(String envDir, String dependency, String version) {
+	public boolean checkDependencyInEnv(String envDir, String dependency, String version) {
 		return checkDependencyInEnv(envDir, dependency, version, version, true);
 	}
 	
-	public static boolean checkDependencyInEnv(String envDir, String dependency, String minversion, String maxversion) {
+	public boolean checkDependencyInEnv(String envDir, String dependency, String minversion, String maxversion) {
 		return checkDependencyInEnv(envDir, dependency, minversion, maxversion, true);
 	}
 	
-	public static boolean checkDependencyInEnv(String envDir, String dependency, String minversion, String maxversion, boolean strictlyBiggerOrSmaller) {
-		File envFile = new File(envDir);
-		if (!envFile.isDirectory())
+	public boolean checkDependencyInEnv(String envDir, String dependency, String minversion, String maxversion, boolean strictlyBiggerOrSmaller) {
+		File envFile = new File(this.envsdir, envName);
+		File envFile2 = new File(envName);
+		if (!envFile.isDirectory() && !envFile2.isDirectory())
 			return false;
+		else if (!envFile.isDirectory())
+			envFile = envFile2;
 		if (dependency.trim().equals("python")) return checkPythonInstallation(envDir, minversion, maxversion, strictlyBiggerOrSmaller);
 		String checkDepCode;
 		if (minversion != null && maxversion != null && minversion.equals(maxversion)) {
@@ -1218,7 +1222,7 @@ public class Mamba {
 		return true;
 	}
 	
-	private static boolean checkPythonInstallation(String envDir, String minversion, String maxversion, boolean strictlyBiggerOrSmaller) {
+	private boolean checkPythonInstallation(String envDir, String minversion, String maxversion, boolean strictlyBiggerOrSmaller) {
 		File envFile = new File(envDir);
 		String checkDepCode;
 		if (minversion != null && maxversion != null && minversion.equals(maxversion)) {
