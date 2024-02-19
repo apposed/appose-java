@@ -35,6 +35,7 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.PrintWriter;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
@@ -57,6 +58,20 @@ public class Service implements AutoCloseable {
 	private final String[] args;
 	private final Map<String, Task> tasks = new ConcurrentHashMap<>();
 	private final int serviceID;
+
+	/**
+	 * List of unparseable (non-JSON) lines seen since the service started.
+	 * If the worker process crashes, we use these lines as the content
+	 * of an error message to any still pending tasks when reporting the crash.
+	 */
+	private final List<String> invalidLines = new ArrayList<>();
+
+	/**
+	 * List of lines emitted to the standard error stream seen since the service
+	 * started. If the worker process crashes, we use these lines as the content
+	 * of an error message to any still pending tasks when reporting the crash.
+	 */
+	private final List<String> errorLines = new ArrayList<>();
 
 	private Process process;
 	private PrintWriter stdin;
@@ -131,12 +146,84 @@ public class Service implements AutoCloseable {
 		return new Task(script, inputs);
 	}
 
-	/** Closes the worker process's input stream, in order to shut it down. */
+	/**
+	 * Closes the worker process's input stream, in order to shut it down.
+	 * Pending tasks will run to completion before the worker process terminates.
+	 * <p>
+	 * To shut down the service more forcibly, interrupting any pending tasks,
+	 * use {@link #kill()} instead.
+	 * </p>
+	 * <p>
+	 * To wait until the service's worker process has completely shut down
+	 * and all output has been reported, call {@link #waitFor()} afterward.
+	 * </p>
+	 */
 	@Override
 	public void close() {
 		stdin.close();
 	}
 
+	/**
+	 * Forces the service's worker process to begin shutting down. Any tasks still
+	 * pending completion will be interrupted, reporting {@link TaskStatus#CRASHED}.
+	 * <p>
+	 * To shut down the service more gently, allowing any pending tasks to run to
+	 * completion, use {@link #close()} instead.
+	 * </p>
+	 * <p>
+	 * To wait until the service's worker process has completely shut down
+	 * and all output has been reported, call {@link #waitFor()} afterward.
+	 * </p>
+	 */
+	public void kill() {
+		process.destroyForcibly();
+	}
+
+	/**
+	 * Waits for the service's worker process to terminate.
+	 *
+	 * @return Exit value of the worker process.
+	 * @throws InterruptedException If any of the worker process's monitoring
+	 * 	                             threads are interrupted before shutting down.
+	 */
+	public int waitFor() throws InterruptedException {
+		process.waitFor();
+
+		// Wait for worker output processing threads to finish up.
+		stdoutThread.join();
+		stderrThread.join();
+		monitorThread.join();
+
+		return process.exitValue();
+	}
+
+	/**
+	 * Returns true if the service's worker process is currently running,
+	 * or false if it has not yet started or has already shut down or crashed.
+	 *
+	 * @return Whether the service's worker process is currently running.
+	 */
+	public boolean isAlive() {
+		return process != null && process.isAlive();
+	}
+
+	/**
+	 * Unparseable lines emitted by the worker process on its stdout stream,
+	 * collected over the lifetime of the service.
+	 * Can be useful for analyzing why a worker process has crashed.
+	 */
+	public List<String> invalidLines() {
+		return Collections.unmodifiableList(invalidLines);
+	}
+
+	/**
+	 * Lines emitted by the worker process on its stderr stream,
+	 * collected over the lifetime of the service.
+	 * Can be useful for analyzing why a worker process has crashed.
+	 */
+	public List<String> errorLines() {
+		return Collections.unmodifiableList(errorLines);
+	}
 	/** Input loop processing lines from the worker stdout stream. */
 	private void stdoutLoop() {
 		BufferedReader stdout = new BufferedReader(new InputStreamReader(process.getInputStream()));
@@ -153,7 +240,7 @@ public class Service implements AutoCloseable {
 
 			if (line == null) {
 				debugService("<worker stdout closed>");
-				return;
+				break;
 			}
 			try {
 				Map<String, Object> response = Types.decode(line);
@@ -174,6 +261,7 @@ public class Service implements AutoCloseable {
 				// Something went wrong decoding the line of JSON.
 				// Skip it and keep going, but log it first.
 				debugService(String.format("<INVALID> %s", line));
+				invalidLines.add(line);
 			}
 		}
 	}
@@ -181,40 +269,60 @@ public class Service implements AutoCloseable {
 	/** Input loop processing lines from the worker stderr stream. */
 	private void stderrLoop() {
 		BufferedReader stderr = new BufferedReader(new InputStreamReader(process.getErrorStream()));
-		try {
-			while (true) {
-				String line = stderr.readLine();
-				if (line == null) {
-					debugService("<worker stderr closed>");
-					return;
-				}
-				debugWorker(line);
+		while (true) {
+			String line;
+			try {
+				line = stderr.readLine();
 			}
-		}
-		catch (IOException exc) {
-			debugWorker(Types.stackTrace(exc));
+			catch (IOException exc) {
+				// Something went wrong reading the line. Panic!
+				debugService(Types.stackTrace(exc));
+				break;
+			}
+			if (line == null) {
+				debugService("<worker stderr closed>");
+				break;
+			}
+			debugWorker(line);
+			errorLines.add(line);
 		}
 	}
 
+	@SuppressWarnings("BusyWait")
 	private void monitorLoop() {
 		// Wait until the worker process terminates.
-		while (process.isAlive()) {
+		while (process.isAlive() || stdoutThread.isAlive() || stderrThread.isAlive()) {
 			try {
-				Thread.sleep(50);
+				Thread.sleep(10);
 			}
 			catch (InterruptedException exc) {
 				debugService(Types.stackTrace(exc));
 			}
 		}
+		debugService("<worker process termination detected>");
 
 		// Do some sanity checks.
 		int exitCode = process.exitValue();
 		if (exitCode != 0) debugService("<worker process terminated with exit code " + exitCode + ">");
 		int taskCount = tasks.size();
-		if (taskCount > 0) debugService("<worker process terminated with " + taskCount + " pending tasks>");
+		if (taskCount > 0) {
+			debugService("<worker process terminated with " +
+				taskCount + " pending task" + (taskCount == 1 ? "" : "s") + ">");
+		}
 
-		// Notify any remaining tasks about the process crash.
-		tasks.values().forEach(Task::crash);
+		Collection<Task> remainingTasks = tasks.values();
+		if (!remainingTasks.isEmpty()) {
+			// Notify any remaining tasks about the process crash.
+			StringBuilder sb = new StringBuilder();
+			String nl = System.lineSeparator();
+			sb.append("Worker crashed with exit code ").append(exitCode).append(".").append(nl);
+			String stdout = invalidLines.isEmpty() ? "<none>" : String.join(nl, invalidLines);
+			String stderr = errorLines.isEmpty() ? "<none>" : String.join(nl, errorLines);
+			sb.append(nl).append("[stdout]").append(nl).append(stdout).append(nl);
+			sb.append(nl).append("[stderr]").append(nl).append(stderr).append(nl);
+			String error = sb.toString();
+			remainingTasks.forEach(task -> task.crash(error));
+		}
 		tasks.clear();
 	}
 
@@ -325,7 +433,6 @@ public class Service implements AutoCloseable {
 			debugService(encoded);
 		}
 
-		@SuppressWarnings("hiding")
 		private void handle(Map<String, Object> response) {
 			String maybeResponseType = (String) response.get("responseType");
 			if (maybeResponseType == null) {
@@ -377,9 +484,10 @@ public class Service implements AutoCloseable {
 			}
 		}
 
-		private void crash() {
+		private void crash(String error) {
 			TaskEvent event = new TaskEvent(this, ResponseType.CRASH);
 			status = TaskStatus.CRASHED;
+			this.error = error;
 			listeners.forEach(l -> l.accept(event));
 			synchronized (this) {
 				notifyAll();

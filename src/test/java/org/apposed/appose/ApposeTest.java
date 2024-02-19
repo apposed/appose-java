@@ -30,6 +30,8 @@
 package org.apposed.appose;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -38,6 +40,7 @@ import static org.junit.jupiter.api.Assertions.fail;
 import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
 import org.apposed.appose.Service.ResponseType;
@@ -152,7 +155,7 @@ public class ApposeTest {
 	public void testTaskFailurePython() throws InterruptedException, IOException {
 		Environment env = Appose.system();
 		try (Service service = env.python()) {
-			service.debug(System.out::println);
+			maybeDebug(service);
 			String script = "whee\n";
 			Task task = service.task(script);
 			task.waitFor();
@@ -165,6 +168,96 @@ public class ApposeTest {
 				"  File \"<string>\", line 1, in <module>" + nl +
 				"NameError: name 'whee' is not defined" + nl;
 			assertTrue(task.error.matches(expectedError));
+		}
+	}
+
+	@Test
+	public void testStartupCrash() throws InterruptedException, IOException {
+		Environment env = Appose.system();
+		List<String> pythonExes = Arrays.asList("python", "python3", "python.exe");
+		Service service = env.service(pythonExes, "-c", "import nonexistentpackage").start();
+		// Wait up to 500ms for the crash.
+		for (int i = 0; i < 100; i++) {
+			if (!service.isAlive()) break;
+			Thread.sleep(5);
+		}
+		assertFalse(service.isAlive());
+		assertEquals(3, service.errorLines().size());
+		// Check that the crash happened and was recorded correctly.
+		List<String> expectedLines = Arrays.asList(
+			"Traceback (most recent call last):",
+			"  File \"<string>\", line 1, in <module>",
+			"ModuleNotFoundError: No module named 'nonexistentpackage'"
+		);
+		assertEquals(expectedLines, service.errorLines());
+	}
+
+	@Test
+	public void testCrashWithActiveTask() throws InterruptedException, IOException {
+		Environment env = Appose.system();
+		try (Service service = env.python()) {
+			maybeDebug(service);
+			// Create a "long-running" task.
+			String script =
+				"import sys\n" +
+				"sys.stderr.write('one\\n')\n" +
+				"sys.stderr.flush()\n" +
+				"print('two')\n" +
+				"sys.stdout.flush()\n" +
+				"sys.stderr.write('three\\n')\n" +
+				"sys.stderr.flush()\n" +
+				"task.update('halfway')\n" +
+				"print('four')\n" +
+				"sys.stdout.flush()\n" +
+				"sys.stderr.write('five\\n')\n" +
+				"sys.stderr.flush()\n" +
+				"print('six')\n" +
+				"sys.stdout.flush()\n" +
+				"sys.stderr.write('seven\\n')\n" +
+				"import time; time.sleep(999)\n";
+			Task task = service.task(script);
+
+			// Record any crash reported in the task notifications.
+			String[] reportedError = {null};
+			task.listen(event -> {
+				if (event.responseType == ResponseType.CRASH) {
+					reportedError[0] = task.error;
+				}
+			});
+			// Launch the task.
+			task.start();
+			// Simulate a crash after 500ms has gone by.
+			Thread.sleep(500);
+			service.kill();
+
+			// Wait for the service to fully shut down after the crash.
+			int exitCode = service.waitFor();
+			assertTrue(exitCode != 0);
+
+			// Is the tag flagged as crashed?
+			assertSame(TaskStatus.CRASHED, task.status);
+
+			// Was the crash error successfully and consistently recorded?
+			assertNotNull(reportedError[0]);
+			List<String> lines = Arrays.asList(task.error.split("\\n"));
+			String nl = System.lineSeparator();
+			assertEquals(Arrays.asList("two", "four", "six"), service.invalidLines());
+			assertEquals(Arrays.asList("one", "three", "five", "seven"), service.errorLines());
+			String expected =
+				"Worker crashed with exit code ###." + nl +
+				nl +
+				"[stdout]" + nl +
+				"two" + nl +
+				"four" + nl +
+				"six" + nl +
+				nl +
+				"[stderr]" + nl +
+				"one" + nl +
+				"three" + nl +
+				"five" + nl +
+				"seven" + nl;
+			String generalizedError = task.error.replaceFirst("exit code [0-9]+", "exit code ###");
+			assertEquals(expected, generalizedError);
 		}
 	}
 
