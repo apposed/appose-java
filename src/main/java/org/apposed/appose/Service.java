@@ -58,6 +58,13 @@ public class Service implements AutoCloseable {
 	private final Map<String, Task> tasks = new ConcurrentHashMap<>();
 	private final int serviceID;
 
+	/**
+	 * List of weird lines seen since the last valid response from the worker.
+	 * In case the worker process crashes, we use these lines as the content
+	 * of an error message to any still pending tasks when reporting the crash.
+	 */
+	private final List<String> crashLines = new ArrayList<>();
+
 	private Process process;
 	private PrintWriter stdin;
 	private Thread stdoutThread;
@@ -142,8 +149,13 @@ public class Service implements AutoCloseable {
 		BufferedReader stdout = new BufferedReader(new InputStreamReader(process.getInputStream()));
 		while (true) {
 			String line;
+			int crashLineCount;
 			try {
 				line = stdout.readLine();
+				// NB: For performance, this read of the crash lines buffer is not
+				// synchronized. But we do it ASAP after receiving a new stdout line,
+				// in the hope that it minimizes the number of dropped stderr lines.
+				crashLineCount = crashLines.size();
 			}
 			catch (IOException exc) {
 				// Something went wrong reading the line. Panic!
@@ -168,12 +180,28 @@ public class Service implements AutoCloseable {
 					debugService("No such task: " + uuid);
 					continue;
 				}
+				// At this point, we know we have a correctly formatted response
+				// line from the worker, so let's clear the crash lines buffer.
+				if (crashLineCount > 0) {
+					synchronized (crashLines) {
+						int totalLineCount = crashLines.size();
+						if (totalLineCount > crashLineCount) {
+							// Some lines (from the stderr thread, presumably) arrived after
+							// receiving this correctly formatted response line. Keep them.
+							crashLines.retainAll(crashLines.subList(crashLineCount, totalLineCount));
+						}
+						else crashLines.clear();
+					}
+				}
 				task.handle(response);
 			}
 			catch (Exception exc) {
 				// Something went wrong decoding the line of JSON.
 				// Skip it and keep going, but log it first.
 				debugService(String.format("<INVALID> %s", line));
+				synchronized (crashLines) {
+					crashLines.add(line);
+				}
 			}
 		}
 	}
@@ -189,6 +217,16 @@ public class Service implements AutoCloseable {
 					return;
 				}
 				debugWorker(line);
+				synchronized (crashLines) {
+					// NB: This synchronized block probably causes a substantial
+					// performance hit. But it only happens when a line of stderr is
+					// actually emitted by the worker, which in normal circumstances
+					// should not be happening much if ever. If you are reading this
+					// comment because you profiled your program's code and found a lot
+					// of time is being spent around these here parts, try to reduce
+					// the number of lines of stderr that your worker process emits.
+					crashLines.add(line);
+				}
 			}
 		}
 		catch (IOException exc) {
@@ -207,6 +245,15 @@ public class Service implements AutoCloseable {
 			}
 		}
 
+		// Wait for worker output processing threads to finish up.
+		try {
+			stdoutThread.join();
+			stderrThread.join();
+		}
+		catch (InterruptedException exc) {
+			debugService(Types.stackTrace(exc));
+		}
+
 		// Do some sanity checks.
 		int exitCode = process.exitValue();
 		if (exitCode != 0) debugService("<worker process terminated with exit code " + exitCode + ">");
@@ -214,7 +261,8 @@ public class Service implements AutoCloseable {
 		if (taskCount > 0) debugService("<worker process terminated with " + taskCount + " pending tasks>");
 
 		// Notify any remaining tasks about the process crash.
-		tasks.values().forEach(Task::crash);
+		String error = String.join("\n", crashLines);
+		tasks.values().forEach(task -> task.crash(error));
 		tasks.clear();
 	}
 
@@ -377,9 +425,10 @@ public class Service implements AutoCloseable {
 			}
 		}
 
-		private void crash() {
+		private void crash(String error) {
 			TaskEvent event = new TaskEvent(this, ResponseType.CRASH);
 			status = TaskStatus.CRASHED;
+			this.error = error;
 			listeners.forEach(l -> l.accept(event));
 			synchronized (this) {
 				notifyAll();

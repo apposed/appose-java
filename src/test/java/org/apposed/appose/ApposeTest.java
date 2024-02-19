@@ -32,10 +32,12 @@ package org.apposed.appose;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
 import org.apposed.appose.Service.ResponseType;
@@ -101,6 +103,40 @@ public class ApposeTest {
 		}
 	}
 
+	@Test
+	public void testCrashPython() throws InterruptedException, IOException {
+		Environment env = Appose.system();
+		try (Service service = env.python()) {
+			String script = "" +
+				"import sys\n" +
+				"sys.stderr.write('one\\n')\n" +
+				"print('two')\n" +
+				"sys.stderr.write('three\\n')\n" +
+				"print('four')\n" +
+				"sys.stderr.write('five\\n')\n" +
+				"sys.exit(1337)\n";
+			Task task = service.task(script);
+			String[] crashError = {null};
+			task.listen(event -> {
+				if (event.responseType == ResponseType.CRASH) {
+					crashError[0] = task.error;
+				}
+			});
+			task.waitFor();
+			List<String> lines = Arrays.asList(crashError[0].split("\\n"));
+			int one = lines.indexOf("one");
+			int two = lines.indexOf("two");
+			int three = lines.indexOf("three");
+			int four = lines.indexOf("four");
+			int five = lines.indexOf("five");
+			// Verify we received all the output + error lines.
+			assertEquals(5, lines.size());
+			assertTrue(one >= 0 && two >= 0 && three >= 0 && four >= 0 && five >= 0);
+			// Verify that the error lines are ordered correctly, and so are the output lines.
+			assertTrue(one < three && three < five && two < four);
+		}
+	}
+
 	public void executeAndAssert(Service service, String script)
 		throws InterruptedException, IOException
 	{
@@ -130,6 +166,7 @@ public class ApposeTest {
 		task.waitFor();
 
 		// Validate the execution result.
+		assertNull(task.error);
 		assertSame(TaskStatus.COMPLETE, task.status);
 		Number result = (Number) task.outputs.get("result");
 		assertEquals(91, result.intValue());
