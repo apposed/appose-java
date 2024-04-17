@@ -57,7 +57,7 @@ public interface Environment {
 	 */
 	default Service python() throws IOException {
 		List<String> pythonExes = Arrays.asList(
-			"python", "python.exe",
+			"python", "python3", "python.exe",
 			"bin/python", "bin/python.exe"
 		);
 		return service(pythonExes, "-c",
