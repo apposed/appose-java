@@ -72,7 +72,7 @@ public final class FilePaths {
 				// Candidate is a relative path; check beneath each given directory.
 				for (String dir : dirs) {
 					File f = Paths.get(dir, exe).toFile();
-					if (f.canExecute()) return f;
+					if (f.canExecute() && !f.isDirectory()) return f;
 				}
 			}
 		}
