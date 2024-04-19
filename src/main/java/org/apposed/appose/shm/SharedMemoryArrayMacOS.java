@@ -81,6 +81,11 @@ public class SharedMemoryArrayMacOS implements SharedMemoryArray {
 	}
 
 	@Override
+	public String getNameForPython() {
+		return memoryName.substring("/".length());
+	}
+
+	@Override
 	public Pointer getPointer() {
 		return pSharedMemory;
 	}

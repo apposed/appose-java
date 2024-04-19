@@ -176,6 +176,21 @@ public interface SharedMemoryArray extends Closeable {
 	String getName();
 
 	/**
+	 * Get the unique name for this shared memory segment, as the Python package
+	 * {@code multiprocessing.shared_memory} requires it.
+	 * <p>
+	 * For Unix based systems it removes the initial {@code "/"}, for example,
+	 * {@code "/shm_block"} becomes {@code "shm_block"}. In Windows shared
+	 * memory block names start either with {@code "Global\\"} or {@code
+	 * "Local\\"}, this is also removed when providing a shared memory name to
+	 * Python. For Example, {@code "Local\\shm_block"} becomes {@code
+	 * "shm_block"}.
+	 *
+	 * @return the unique name for the shared memory, for use in Python.
+	 */
+	String getNameForPython();
+
+	/**
 	 * @return the pointer to the shared memory segment
 	 */
 	Pointer getPointer();
