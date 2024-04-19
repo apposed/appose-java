@@ -30,15 +30,45 @@
 package org.apposed.appose;
 
 import java.io.IOException;
+import java.util.Arrays;
 import org.apposed.appose.Service.Task;
 import org.apposed.appose.shm.SharedMemoryArray;
 
 public class PlaygroundSharedMemory {
 
-    public static void main(String[] args) throws IOException {
+    public static void main(String[] args) throws IOException, InterruptedException {
 		final SharedMemoryArray shm = SharedMemoryArray.create(24 * Float.BYTES);
 		System.out.println("shm.getName() = " + shm.getName());
+		final float[] buf = new float[24];
+		for (int i = 0; i < buf.length; i++) {
+			buf[i] = i;
+		}
+		shm.getPointer().write(0, buf, 0, buf.length);
+
+
+		Environment env = Appose.base("/opt/homebrew/Caskroom/miniforge/base/envs/appose/").build();
+		try (Service service = env.python()) {
+			final String script = String.format(PRINT_NDARRAY, shm.getNameForPython());
+			System.out.println(script);
+			Task task = service.task(script);
+			System.out.println(task);
+			task.waitFor();
+//			System.out.println("task.inputs = " + task.inputs);
+//			System.out.println("task.outputs = " + task.outputs);
+			final String result = (String) task.outputs.get("result");
+			System.out.println("result = " + result);
+		}
+
 		shm.close();
     }
 
+	private static final String PRINT_NDARRAY = "" + //
+		"from multiprocessing import shared_memory\n" + //
+		"import numpy as np\n" + //
+		"size = 24\n" + //
+		"im_shm = shared_memory.SharedMemory(name='%s', size=size * 4)\n" + //
+		"arr = np.ndarray(size, dtype='float32', buffer=im_shm.buf).reshape([2, 3, 4])\n" + //
+//		"print(arr)\n" + //
+		"task.outputs['result'] = str(arr)\n" + //
+		"im_shm.unlink()";
 }
