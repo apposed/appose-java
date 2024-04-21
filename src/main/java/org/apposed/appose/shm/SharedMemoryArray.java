@@ -21,15 +21,10 @@
 package org.apposed.appose.shm;
 
 import java.io.Closeable;
-import java.io.File;
-import java.nio.ByteBuffer;
-import java.nio.file.FileAlreadyExistsException;
-import java.util.UUID;
-
-import com.sun.jna.Pointer;
-import com.sun.jna.platform.win32.WinNT;
 
 import org.apposed.appose.system.PlatformDetection;
+
+import com.sun.jna.Pointer;
 
 /**
  * TODO separate unlink and close
@@ -116,23 +111,6 @@ public interface SharedMemoryArray extends Closeable {
 	}
 
 	/**
-	 * Create a random unique name for a shared memory segment
-	 * @return a random unique name for a shared memory segment
-	 */
-	static String createShmName() { // TODO: Does this have to be public? move to utility class? only use locally?
-		switch (PlatformDetection.getOs()) {
-			case OSX:
-				return SharedMemoryArrayMacOS.createShmName();
-			case WINDOWS:
-//				return "Local" + File.separator + UUID.randomUUID().toString();
-			case LINUX:
-//				return "/shm-" + UUID.randomUUID();
-			default:
-				throw new UnsupportedOperationException("TODO");
-		}
-	}
-
-	/**
 	 * Wraps an existing shared memory segment to allow the user its manipulation.
 	 * The name should be the same as the name of the shared memory segment.
 	 * <p>
@@ -173,6 +151,8 @@ public interface SharedMemoryArray extends Closeable {
 	 *
 	 * @return the unique name for the shared memory
 	 */
+	// TODO revise name handling
+	@Deprecated
 	String getName();
 
 	/**
@@ -181,14 +161,23 @@ public interface SharedMemoryArray extends Closeable {
 	 * <p>
 	 * For Unix based systems it removes the initial {@code "/"}, for example,
 	 * {@code "/shm_block"} becomes {@code "shm_block"}. In Windows shared
-	 * memory block names start either with {@code "Global\\"} or {@code
-	 * "Local\\"}, this is also removed when providing a shared memory name to
-	 * Python. For Example, {@code "Local\\shm_block"} becomes {@code
+	 * memory block names start either with {@code "Global\"} or {@code
+	 * "Local\"}, this is also removed when providing a shared memory name to
+	 * Python. For Example, {@code "Local\shm_block"} becomes {@code
 	 * "shm_block"}.
 	 *
 	 * @return the unique name for the shared memory, for use in Python.
 	 */
+	// TODO revise name handling
+	@Deprecated
 	String getNameForPython();
+
+	/**
+	 * Unique name that identifies the shared memory block.
+	 *
+	 * @return The name of the shared memory.
+	 */
+	String name();
 
 	/**
 	 * @return the pointer to the shared memory segment
@@ -198,6 +187,14 @@ public interface SharedMemoryArray extends Closeable {
 	/**
 	 * @return get number of bytes in the shared memory segment
 	 */
+	@Deprecated
 	int getSize();
+
+	/**
+	 * Size in bytes.
+	 *
+	 * @return The length in bytes of the shared memory.
+	 */
+	long size();
 
 }

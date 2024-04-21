@@ -86,12 +86,22 @@ public class SharedMemoryArrayMacOS implements SharedMemoryArray {
 	}
 
 	@Override
+	public String name() {
+		return getNameForPython(); // TODO fix name generation and reporting
+	}
+
+	@Override
 	public Pointer getPointer() {
 		return pSharedMemory;
 	}
 
 	@Override
 	public int getSize() {
+		return size;
+	}
+
+	@Override
+	public long size() {
 		return size;
 	}
 
@@ -182,7 +192,7 @@ public class SharedMemoryArrayMacOS implements SharedMemoryArray {
 	 * Create a random unique name for a shared memory segment
 	 * @return a random unique name for a shared memory segment
 	 */
-	static String createShmName() {
+	private static String createShmName() {
 		return ("/shm-" + UUID.randomUUID()).substring(0, SharedMemoryArrayMacOS.MACOS_MAX_LENGTH);
 	}
 
