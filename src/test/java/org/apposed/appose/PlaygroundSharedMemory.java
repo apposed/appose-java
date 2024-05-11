@@ -30,7 +30,6 @@
 package org.apposed.appose;
 
 import java.io.IOException;
-import java.util.Arrays;
 import org.apposed.appose.Service.Task;
 import org.apposed.appose.shm.SharedMemoryArray;
 
