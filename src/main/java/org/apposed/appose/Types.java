@@ -47,7 +47,7 @@ public final class Types {
 
 	@SuppressWarnings("unchecked")
 	public static Map<String, Object> decode(String json) {
-		return (Map<String, Object>) new JsonSlurper().parseText(json);
+		return JsonUtils.fromJson(json);
 	}
 
 	/** Dumps the given exception, including stack trace, to a string. */

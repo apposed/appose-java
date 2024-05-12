@@ -37,6 +37,7 @@ import com.sun.jna.Pointer;
  *
  * @author Carlos Garcia Lopez de Haro
  */
+// TODO: rename to SharedMemory
 public interface SharedMemoryArray extends Closeable {
 
 	/**
