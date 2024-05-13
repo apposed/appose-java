@@ -1,6 +1,7 @@
 package org.apposed.appose;
 
 import java.io.IOException;
+import java.math.BigDecimal;
 import java.nio.FloatBuffer;
 import java.util.HashMap;
 import java.util.Map;
@@ -26,6 +27,9 @@ public class PlaygroundNDArrayGroovy {
 			buf.put(i, i);
 		}
 
+		float v = ndArray.buffer().asFloatBuffer().get(5);
+
+
 		// pass to groovy
 		Environment env = Appose.system();
 		try (Service service = env.groovy()) {
@@ -33,14 +37,13 @@ public class PlaygroundNDArrayGroovy {
 			inputs.put( "img", ndArray);
 			Service.Task task = service.task(PRINT_INPUT, inputs );
 			task.waitFor();
-			final String result = ( String ) task.outputs.get( "result" );
-			System.out.println( "result = \n" + result );
+			final float result = ((BigDecimal) task.outputs.get("result")).floatValue();
+			System.out.println( "result = " + result );
 		}
 		ndArray.close();
 	}
 
 	private static final String PRINT_INPUT = "" + //
-		"time = 100\n" + //
-		"return img.toString()\n";
+		"return img.buffer().asFloatBuffer().get(5);\n";
 
 }

@@ -6,13 +6,13 @@
  * %%
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions are met:
- * 
+ *
  * 1. Redistributions of source code must retain the above copyright notice,
  *    this list of conditions and the following disclaimer.
  * 2. Redistributions in binary form must reproduce the above copyright notice,
  *    this list of conditions and the following disclaimer in the documentation
  *    and/or other materials provided with the distribution.
- * 
+ *
  * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
  * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
  * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
@@ -147,7 +147,11 @@ public class SharedMemory {
 	private MemoryView buf;
 	private int flags = O_RDWR;
 	private int mode = 0600;
-	private boolean prepend_leading_slash = USE_POSIX;
+	private final boolean prepend_leading_slash = USE_POSIX;
+
+	public Pointer getPointer() {
+		return mmap;
+	}
 
 	public SharedMemory(String name, boolean create, long size) {
 		// NB: Would be great to use LArray for this instead. But it
@@ -163,7 +167,7 @@ public class SharedMemory {
 				throw new IllegalArgumentException("'size' must be a positive number different from zero");
 			}
 		}
-		if (name == null && (this.flags & O_EXCL) != 0) {
+		if (name == null && (this.flags & O_EXCL) == 0) {
 			throw new IllegalArgumentException("'name' can only be null if create=true");
 		}
 
@@ -173,6 +177,9 @@ public class SharedMemory {
 			if (name == null) {
 				while (true) {
 					name = make_filename();
+					System.out.println("name = " + name);
+					System.out.println("flags = " + flags);
+					System.out.println("mode = " + mode);
 					this.fd = LibRT.INSTANCE.shm_open(
 						name,
 						this.flags,
