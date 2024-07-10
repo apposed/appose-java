@@ -43,6 +43,28 @@ import java.util.ServiceLoader;
 public interface SharedMemory extends AutoCloseable {
 
 	/**
+	 * Creates a new shared memory block.
+	 *
+	 * @param name   the unique name for the requested shared memory, specified
+	 *               as a string. If {@code null} is supplied for the name, a novel
+	 *               name will be generated.
+	 * @param size   size in bytes.
+	 */
+	static SharedMemory create(String name, int size) {
+		return createOrAttach(name, true, size);
+	}
+
+	/**
+	 * Attaches to an existing shared memory block.
+	 *
+	 * @param name   the unique name for the requested shared memory, specified
+	 *               as a string.
+	 */
+	static SharedMemory attach(String name, int size) {
+		return createOrAttach(name, false, size);
+	}
+
+	/**
 	 * Creates a new shared memory block or attaches to an existing shared
 	 * memory block.
 	 *
@@ -52,9 +74,9 @@ public interface SharedMemory extends AutoCloseable {
 	 *               name will be generated.
 	 * @param create whether a new shared memory block is created ({@code true})
 	 *               or an existing one is attached to ({@code false}).
-	 * @param size   size in bytes
+	 * @param size   size in bytes, or 0 if create==false
 	 */
-	static SharedMemory create(String name, boolean create, int size) {
+	static SharedMemory createOrAttach(String name, boolean create, int size) {
 		if (size < 0) {
 			throw new IllegalArgumentException("'size' must be a positive integer");
 		}
@@ -64,7 +86,6 @@ public interface SharedMemory extends AutoCloseable {
 		if (!create && name == null) {
 			throw new IllegalArgumentException("'name' can only be null if create=true");
 		}
-
 		ServiceLoader<ShmFactory> loader = ServiceLoader.load(ShmFactory.class);
 		for (ShmFactory factory: loader) {
 			SharedMemory shm = factory.create(name, create, size);

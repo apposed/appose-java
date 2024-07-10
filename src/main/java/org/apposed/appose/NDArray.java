@@ -76,7 +76,7 @@ public class NDArray implements AutoCloseable {
 	 * @param shape array shape
 	 */
 	public NDArray(final DType dType, final Shape shape) {
-		this(SharedMemory.create(null, true,
+		this(SharedMemory.create(null,
 			safeInt(shape.numElements() * dType.bytesPerElement())), dType, shape);
 	}
 

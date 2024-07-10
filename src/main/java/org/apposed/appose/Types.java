@@ -161,7 +161,7 @@ public final class Types {
 					case "shm":
 						final String name = (String) map.get("name");
 						final int size = (int) map.get("size");
-						return SharedMemory.create(name, false, size);
+						return SharedMemory.attach(name, size);
 					case "ndarray":
 						final SharedMemory shm = (SharedMemory) map.get("shm");
 						final DType dType = toDType((String) map.get("dtype"));
