@@ -30,7 +30,8 @@
 package org.apposed.appose;
 
 import com.sun.jna.Pointer;
-import org.apposed.appose.shm.ShmImpl;
+
+import java.util.ServiceLoader;
 
 /**
  * A shared memory block.
@@ -39,79 +40,77 @@ import org.apposed.appose.shm.ShmImpl;
  * can create a shared memory block with a particular name and a different
  * process can attach to that same shared memory block using that same name.
  */
-public final class SharedMemory implements AutoCloseable {
+public interface SharedMemory extends AutoCloseable {
 
-    private final ShmImpl impl;
+	/**
+	 * Creates a new shared memory block or attaches to an existing shared
+	 * memory block.
+	 *
+	 * @param name   the unique name for the requested shared memory, specified
+	 *               as a string. If {@code create==true} a new shared memory
+	 *               block, if {@code null} is supplied for the name, a novel
+	 *               name will be generated.
+	 * @param create whether a new shared memory block is created ({@code true})
+	 *               or an existing one is attached to ({@code false}).
+	 * @param size   size in bytes
+	 */
+	static SharedMemory create(String name, boolean create, int size) {
+		if (size < 0) {
+			throw new IllegalArgumentException("'size' must be a positive integer");
+		}
+		if (create && size == 0) {
+			throw new IllegalArgumentException("'size' must be a positive number different from zero");
+		}
+		if (!create && name == null) {
+			throw new IllegalArgumentException("'name' can only be null if create=true");
+		}
 
-    /**
-     * Creates a new shared memory block or attaches to an existing shared
-     * memory block.
-     *
-     * @param name   the unique name for the requested shared memory, specified
-     *               as a string. If {@code create==true} a new shared memory
-     *               block, if {@code null} is supplied for the name, a novel
-     *               name will be generated.
-     * @param create whether a new shared memory block is created ({@code true})
-     *               or an existing one is attached to ({@code false}).
-     * @param size   size in bytes
-     */
-    public SharedMemory(String name, boolean create, int size) {
-        if (size < 0) {
-            throw new IllegalArgumentException("'size' must be a positive integer");
-        }
-        if (create && size == 0) {
-            throw new IllegalArgumentException("'size' must be a positive number different from zero");
-        }
-        if (!create && name == null) {
-            throw new IllegalArgumentException("'name' can only be null if create=true");
-        }
-        impl = ShmImpl.create(name, create, size);
-    }
+		ServiceLoader<ShmFactory> loader = ServiceLoader.load(ShmFactory.class);
+		for (ShmFactory factory: loader) {
+			SharedMemory shm = factory.create(name, create, size);
+			if (shm != null) return shm;
+		}
+		throw new UnsupportedOperationException("No SharedMemory support for this platform");
+	}
 
-    /**
-     * Unique name that identifies the shared memory block.
-     *
-     * @return The name of the shared memory.
-     */
-    public String name() {
-        return impl.name();
-    }
+	/**
+	 * Unique name that identifies the shared memory block.
+	 *
+	 * @return The name of the shared memory.
+	 */
+	String name();
 
-    /**
-     * Size in bytes.
-     *
-     * @return The length in bytes of the shared memory.
-     */
-    public long size() {
-        return impl.size();
-    }
+	/**
+	 * Size in bytes.
+	 *
+	 * @return The length in bytes of the shared memory.
+	 */
+	long size();
 
-    /**
-     * JNA pointer to the shared memory segment.
-     *
-     * @return the pointer to the shared memory segment
-     */
-    public Pointer pointer() {
-        return impl.pointer();
-    }
+	/**
+	 * JNA pointer to the shared memory segment.
+	 *
+	 * @return the pointer to the shared memory segment
+	 */
+	Pointer pointer();
 
-    /**
-     * Closes access to the shared memory from this instance but does
-     * not destroy the shared memory block.
-     */
-    @Override
-    public void close() throws Exception {
-        try {
-            impl.close();
-        } catch (Exception e) {
-            throw new RuntimeException(e);
-        }
-    }
+	/**
+	 * Requests that the underlying shared memory block be destroyed.
+	 * In order to ensure proper cleanup of resources, unlink should be
+	 * called once (and only once) across all processes which have access
+	 * to the shared memory block.
+	 */
+	default void unlink() throws Exception {
+		throw new UnsupportedOperationException();
+	}
 
-    @Override
-    public String toString() {
-        return "SharedMemory{impl=" + impl + '}';
-    }
+	/**
+	 * Closes access to the shared memory from this instance but does
+	 * not destroy the shared memory block.
+	 */
+	@Override
+	void close();
 
+	@Override
+	String toString();
 }
-

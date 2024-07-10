@@ -76,9 +76,8 @@ public class NDArray implements AutoCloseable {
 	 * @param shape array shape
 	 */
 	public NDArray(final DType dType, final Shape shape) {
-		this(
-				new SharedMemory(null,true,safeInt(shape.numElements() * dType.bytesPerElement())),
-				dType, shape);
+		this(SharedMemory.create(null, true,
+			safeInt(shape.numElements() * dType.bytesPerElement())), dType, shape);
 	}
 
 	/**
@@ -151,7 +150,7 @@ public class NDArray implements AutoCloseable {
 		 *     <li>{@code F_ORDER} means fastest-moving dimension last (as in ImgLib2)</li>
 		 * </ul>
 		 * See <a href="https://github.com/bogovicj/JaneliaDataStandards/blob/arrayOrder/ArrayOrder.md">ArrayOrder</a>
-         */
+		 */
 		public enum Order {C_ORDER, F_ORDER}
 
 		/**

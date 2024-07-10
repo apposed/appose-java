@@ -68,29 +68,29 @@ public final class Types {
 	/*
 		SharedMemory is represented in JSON as
 		{
-		  appose_type:shm
-		  name:psm_4812f794
-		  size:16384
+			appose_type:shm
+			name:psm_4812f794
+			size:16384
 		}
 
 		where
-		  "name" is the unique name of the shared memory segment
-		  "size" is the size in bytes.
+			"name" is the unique name of the shared memory segment
+			"size" is the size in bytes.
 		(as required for python shared_memory.SharedMemory constructor)
 
 
 		NDArray is represented in JSON as
 		{
-    	  appose_type:ndarray
-    	  shm:{...}
-		  dtype:float32
-		  shape:[2, 3, 4]
+			appose_type:ndarray
+			shm:{...}
+			dtype:float32
+			shape:[2, 3, 4]
 		}
 
 		where
-		  "shm" is the representation of the underlying shared memory segment (as described above)
-		  "dtype" is the data type of the array elements
-		  "shape" is the array dimensions in C-Order
+			"shm" is the representation of the underlying shared memory segment (as described above)
+			"dtype" is the data type of the array elements
+			"shape" is the array dimensions in C-Order
 	*/
 
 	/**
@@ -161,7 +161,7 @@ public final class Types {
 					case "shm":
 						final String name = (String) map.get("name");
 						final int size = (int) map.get("size");
-						return new SharedMemory(name, false, size);
+						return SharedMemory.create(name, false, size);
 					case "ndarray":
 						final SharedMemory shm = (SharedMemory) map.get("shm");
 						final DType dType = toDType((String) map.get("dtype"));

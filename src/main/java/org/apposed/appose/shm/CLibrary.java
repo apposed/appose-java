@@ -24,17 +24,17 @@ import com.sun.jna.Native;
 import com.sun.jna.Pointer;
 
 interface CLibrary extends Library {
-    CLibrary INSTANCE = Native.load("c", CLibrary.class);
+  CLibrary INSTANCE = Native.load("c", CLibrary.class);
 
-    int shm_open(String name, int oflag, int mode);
-    int ftruncate(int fd, int length);
-    Pointer mmap(Pointer addr, int length, int prot, int flags, int fd, int offset);
-    int munmap(Pointer addr, int length);
-    int close(int fd);
-    int shm_unlink(String name);
+  int shm_open(String name, int oflag, int mode);
+  int ftruncate(int fd, int length);
+  Pointer mmap(Pointer addr, int length, int prot, int flags, int fd, int offset);
+  int munmap(Pointer addr, int length);
+  int close(int fd);
+  int shm_unlink(String name);
 
-    int SEEK_SET = 0;
-    int SEEK_CUR = 1;
-    int SEEK_END = 2;
-    long lseek(int fd, long offset, int whence);
+  int SEEK_SET = 0;
+  int SEEK_CUR = 1;
+  int SEEK_END = 2;
+  long lseek(int fd, long offset, int whence);
 }
