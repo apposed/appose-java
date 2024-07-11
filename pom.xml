@@ -46,7 +46,19 @@
 	</developers>
 	<contributors>
 		<contributor>
-			<name>None</name>
+			<name>Tobias Pietzsch</name>
+			<url>https://github.com/tpietzsch</url>
+			<properties><id>tpietzsch</id></properties>
+		</contributor>
+		<contributor>
+			<name>Carlos Garcia Lopez de Haro</name>
+			<url>https://github.com/carlosuc3m</url>
+			<properties><id>carlosuc3m</id></properties>
+		</contributor>
+		<contributor>
+			<name>Mark Kittisopikul</name>
+			<url>https://github.com/mkitti</url>
+			<properties><id>mkitti</id></properties>
 		</contributor>
 	</contributors>
 
