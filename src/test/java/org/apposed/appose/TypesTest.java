@@ -40,6 +40,7 @@ import java.util.stream.Collectors;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertSame;
 
 /**
  * Tests {@link Types}.
@@ -61,8 +62,18 @@ public class TypesTest {
 		"AaBbCcDdEeFfGgHhIiJjKkLlMmNnOoPpQqRrSsTtUuVvWwXxYyZz" +
 		"~!@#$%^&*()\"," +
 		"\"numbers\":[1,1,2,3,5,8]," +
-		"\"words\":[\"quick\",\"brown\",\"fox\"]" +
-		"}";
+		"\"words\":[\"quick\",\"brown\",\"fox\"]," +
+		"\"ndArray\":{" +
+			"\"appose_type\":\"ndarray\"," +
+			"\"dtype\":\"float32\"," +
+			"\"shape\":[2,20,25]," +
+			"\"shm\":{" +
+				"\"appose_type\":\"shm\"," +
+				"\"name\":\"SHM_NAME\"," +
+				"\"size\":4000" +
+			"}" +
+		"}" +
+	"}";
 
 	private static final String STRING = "-=[]\\;',./_+{}|:\"<>?" +
 			"AaBbCcDdEeFfGgHhIiJjKkLlMmNnOoPpQqRrSsTtUuVvWwXxYyZz" +
@@ -93,16 +104,31 @@ public class TypesTest {
 		data.put("aString", STRING);
 		data.put("numbers", NUMBERS);
 		data.put("words", WORDS);
-		String json = Types.encode(data);
-		assertNotNull(json);
-		assertEquals(JSON, json);
+		NDArray.DType dtype = NDArray.DType.FLOAT32;
+		NDArray.Shape shape = new NDArray.Shape(NDArray.Shape.Order.C_ORDER, 2, 20, 25);
+		try (NDArray ndArray = new NDArray(dtype, shape)) {
+			data.put("ndArray", ndArray);
+			String json = Types.encode(data);
+			assertNotNull(json);
+			String expected = JSON.replaceAll("SHM_NAME", ndArray.shm().name());
+			assertEquals(expected, json);
+		}
 	}
 
 	@Test
 	public void testDecode() {
-		Map<String, Object> data = Types.decode(JSON);
+		Map<String, Object> data;
+		String shmName;
+
+		// Create name shared memory segment and decode JSON block.
+		try (SharedMemory shm = SharedMemory.create(null, 4000)) {
+			shmName = shm.name();
+			data = Types.decode(JSON.replaceAll("SHM_NAME", shmName));
+		}
+
+		// Validate results.
 		assertNotNull(data);
-		assertEquals(18, data.size());
+		assertEquals(19, data.size());
 		assertEquals(123, data.get("posByte")); // NB: decodes back to int
 		assertEquals(-98, data.get("negByte")); // NB: decodes back to int
 		assertEquals(9.876543210123456, bd(data.get("posDouble")).doubleValue());
@@ -124,6 +150,16 @@ public class TypesTest {
 			.collect(Collectors.toList());
 		assertEquals(numbersList, data.get("numbers"));
 		assertEquals(Arrays.asList(WORDS), data.get("words"));
+		try (NDArray ndArray = (NDArray) data.get("ndArray")) {
+			assertSame(NDArray.DType.FLOAT32, ndArray.dType());
+			assertEquals(NDArray.Shape.Order.C_ORDER, ndArray.shape().order());
+			assertEquals(3, ndArray.shape().length());
+			assertEquals(2, ndArray.shape().get(0));
+			assertEquals(20, ndArray.shape().get(1));
+			assertEquals(25, ndArray.shape().get(2));
+			assertEquals(shmName, ndArray.shm().name());
+			assertEquals(4000, ndArray.shm().size());
+		}
 	}
 
 	private BigDecimal bd(Object posDouble) {
