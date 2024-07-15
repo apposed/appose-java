@@ -65,15 +65,7 @@ public class ShmWindows implements ShmFactory {
 				shm_name = nameMangle_TODO(name);
 				prevSize = getSHMSize(shm_name);
 			}
-
-			final boolean alreadyExists = prevSize >= 0;
-			if(alreadyExists &&prevSize<size)
-
-			{
-				throw new RuntimeException("Shared memory segment already exists with smaller dimensions, data type or format. "
-								+ "Size of the existing shared memory segment cannot be smaller than the size of the proposed object. "
-								+ "Size of existing shared memory segment: " + prevSize + ", size of proposed object: " + size);
-			}
+			ShmUtils.checkSize(shm_name, prevSize, size);
 
 			final WinNT.HANDLE shm_hMapFile = Kernel32.INSTANCE.CreateFileMapping(
 							WinBase.INVALID_HANDLE_VALUE,

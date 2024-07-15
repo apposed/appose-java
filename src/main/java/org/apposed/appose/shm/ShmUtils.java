@@ -112,6 +112,15 @@ class ShmUtils {
 		return name;
 	}
 
+	static void checkSize(String shmName, long prevSize, int size) {
+		final boolean alreadyExists = prevSize >= 0;
+		if (alreadyExists && prevSize < size) {
+			throw new RuntimeException("Shared memory segment '" + shmName + "' already exists with smaller size. "
+				+ "Size of the existing shared memory segment cannot be smaller than the size of the proposed object. "
+				+ "Size of existing shared memory segment: " + prevSize + ", size of proposed object: " + size);
+		}
+	}
+
 	private static String token_hex(int nbytes) {
 		final byte[] bytes = new byte[nbytes];
 		new Random().nextBytes(bytes);

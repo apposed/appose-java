@@ -64,13 +64,8 @@ public class ShmMacOS implements ShmFactory {
 				shm_name = withLeadingSlash(name);
 				prevSize = getSHMSize(shm_name);
 			}
+			ShmUtils.checkSize(shm_name, prevSize, size);
 
-			final boolean alreadyExists = prevSize >= 0;
-			if (alreadyExists && prevSize < size) {
-				throw new RuntimeException("Shared memory segment already exists with smaller dimensions, data type or format. "
-								+ "Size of the existing shared memory segment cannot be smaller than the size of the proposed object. "
-								+ "Size of existing shared memory segment: " + prevSize + ", size of proposed object: " + size);
-			}
 			//		shmFd = INSTANCE.shm_open(this.memoryName, O_RDWR, 0666);
 			final int shmFd = MacosHelpers.INSTANCE.create_shared_memory(shm_name, size);
 			if (shmFd < 0) {

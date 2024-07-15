@@ -93,13 +93,8 @@ public class ShmLinux implements ShmFactory {
 				shm_name = withLeadingSlash(name);
 				prevSize = getSHMSize(shm_name);
 			}
+			ShmUtils.checkSize(shm_name, prevSize, size);
 
-			final boolean alreadyExists = prevSize >= 0;
-			if (alreadyExists && prevSize < size) {
-				throw new RuntimeException("Shared memory segment already exists with smaller dimensions, data type or format. "
-								+ "Size of the existing shared memory segment cannot be smaller than the size of the proposed object. "
-								+ "Size of existing shared memory segment: " + prevSize + ", size of proposed object: " + size);
-			}
 			final int shmFd = LibRtOrC.shm_open(shm_name, O_CREAT | O_RDWR, 0666);
 			if (shmFd < 0) {
 				throw new RuntimeException("shm_open failed, errno: " + Native.getLastError());
