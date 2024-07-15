@@ -43,7 +43,7 @@ public class NDArray implements AutoCloseable {
 	/**
 	 * shared memory containing the flattened array data.
 	 */
-	private final SharedMemory sharedMemory;
+	private final SharedMemory shm;
 
 	/**
 	 * data type of the array elements.
@@ -56,16 +56,19 @@ public class NDArray implements AutoCloseable {
 	private final Shape shape;
 
 	/**
-	 * Constructs an {@code NDArray} with the specified {@code SharedMemory}.
+	 * Constructs an {@code NDArray} with the specified data type, shape,
+	 * and {@code SharedMemory}.
 	 *
-	 * @param sharedMemory the flattened array data.
 	 * @param dType element data type
 	 * @param shape array shape
+	 * @param shm the flattened array data.
 	 */
-	public NDArray(final SharedMemory sharedMemory, final DType dType, final Shape shape) {
-		this.sharedMemory = sharedMemory;
+	public NDArray(final DType dType, final Shape shape, final SharedMemory shm) {
 		this.dType = dType;
 		this.shape = shape;
+		this.shm = shm == null
+			? SharedMemory.create(null, safeInt(shape.numElements() * dType.bytesPerElement()))
+			: shm;
 	}
 
 	/**
@@ -76,8 +79,7 @@ public class NDArray implements AutoCloseable {
 	 * @param shape array shape
 	 */
 	public NDArray(final DType dType, final Shape shape) {
-		this(SharedMemory.create(null,
-			safeInt(shape.numElements() * dType.bytesPerElement())), dType, shape);
+		this(dType, shape, null);
 	}
 
 	/**
@@ -98,7 +100,7 @@ public class NDArray implements AutoCloseable {
 	 * @return The shared memory block containing the array data.
 	 */
 	public SharedMemory shm() {
-		return sharedMemory;
+		return shm;
 	}
 
 	/**
@@ -108,7 +110,7 @@ public class NDArray implements AutoCloseable {
 	 */
 	public ByteBuffer buffer() {
 		final long length = shape.numElements() * dType.bytesPerElement();
-		return sharedMemory.pointer().getByteBuffer(0, length);
+		return shm.pointer().getByteBuffer(0, length);
 	}
 
 	/**
@@ -116,16 +118,16 @@ public class NDArray implements AutoCloseable {
 	 */
 	@Override
 	public void close() throws Exception {
-		sharedMemory.close();
+		shm.close();
 	}
 
 	@Override
 	public String toString() {
-		return "NDArray{" +
-				"sharedMemory=" + sharedMemory +
-				", dType=" + dType +
-				", shape=" + shape +
-				'}';
+		return "NDArray(" +
+			"dType=" + dType +
+			", shape=" + shape +
+			", shm=" + shm +
+			")";
 	}
 
 	/**

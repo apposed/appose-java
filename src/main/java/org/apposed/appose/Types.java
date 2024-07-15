@@ -132,9 +132,9 @@ public final class Types {
 				map.put("name", shm.name());
 				map.put("size", shm.size());
 			})).addConverter(convert(NDArray.class, "ndarray", (map, ndArray) -> {
-				map.put("shm", ndArray.shm());
 				map.put("dtype", ndArray.dType().label());
 				map.put("shape", ndArray.shape().toIntArray(C_ORDER));
+				map.put("shm", ndArray.shm());
 			})).build();
 
 
@@ -163,10 +163,10 @@ public final class Types {
 						final int size = (int) map.get("size");
 						return SharedMemory.attach(name, size);
 					case "ndarray":
-						final SharedMemory shm = (SharedMemory) map.get("shm");
 						final NDArray.DType dType = toDType((String) map.get("dtype"));
 						final NDArray.Shape shape = toShape((List<Integer>) map.get("shape"));
-						return new NDArray(shm, dType, shape);
+						final SharedMemory shm = (SharedMemory) map.get("shm");
+						return new NDArray(dType, shape, shm);
 					default:
 						System.err.println("unknown appose_type \"" + appose_type + "\"");
 				}
