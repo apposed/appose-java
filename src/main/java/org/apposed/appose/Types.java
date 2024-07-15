@@ -164,7 +164,7 @@ public final class Types {
 						return SharedMemory.attach(name, size);
 					case "ndarray":
 						final SharedMemory shm = (SharedMemory) map.get("shm");
-						final DType dType = toDType((String) map.get("dtype"));
+						final NDArray.DType dType = toDType((String) map.get("dtype"));
 						final NDArray.Shape shape = toShape((List<Integer>) map.get("shape"));
 						return new NDArray(shm, dType, shape);
 					default:
@@ -177,8 +177,8 @@ public final class Types {
 		}
 	}
 
-	private static DType toDType(final String dtype) {
-		return DType.fromLabel(dtype);
+	private static NDArray.DType toDType(final String dtype) {
+		return NDArray.DType.fromLabel(dtype);
 	}
 
 	private static NDArray.Shape toShape(final List<Integer> shape) {

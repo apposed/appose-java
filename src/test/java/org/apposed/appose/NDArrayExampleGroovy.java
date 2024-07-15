@@ -12,7 +12,7 @@ public class NDArrayExampleGroovy {
 
 		// create a FLOAT32 NDArray with shape (4,3,2) in F_ORDER
 		// respectively (2,3,4) in C_ORDER
-		final DType dType = DType.FLOAT32;
+		final NDArray.DType dType = NDArray.DType.FLOAT32;
 		final NDArray ndArray = new NDArray(dType, new NDArray.Shape(F_ORDER, 4, 3, 2));
 
 		// fill with values 0..23 in flat iteration order
