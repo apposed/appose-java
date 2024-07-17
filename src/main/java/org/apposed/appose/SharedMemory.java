@@ -121,7 +121,7 @@ public interface SharedMemory extends AutoCloseable {
 	 * called once (and only once) across all processes which have access
 	 * to the shared memory block.
 	 */
-	default void unlink() throws Exception {
+	default void unlink() {
 		throw new UnsupportedOperationException();
 	}
 

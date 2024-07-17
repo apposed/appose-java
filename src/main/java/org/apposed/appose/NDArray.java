@@ -117,7 +117,7 @@ public class NDArray implements AutoCloseable {
 	 * Release resources ({@code SharedMemory}) associated with this {@code NDArray}.
 	 */
 	@Override
-	public void close() throws Exception {
+	public void close() {
 		shm.close();
 	}
 
