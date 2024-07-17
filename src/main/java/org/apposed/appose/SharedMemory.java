@@ -87,7 +87,7 @@ public interface SharedMemory extends AutoCloseable {
 			throw new IllegalArgumentException("'name' can only be null if create=true");
 		}
 		ServiceLoader<ShmFactory> loader = ServiceLoader.load(ShmFactory.class);
-		for (ShmFactory factory: loader) {
+		for (ShmFactory factory : loader) {
 			SharedMemory shm = factory.create(name, create, size);
 			if (shm != null) return shm;
 		}

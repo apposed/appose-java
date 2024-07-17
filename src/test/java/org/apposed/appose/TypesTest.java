@@ -31,7 +31,6 @@ package org.apposed.appose;
 
 import org.junit.jupiter.api.Test;
 
-import java.io.IOException;
 import java.math.BigDecimal;
 import java.util.Arrays;
 import java.util.LinkedHashMap;
@@ -49,7 +48,7 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
  */
 public class TypesTest {
 
-	private static String JSON = "{" +
+	private static final String JSON = "{" +
 		"\"posByte\":123,\"negByte\":-98," +
 		"\"posDouble\":9.876543210123456,\"negDouble\":-1.234567890987654E302," +
 		"\"posFloat\":9.876543,\"negFloat\":-1.2345678," +
@@ -65,13 +64,13 @@ public class TypesTest {
 		"\"words\":[\"quick\",\"brown\",\"fox\"]" +
 		"}";
 
-	private static String STRING = "-=[]\\;',./_+{}|:\"<>?" +
+	private static final String STRING = "-=[]\\;',./_+{}|:\"<>?" +
 			"AaBbCcDdEeFfGgHhIiJjKkLlMmNnOoPpQqRrSsTtUuVvWwXxYyZz" +
 			"~!@#$%^&*()";
 
-	private static int[] NUMBERS = {1, 1, 2, 3, 5, 8};
+	private static final int[] NUMBERS = {1, 1, 2, 3, 5, 8};
 
-	private static String[] WORDS = {"quick", "brown", "fox"};
+	private static final String[] WORDS = {"quick", "brown", "fox"};
 
 	@Test
 	public void testEncode() {
@@ -100,7 +99,7 @@ public class TypesTest {
 	}
 
 	@Test
-	public void testDecode() throws IOException {
+	public void testDecode() {
 		Map<String, Object> data = Types.decode(JSON);
 		assertNotNull(data);
 		assertEquals(18, data.size());
