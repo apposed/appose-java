@@ -45,12 +45,10 @@ import static org.apposed.appose.shm.ShmUtils.withoutLeadingSlash;
 
 /**
  * MacOS-specific shared memory implementation.
- * <p>
- * TODO separate unlink and close
- * </p>
  *
  * @author Carlos Garcia Lopez de Haro
  * @author Tobias Pietzsch
+ * @author Curtis Rueden
  */
 public class ShmMacOS implements ShmFactory {
 
@@ -60,8 +58,30 @@ public class ShmMacOS implements ShmFactory {
 		return new SharedMemoryMacOS(name, create, size);
 	}
 
-	private static class SharedMemoryMacOS implements SharedMemory {
+	private static class SharedMemoryMacOS extends ShmBase<Integer> {
 		private SharedMemoryMacOS(final String name, final boolean create, final int size) {
+			super(prepareShm(name, create, size));
+		}
+
+		@Override
+		protected void doUnlink() {
+			CLibrary.INSTANCE.shm_unlink(name());
+		}
+
+		@Override
+		protected void doClose() {
+			// Unmap the shared memory
+			if (pointer() != Pointer.NULL && CLibrary.INSTANCE.munmap(pointer(), size()) == -1) {
+				throw new RuntimeException("munmap failed. Errno: " + Native.getLastError());
+			}
+
+			// Close the file descriptor
+			if (CLibrary.INSTANCE.close(info.handle) == -1) {
+				throw new RuntimeException("close failed. Errno: " + Native.getLastError());
+			}
+		}
+
+		private static ShmInfo<Integer> prepareShm(String name, boolean create, int size) {
 			String shm_name;
 			long prevSize;
 			if (name == null) {
@@ -75,7 +95,7 @@ public class ShmMacOS implements ShmFactory {
 			}
 			ShmUtils.checkSize(shm_name, prevSize, size);
 
-			//		shmFd = INSTANCE.shm_open(this.memoryName, O_RDWR, 0666);
+			// shmFd = INSTANCE.shm_open(this.memoryName, O_RDWR, 0666);
 			final int shmFd = MacosHelpers.INSTANCE.create_shared_memory(shm_name, size);
 			if (shmFd < 0) {
 				throw new RuntimeException("shm_open failed, errno: " + Native.getLastError());
@@ -89,77 +109,14 @@ public class ShmMacOS implements ShmFactory {
 				throw new RuntimeException("mmap failed, errno: " + Native.getLastError());
 			}
 
-			this.size = shm_size;
-			this.name = withoutLeadingSlash(shm_name);
-			this.fd = shmFd;
-			this.pointer = pointer;
+			ShmInfo<Integer> info = new ShmInfo<>();
+			info.size = shm_size;
+			info.name = withoutLeadingSlash(shm_name);
+			info.pointer = pointer;
+			info.handle = shmFd;
+			info.unlinkOnClose = create;
+			return info;
 		}
-
-		/**
-		 * File descriptor
-		 */
-		private final int fd;
-
-		/**
-		 * Size in bytes
-		 */
-		private final int size;
-
-		/**
-		 * Pointer referencing the shared memory
-		 */
-		private final Pointer pointer;
-
-		/**
-		 * Unique name that identifies the shared memory segment.
-		 */
-		private final String name;
-
-		/**
-		 * Whether the memory block has been closed and unlinked
-		 */
-		private boolean unlinked = false;
-
-		@Override
-		public String name() {
-			return name;
-		}
-
-		@Override
-		public Pointer pointer() {
-			return pointer;
-		}
-
-		@Override
-		public long size() {
-			return size;
-		}
-
-		/**
-		 * Unmap and close the shared memory. Necessary to eliminate the shared memory block
-		 */
-		@Override
-		public synchronized void close() {
-			if (unlinked) {
-				return;
-			}
-
-			// Unmap the shared memory
-			if (this.pointer != Pointer.NULL && CLibrary.INSTANCE.munmap(this.pointer, size) == -1) {
-				throw new RuntimeException("munmap failed. Errno: " + Native.getLastError());
-			}
-
-			// Close the file descriptor
-			if (CLibrary.INSTANCE.close(this.fd) == -1) {
-				throw new RuntimeException("close failed. Errno: " + Native.getLastError());
-			}
-
-			// Unlink the shared memory object
-			CLibrary.INSTANCE.shm_unlink(this.name);
-			unlinked = true;
-		}
-
-		// name without leading slash
 
 		/**
 		 * Try to open {@code name} and get its size in bytes.
@@ -193,17 +150,6 @@ public class ShmMacOS implements ShmFactory {
 				throw new RuntimeException("Failed to get shared memory segment size. Errno: " + Native.getLastError());
 			}
 			return size;
-		}
-
-		@Override
-		public String toString() {
-			return "ShmMacOS{" +
-							"fd=" + fd +
-							", size=" + size +
-							", pointer=" + pointer +
-							", name='" + name + '\'' +
-							", unlinked=" + unlinked +
-							'}';
 		}
 	}
 }

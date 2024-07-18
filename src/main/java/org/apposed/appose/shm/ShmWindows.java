@@ -52,145 +52,96 @@ import static org.apposed.appose.shm.ShmUtils.SHM_SAFE_NAME_LENGTH;
 public class ShmWindows implements ShmFactory {
 
 	// name is WITHOUT prefix etc
+	@Override
 	public SharedMemory create(final String name, final boolean create, final int size) {
 		if (ShmUtils.os != ShmUtils.OS.WINDOWS) return null; // wrong platform
 		return new SharedMemoryWindows(name, create, size);
 	}
 
-	private static class SharedMemoryWindows implements SharedMemory {
-		String shm_name;
-		long prevSize;
-		private SharedMemoryWindows(final String name, final boolean create, final int size) {
-			if(name ==null)
+	private static class SharedMemoryWindows extends ShmBase<WinNT.HANDLE> {
 
-			{
+		private SharedMemoryWindows(final String name, final boolean create, final int size) {
+			super(prepareShm(name, create, size));
+		}
+
+		@Override
+		protected void doClose() {
+			cleanup(info.pointer, info.writePointer, info.handle);
+		}
+
+		@Override
+		protected void doUnlink() {
+			// Note: The shared memory object will be deleted when all processes
+			// have closed their handles to it. There's no direct "unlink"
+			// equivalent in Windows like there is in POSIX systems.
+		}
+
+		private static ShmInfo<WinNT.HANDLE> prepareShm(String name, boolean create, int size) {
+			String shm_name;
+			long prevSize;
+			if (name == null) {
 				do {
 					shm_name = ShmUtils.make_filename(SHM_SAFE_NAME_LENGTH, SHM_NAME_PREFIX_WIN);
 					prevSize = getSHMSize(shm_name);
 				} while (prevSize >= 0);
-			} else
-
-			{
+			} else {
 				shm_name = nameMangle_TODO(name);
 				prevSize = getSHMSize(shm_name);
 			}
 			ShmUtils.checkSize(shm_name, prevSize, size);
 
-			final WinNT.HANDLE shm_hMapFile = Kernel32.INSTANCE.CreateFileMapping(
-							WinBase.INVALID_HANDLE_VALUE,
-							null,
-							WinNT.PAGE_READWRITE,
-							0,
-							size,
-							shm_name
+			final WinNT.HANDLE hMapFile = Kernel32.INSTANCE.CreateFileMapping(
+				WinBase.INVALID_HANDLE_VALUE,
+				null,
+				WinNT.PAGE_READWRITE,
+				0,
+				size,
+				shm_name
 			);
-			if(hMapFile ==null)
-
-			{
+			if (hMapFile == null) {
 				throw new RuntimeException("Error creating shared memory array. CreateFileMapping failed: " + Kernel32.INSTANCE.GetLastError());
 			}
 
-			final int shm_size = (int) getSHMSize(shm_hMapFile);
+			final int shm_size = (int) getSHMSize(hMapFile);
 
 			// Map the shared memory
 			Pointer pointer = Kernel32.INSTANCE.MapViewOfFile(
-							hMapFile,
-							WinNT.FILE_MAP_WRITE,
-							0,
-							0,
-							size
+				hMapFile,
+				WinNT.FILE_MAP_WRITE,
+				0,
+				0,
+				size
 			);
-			if(pointer ==null)
-
-			{
+			if (isNull(pointer)) {
 				Kernel32.INSTANCE.CloseHandle(hMapFile);
 				throw new RuntimeException("Error creating shared memory array. " + Kernel32.INSTANCE.GetLastError());
 			}
 
 			Pointer writePointer = Kernel32.INSTANCE.VirtualAllocEx(Kernel32.INSTANCE.GetCurrentProcess(),
-							pointer, new BaseTSD.SIZE_T(size), WinNT.MEM_COMMIT, WinNT.PAGE_READWRITE);
-			if(writePointer ==null)
-
-			{
-				close();
+				pointer, new BaseTSD.SIZE_T(size), WinNT.MEM_COMMIT, WinNT.PAGE_READWRITE);
+			if (isNull(writePointer)) {
+				cleanup(pointer, writePointer, hMapFile);
 				throw new RuntimeException("Error committing to the shared memory pages. Errno: " + Kernel32.INSTANCE.GetLastError());
 			}
 
-			this.size =shm_size;
-			this.name =
-
-			nameUnmangle_TODO(shm_name);
-			this.hMapFile =shm_hMapFile;
-			this.pointer =pointer;
-			this.writePointer =writePointer;
-		}
-
-		/**
-		 * reference to the file that covers the shared memory region
-		 */
-		private WinNT.HANDLE hMapFile;
-
-		/**
-		 * Size in bytes
-		 */
-		private final int size;
-
-		/**
-		 * Pointer referencing the shared memory
-		 */
-		private final Pointer pointer;
-
-		private final Pointer writePointer;
-
-		/**
-		 * Unique name that identifies the shared memory segment.
-		 */
-		private final String name;
-
-		/**
-		 * Whether the memory block has been closed and unlinked
-		 */
-		private boolean unlinked = false;
-
-		@Override
-		public String name() {
-			return name;
-		}
-
-		@Override
-		public Pointer pointer() {
-			return pointer;
-		}
-
-		@Override
-		public long size() {
-			return size;
-		}
-
-		/**
-		 * Unmap and close the shared memory. Necessary to eliminate the shared memory block
-		 */
-		@Override
-		public synchronized void close() {
-			if (unlinked) {
-				return;
-			}
-			if (writePointer != null) {
-				Kernel32.INSTANCE.UnmapViewOfFile(this.writePointer);
-			}
-			Kernel32.INSTANCE.UnmapViewOfFile(pointer);
-			Kernel32.INSTANCE.CloseHandle(hMapFile);
-			unlinked = true;
+			ShmInfo<WinNT.HANDLE> info = new ShmInfo<>();
+			info.size = shm_size;
+			info.name = nameUnmangle_TODO(shm_name);
+			info.pointer = pointer;
+			info.writePointer = writePointer;
+			info.handle = hMapFile;
+			info.unlinkOnClose = create;
+			return info;
 		}
 
 		// TODO equivalent of removing slash
-		private String nameUnmangle_TODO (String memoryName){
+		private static String nameUnmangle_TODO (String memoryName){
 			return memoryName;
 		}
 
 		// TODO equivalent of adding slash
 		//      Do we need the "Local\" prefix?
-		private String nameMangle_TODO (String memoryName){
+		private static String nameMangle_TODO (String memoryName){
 			//		if (!memoryName.startsWith("Local" + File.separator) && !memoryName.startsWith("Global" + File.separator))
 			//			memoryName = "Local" + File.separator + memoryName;
 			return memoryName;
@@ -258,17 +209,13 @@ public class ShmWindows implements ShmFactory {
 
 			return size;
 		}
-
-		@Override
-		public String toString() {
-			return "ShmWindows{" +
-							"hMapFile=" + hMapFile +
-							", size=" + size +
-							", pointer=" + pointer +
-							", writePointer=" + writePointer +
-							", name='" + name + '\'' +
-							", unlinked=" + unlinked +
-							'}';
-		}
 	}
+
+	private static void cleanup(Pointer pointer, Pointer writePointer, WinNT.HANDLE handle) {
+		if (!isNull(writePointer)) Kernel32.INSTANCE.UnmapViewOfFile(writePointer);
+		if (!isNull(pointer)) Kernel32.INSTANCE.UnmapViewOfFile(pointer);
+		if (handle != null) Kernel32.INSTANCE.CloseHandle(handle);
+	}
+
+	private static boolean isNull(Pointer p) { return p == null || p == Pointer.NULL; }
 }

@@ -28,6 +28,17 @@
  */
 package org.apposed.appose;
 
+/**
+ * Interface for platform-specific creation of {@link SharedMemory} instances.
+ * <p>
+ * Each platform (e.g. Linux, macOS, Windows) provides its own implementation
+ * of this interface, which knows how to manufacture {@link SharedMemory} blocks
+ * for that platform. These implementations are declared as implementations in
+ * {@code META-INF/services/org.apposed.appose.ShmFactory}, so that Java's
+ * {@code ServiceLoader} can discover them in an extensible way, and then use
+ * the one best suited for the platform at hand.
+ * </p>
+ */
 public interface ShmFactory {
-SharedMemory create(String name, boolean create, int size);
+	SharedMemory create(String name, boolean create, int size);
 }

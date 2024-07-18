@@ -106,7 +106,7 @@ public interface SharedMemory extends AutoCloseable {
 	 *
 	 * @return The length in bytes of the shared memory.
 	 */
-	long size();
+	int size();
 
 	/**
 	 * JNA pointer to the shared memory segment.
@@ -116,18 +116,28 @@ public interface SharedMemory extends AutoCloseable {
 	Pointer pointer();
 
 	/**
+	 * Sets whether the {@link #unlink()} method should be invoked to destroy
+	 * the shared memory block when the {@link #close()} method is called.
+	 * <p>
+	 * By default, shared memory objects constructed with {@link #create} will
+	 * behave this way, whereas shared memory objects constructed with
+	 * {@link #attach} will not. But this method allows to override the behavior.
+	 * </p>
+	 */
+	void unlinkOnClose(boolean unlinkOnClose);
+
+	/**
 	 * Requests that the underlying shared memory block be destroyed.
 	 * In order to ensure proper cleanup of resources, unlink should be
 	 * called once (and only once) across all processes which have access
 	 * to the shared memory block.
 	 */
-	default void unlink() {
-		throw new UnsupportedOperationException();
-	}
+	void unlink();
 
 	/**
-	 * Closes access to the shared memory from this instance but does
-	 * not destroy the shared memory block.
+	 * Closes access to the shared memory from this instance,
+	 * but does not necessarily destroy the shared memory block.
+	 * See also {@link #unlinkOnClose(boolean)}.
 	 */
 	@Override
 	void close();

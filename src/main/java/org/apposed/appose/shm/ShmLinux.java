@@ -47,12 +47,10 @@ import static org.apposed.appose.shm.ShmUtils.withoutLeadingSlash;
 
 /**
  * Linux-specific shared memory implementation.
- * <p>
- * TODO separate unlink and close
- * </p>
  *
  * @author Carlos Garcia Lopez de Haro
  * @author Tobias Pietzsch
+ * @author Curtis Rueden
  */
 public class ShmLinux implements ShmFactory {
 
@@ -62,35 +60,32 @@ public class ShmLinux implements ShmFactory {
 		return new SharedMemoryLinux(name, create, size);
 	}
 
-	private static class SharedMemoryLinux implements SharedMemory {
-
-		/**
-		 * File descriptor
-		 */
-		private final int fd;
-
-		/**
-		 * Size in bytes
-		 */
-		private final int size;
-
-		/**
-		 * Pointer referencing the shared memory
-		 */
-		private final Pointer pointer;
-
-		/**
-		 * Unique name that identifies the shared memory segment.
-		 */
-		private final String name;
-
-		/**
-		 * Whether the memory block has been closed and unlinked
-		 */
-		private boolean unlinked = false;
+	private static class SharedMemoryLinux extends ShmBase<Integer> {
 
 		// name without leading slash
 		private SharedMemoryLinux(final String name, final boolean create, final int size) {
+			super(prepareShm(name, create, size));
+		}
+
+		@Override
+		protected void doUnlink() {
+			LibRtOrC.shm_unlink(name());
+		}
+
+		@Override
+		protected void doClose() {
+			// Unmap the shared memory
+			if (pointer() != Pointer.NULL && LibRtOrC.munmap(pointer(), size()) == -1) {
+				throw new RuntimeException("munmap failed. Errno: " + Native.getLastError());
+			}
+
+			// Close the file descriptor
+			if (LibRtOrC.close(info.handle) == -1) {
+				throw new RuntimeException("close failed. Errno: " + Native.getLastError());
+			}
+		}
+
+		private static ShmInfo<Integer> prepareShm(String name, boolean create, int size) {
 			String shm_name;
 			long prevSize;
 			if (name == null) {
@@ -123,49 +118,13 @@ public class ShmLinux implements ShmFactory {
 				throw new RuntimeException("mmap failed, errno: " + Native.getLastError());
 			}
 
-			this.size = shm_size;
-			this.name = withoutLeadingSlash(shm_name);
-			this.fd = shmFd;
-			this.pointer = pointer;
-		}
-
-		@Override
-		public String name() {
-			return name;
-		}
-
-		@Override
-		public Pointer pointer() {
-			return pointer;
-		}
-
-		@Override
-		public long size() {
-			return size;
-		}
-
-		/**
-		 * Unmap and close the shared memory. Necessary to eliminate the shared memory block
-		 */
-		@Override
-		public synchronized void close() {
-			if (unlinked) {
-				return;
-			}
-
-			// Unmap the shared memory
-			if (this.pointer != Pointer.NULL && LibRtOrC.munmap(this.pointer, size) == -1) {
-				throw new RuntimeException("munmap failed. Errno: " + Native.getLastError());
-			}
-
-			// Close the file descriptor
-			if (LibRtOrC.close(this.fd) == -1) {
-				throw new RuntimeException("close failed. Errno: " + Native.getLastError());
-			}
-
-			// Unlink the shared memory object
-			LibRtOrC.shm_unlink(this.name);
-			unlinked = true;
+			ShmInfo<Integer> info = new ShmInfo<>();
+			info.size = shm_size;
+			info.name = withoutLeadingSlash(shm_name);
+			info.pointer = pointer;
+			info.handle = shmFd;
+			info.unlinkOnClose = create;
+			return info;
 		}
 
 		/**
@@ -201,18 +160,6 @@ public class ShmLinux implements ShmFactory {
 			}
 			return size;
 		}
-
-		@Override
-		public String toString() {
-			return "ShmLinux{" +
-							"fd=" + fd +
-							", size=" + size +
-							", pointer=" + pointer +
-							", name='" + name + '\'' +
-							", unlinked=" + unlinked +
-							'}';
-		}
-
 
 		private static class LibRtOrC {
 
