@@ -46,9 +46,14 @@ import groovy.lang.GroovyShell;
 /**
  * The Appose worker for running Groovy scripts.
  * <p>
- * Like all Appose workers, this program conforms to the {@link Appose Appose
- * worker process contract}, meaning it accepts requests on stdin and produces
- * responses on stdout, both formatted according to Appose's assumptions.
+ * Like all Appose workers, this program conforms to the Appose worker process
+ * contract, meaning it accepts requests on stdin and produces responses on
+ * stdout, both formatted according to Appose's assumptions.
+ * </p>
+ * <p>
+ * For details, see the
+ * <a href="https://github.com/apposed/appose/blob/-/README.md#workers">Appose
+ * README</a>.
  * </p>
  */
 public class GroovyWorker {
