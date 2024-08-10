@@ -26,23 +26,24 @@
  * POSSIBILITY OF SUCH DAMAGE.
  * #L%
  */
+package org.apposed.appose.shm;
 
-package org.apposed.appose;
+import com.sun.jna.Library;
+import com.sun.jna.Native;
+import com.sun.jna.Pointer;
 
-import org.apposed.appose.Service.ResponseType;
+interface CLibrary extends Library {
+  CLibrary INSTANCE = Native.load("c", CLibrary.class);
 
-public class TaskEvent {
+  int shm_open(String name, int oflag, int mode);
+  int ftruncate(int fd, int length);
+  Pointer mmap(Pointer addr, int length, int prot, int flags, int fd, int offset);
+  int munmap(Pointer addr, int length);
+  int close(int fd);
+  int shm_unlink(String name);
 
-	public final Service.Task task;
-	public final ResponseType responseType;
-
-	public TaskEvent(Service.Task task, ResponseType responseType) {
-		this.task = task;
-		this.responseType = responseType;
-	}
-
-	@Override
-	public String toString() {
-		return String.format("[%s] %s", responseType, task);
-	}
+  int SEEK_SET = 0;
+  int SEEK_CUR = 1;
+  int SEEK_END = 2;
+  long lseek(int fd, long offset, int whence);
 }

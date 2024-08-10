@@ -2,7 +2,7 @@
  * #%L
  * Appose: multi-language interprocess cooperation with shared memory.
  * %%
- * Copyright (C) 2023 Appose developers.
+ * Copyright (C) 2023 - 2024 Appose developers.
  * %%
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions are met:
@@ -45,27 +45,27 @@ import org.junit.jupiter.api.Test;
 
 public class ApposeTest {
 
-	private static final String COLLATZ_GROOVY = "" + //
-		"// Computes the stopping time of a given value\n" + //
-		"// according to the Collatz conjecture sequence.\n" + //
-		"time = 0\n" + //
+	private static final String COLLATZ_GROOVY =
+		"// Computes the stopping time of a given value\n" +
+		"// according to the Collatz conjecture sequence.\n" +
+		"time = 0\n" +
 		"BigInteger v = 9999\n" +
-		"while (v != 1) {\n" + //
-		"  v = v%2==0 ? v/2 : 3*v+1\n" + //
-		"  task.update(\"[${time}] -> ${v}\", time, null)\n" + //
-		"  time++\n" + //
-		"}\n" + //
+		"while (v != 1) {\n" +
+		"  v = v%2==0 ? v/2 : 3*v+1\n" +
+		"  task.update(\"[${time}] -> ${v}\", time, null)\n" +
+		"  time++\n" +
+		"}\n" +
 		"return time\n";
 
-	private static final String COLLATZ_PYTHON = "" + //
-		"# Computes the stopping time of a given value\n" + //
-		"# according to the Collatz conjecture sequence.\n" + //
-		"time = 0\n" + //
+	private static final String COLLATZ_PYTHON =
+		"# Computes the stopping time of a given value\n" +
+		"# according to the Collatz conjecture sequence.\n" +
+		"time = 0\n" +
 		"v = 9999\n" +
-		"while v != 1:\n" + //
-		"    v = v//2 if v%2==0 else 3*v+1\n" + //
-		"    task.update(f\"[{time}] -> {v}\", current=time)\n" + //
-		"    time += 1\n" + //
+		"while v != 1:\n" +
+		"    v = v//2 if v%2==0 else 3*v+1\n" +
+		"    task.update(f\"[{time}] -> {v}\", current=time)\n" +
+		"    time += 1\n" +
 		"task.outputs[\"result\"] = time\n";
 
 	@Test
@@ -108,12 +108,12 @@ public class ApposeTest {
 
 		// Record the state of the task for each event that occurs.
 		class TaskState {
-			ResponseType responseType;
-			TaskStatus status;
-			String message;
-			Long current;
-			Long maximum;
-			String error;
+			final ResponseType responseType;
+			final TaskStatus status;
+			final String message;
+			final Long current;
+			final Long maximum;
+			final String error;
 			TaskState(TaskEvent event) {
 				responseType = event.responseType;
 				status = event.task.status;
