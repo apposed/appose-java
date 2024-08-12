@@ -147,6 +147,16 @@ public final class MambaInstallerUtils {
 
 	}
 	
+	/**
+	 * Example main method
+	 * @param args
+	 * 	no args are required
+	 * @throws FileNotFoundException if some file is not found
+	 * @throws IOException if there is any error reading or writting
+	 * @throws ArchiveException if there is any error decompressing
+	 * @throws URISyntaxException if the url is wrong or there is no internet connection
+	 * @throws InterruptedException if there is interrruption
+	 */
 	public static void main(String[] args) throws FileNotFoundException, IOException, ArchiveException, URISyntaxException, InterruptedException {
 		String url = Mamba.MICROMAMBA_URL;
 		final File tempFile = File.createTempFile( "miniconda", ".tar.bz2" );
@@ -177,11 +187,9 @@ public final class MambaInstallerUtils {
 	 * has been redirected
 	 * @param url
 	 * 	original url. Connecting to that url must give a 301, 302 or 303 response code
-	 * @param conn
-	 * 	connection to the url
 	 * @return the redirected url
-	 * @throws MalformedURLException 
-	 * @throws URISyntaxException 
+	 * @throws MalformedURLException if the url does not fulfil the requirements for an url to be correct
+	 * @throws URISyntaxException if the url is incorrect or there is no internet connection
 	 */
 	public static URL redirectedURL(URL url) throws MalformedURLException, URISyntaxException {
 		int statusCode;

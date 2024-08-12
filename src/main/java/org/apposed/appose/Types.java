@@ -41,16 +41,34 @@ public final class Types {
 		// NB: Prevent instantiation of utility class.
 	}
 
+	/**
+	 * Converts a Map into a JSON string.
+	 * @param data
+	 *      data that wants to be encoded
+	 * @return string containing the info of the data map
+	 */
 	public static String encode(Map<?, ?> data) {
 		return JsonOutput.toJson(data);
 	}
 
+	/**
+	 * Converts a JSON string into a map.
+	 * @param json
+	 *      json string
+	 * @return a map of with the information of the json
+	 */
 	@SuppressWarnings("unchecked")
 	public static Map<String, Object> decode(String json) {
 		return (Map<String, Object>) new JsonSlurper().parseText(json);
 	}
 
-	/** Dumps the given exception, including stack trace, to a string. */
+	/**
+	 * Dumps the given exception, including stack trace, to a string.
+	 *
+	 * @param t
+	 *      the given exception {@link Throwable}
+	 * @return the String containing the whole exception trace
+	 */
 	public static String stackTrace(Throwable t) {
 		StringWriter sw = new StringWriter();
 		t.printStackTrace(new PrintWriter(sw));
