@@ -49,26 +49,19 @@ public class Builder {
 		// - Download and unpack JVM of the given vendor+version.
 		// - Populate ${baseDirectory}/jars with Maven artifacts?
 
-		try {
-			Mamba conda = new Mamba(Mamba.BASE_PATH);
-			conda.installMicromamba();
-			String envName = "appose";
-			if (conda.getEnvironmentNames().contains( envName )) {
-				// TODO: Should we update it? For now, we just use it.
+		if (condaEnvironmentYaml != null) {
+			try {
+				Mamba conda = new Mamba(Mamba.BASE_PATH);
+				conda.installMicromamba();
+				String envName = "appose";
+				if (conda.getEnvironmentNames().contains(envName)) {
+					// TODO: Should we update it? For now, we just use it.
+				} else {
+					conda.createWithYaml(envName, condaEnvironmentYaml.getAbsolutePath());
+				}
+			} catch (IOException | InterruptedException | ArchiveException | URISyntaxException | MambaInstallException e) {
+				throw new RuntimeException(e);
 			}
-			else {
-				conda.createWithYaml(envName, condaEnvironmentYaml.getAbsolutePath());
-			}
-		} catch (IOException e) {
-			throw new RuntimeException(e);
-		} catch (InterruptedException e) {
-			throw new RuntimeException(e);
-		} catch (ArchiveException e) {
-			throw new RuntimeException(e);
-		} catch (URISyntaxException e) {
-			throw new RuntimeException(e);
-		} catch (MambaInstallException e) {
-			throw new RuntimeException(e);
 		}
 
 		return new Environment() {
