@@ -172,7 +172,7 @@ public interface Environment {
 	 *
 	 * @param exes List of executables to try for launching the worker process.
 	 * @param args Command line arguments to pass to the worker process
-	 *          (e.g. <code>{"-v", "--enable-everything"}</code>.
+	 *          (e.g. <code>{"-v", "--enable-everything"}</code>).
 	 * @return The newly created service.
 	 * @see #groovy To create a service for Groovy script execution.
 	 * @see #python() To create a service for Python script execution.
@@ -183,7 +183,7 @@ public interface Environment {
 
 		List<String> dirs = useSystemPath() //
 			? Arrays.asList(System.getenv("PATH").split(File.pathSeparator)) //
-			: Arrays.asList(base());
+			: Collections.singletonList(base());
 
 		File exeFile = FilePaths.findExe(dirs, exes);
 		if (exeFile == null) throw new IllegalArgumentException("No executables found amongst candidates: " + exes);

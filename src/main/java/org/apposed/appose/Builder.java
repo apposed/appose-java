@@ -32,13 +32,11 @@ package org.apposed.appose;
 import java.io.File;
 import java.io.IOException;
 import java.net.URISyntaxException;
-import java.nio.file.Paths;
 
 import org.apache.commons.compress.archivers.ArchiveException;
 
 public class Builder {
 	
-
 	public Environment build() {
 		String base = baseDir.getPath();
 		boolean useSystemPath = systemPath;

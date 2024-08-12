@@ -35,7 +35,6 @@ import org.apposed.appose.CondaException.EnvironmentExistsException;
 
 import java.io.BufferedReader;
 import java.io.File;
-import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
@@ -51,6 +50,7 @@ import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Calendar;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -112,11 +112,11 @@ public class Mamba {
 	 * Consumer that tracks the progress in the download of micromamba, the software used 
 	 * by this class to manage Python environments
 	 */
-	private Consumer<Double> mambaDnwldProgressConsumer = this::updateMambaDnwldProgress;
+	private final Consumer<Double> mambaDnwldProgressConsumer = this::updateMambaDnwldProgress;
 	/**
 	 * Consumer that tracks the progress decompressing the downloaded micromamba files.
 	 */
-	private Consumer<Double> mambaDecompressProgressConsumer = this::updateMambaDecompressProgress;
+	private final Consumer<Double> mambaDecompressProgressConsumer = this::updateMambaDecompressProgress;
 	/**
 	 * String that contains all the console output produced by micromamba ever since the {@link Mamba} was instantiated
 	 */
@@ -137,12 +137,12 @@ public class Mamba {
 	 * Consumer that tracks the console output produced by the micromamba process when it is executed.
 	 * This consumer saves all the log of every micromamba execution
 	 */
-	private Consumer<String> consoleConsumer = this::updateConsoleConsumer;
+	private final Consumer<String> consoleConsumer = this::updateConsoleConsumer;
 	/**
 	 * Consumer that tracks the error output produced by the micromamba process when it is executed.
 	 * This consumer saves all the log of every micromamba execution
 	 */
-	private Consumer<String> errConsumer = this::updateErrorConsumer;
+	private final Consumer<String> errConsumer = this::updateErrorConsumer;
 	/*
 	 * Path to Python executable from the environment directory
 	 */
@@ -240,9 +240,9 @@ public class Mamba {
 	 * Create a new {@link Mamba} object. The root dir for the Micromamba installation
 	 * will be the default base path defined at {@link #BASE_PATH}
 	 * If there is no Micromamba found at the base path {@link #BASE_PATH}, a {@link MambaInstallException} will be thrown
-	 * 
+	 * <p></p>
 	 * It is expected that the Micromamba installation has executable commands as shown below:
-	 * 
+	 * </p>
 	 * <pre>
 	 * MAMBA_ROOT
 	 * ├── bin
@@ -252,7 +252,6 @@ public class Mamba {
 	 * │   ├── your_env
 	 * │   │   ├── python(.exe)
 	 * </pre>
-	 * 
 	 */
 	public Mamba() {
 		this(BASE_PATH);
@@ -263,9 +262,9 @@ public class Mamba {
 	 * specified as {@code String}. 
 	 * If there is no Micromamba found at the specified path, it will be installed automatically 
 	 * if the parameter 'installIfNeeded' is true. If not a {@link MambaInstallException} will be thrown.
-	 * 
+	 * <p>
 	 * It is expected that the Conda installation has executable commands as shown below:
-	 * 
+	 * </p>
 	 * <pre>
 	 * MAMBA_ROOT
 	 * ├── bin
@@ -279,7 +278,7 @@ public class Mamba {
 	 * @param rootdir
 	 *  The root dir for Mamba installation.
 	 */
-	public Mamba( final String rootdir) {
+	public Mamba(final String rootdir) {
 		if (rootdir == null)
 			this.rootdir = BASE_PATH;
 		else
@@ -372,8 +371,8 @@ public class Mamba {
 		Thread dwnldThread = new Thread(() -> {
 			try (
 					ReadableByteChannel rbc = Channels.newChannel(website.openStream());
-					FileOutputStream fos = new FileOutputStream(tempFile);
-					) {
+					FileOutputStream fos = new FileOutputStream(tempFile)
+			) {
 				new FileDownloader(rbc, fos).call(currentThread);
 			} catch (IOException | InterruptedException e) {
 				e.printStackTrace();
@@ -388,7 +387,7 @@ public class Mamba {
 	}
 	
 	private void decompressMicromamba(final File tempFile) 
-				throws FileNotFoundException, IOException, ArchiveException, InterruptedException {
+				throws IOException, ArchiveException, InterruptedException {
 		final File tempTarFile = File.createTempFile( "micromamba", ".tar" );
 		tempTarFile.deleteOnExit();
 		MambaInstallerUtils.unBZip2(tempFile, tempTarFile);
@@ -433,7 +432,6 @@ public class Mamba {
 	 * 
 	 * @return {@code \{"cmd.exe", "/c"\}} for Windows and an empty list for
 	 *         Mac/Linux.
-	 * @throws IOException
 	 */
 	private static List< String > getBaseCommand()
 	{
@@ -489,7 +487,7 @@ public class Mamba {
 		final List< String > cmd = new ArrayList<>( Arrays.asList( "update", "-p", this.envsdir + File.separator + envName ) );
 		cmd.addAll( Arrays.asList( args ) );
 		if (!cmd.contains("--yes") && !cmd.contains("-y")) cmd.add("--yes");
-		runMamba( cmd.stream().toArray( String[]::new ) );
+		runMamba(cmd.toArray(new String[0]));
 	}
 
 	/**
@@ -521,8 +519,6 @@ public class Mamba {
 	 *            The environment name to be created. It should not be a path, just the name.
 	 * @param envYaml
 	 *            The environment yaml file containing the information required to build it  
-	 * @param envName
-	 *            The environment name to be created.
 	 * @param isForceCreation
 	 *            Force creation of the environment if {@code true}. If this value
 	 *            is {@code false} and an environment with the specified name
@@ -655,7 +651,7 @@ public class Mamba {
 		final List< String > cmd = new ArrayList<>( Arrays.asList( "create", "-p", envsdir + File.separator + envName ) );
 		cmd.addAll( Arrays.asList( args ) );
 		if (!cmd.contains("--yes") && !cmd.contains("-y")) cmd.add("--yes");
-		runMamba( cmd.stream().toArray( String[]::new ) );
+		runMamba(cmd.toArray(new String[0]));
 		if (this.checkDependencyInEnv(envsdir + File.separator + envName, "python"))
 			installApposeFromSource(envsdir + File.separator + envName);
 	}
@@ -693,12 +689,12 @@ public class Mamba {
 		if ( !isForceCreation && getEnvironmentNames().contains( envName ) )
 			throw new EnvironmentExistsException();
 		final List< String > cmd = new ArrayList<>( Arrays.asList( "create", "-p", envsdir + File.separator + envName ) );
-		if (channels == null) channels = new ArrayList<String>();
+		if (channels == null) channels = new ArrayList<>();
 		for (String chan : channels) { cmd.add("-c"); cmd.add(chan);}
-		if (packages == null) packages = new ArrayList<String>();
-		for (String pack : packages) { cmd.add(pack);}
+		if (packages == null) packages = new ArrayList<>();
+		cmd.addAll(packages);
 		if (!cmd.contains("--yes") && !cmd.contains("-y")) cmd.add("--yes");
-		runMamba( cmd.stream().toArray( String[]::new ) );
+		runMamba(cmd.toArray(new String[0]));
 		if (this.checkDependencyInEnv(envsdir + File.separator + envName, "python"))
 			installApposeFromSource(envsdir + File.separator + envName);
 	}
@@ -713,7 +709,7 @@ public class Mamba {
 	 *             If an I/O error occurs.
 	 * @throws MambaInstallException if Micromamba has not been installed, thus the instance of {@link Mamba} cannot be used
 	 */
-	public void activate( final String envName ) throws IOException, MambaInstallException
+	public void activate(final String envName ) throws IOException, MambaInstallException
 	{
 		checkMambaInstalled();
 		if (!installed) throw new MambaInstallException("Micromamba is not installed");
@@ -831,11 +827,11 @@ public class Mamba {
 		if (!installed) throw new MambaInstallException("Micromamba is not installed");
 		Objects.requireNonNull(envName, "The name of the environment of interest needs to be provided.");		
 		final List< String > cmd = new ArrayList<>( Arrays.asList( "install", "-y", "-p", this.envsdir + File.separator + envName ) );
-		if (channels == null) channels = new ArrayList<String>();
+		if (channels == null) channels = new ArrayList<>();
 		for (String chan : channels) { cmd.add("-c"); cmd.add(chan);}
-		if (packages == null) packages = new ArrayList<String>();
-		for (String pack : packages) { cmd.add(pack);}
-		runMamba( cmd.stream().toArray( String[]::new ) );
+		if (packages == null) packages = new ArrayList<>();
+		cmd.addAll(packages);
+		runMamba(cmd.toArray(new String[0]));
 	}
 
 	/**
@@ -862,7 +858,7 @@ public class Mamba {
 		final List< String > cmd = new ArrayList<>( Arrays.asList( "install", "-p", this.envsdir + File.separator + envName ) );
 		cmd.addAll( Arrays.asList( args ) );
 		if (!cmd.contains("--yes") && !cmd.contains("-y")) cmd.add("--yes");
-		runMamba( cmd.stream().toArray( String[]::new ) );
+		runMamba(cmd.toArray(new String[0]));
 	}
 
 	/**
@@ -910,7 +906,7 @@ public class Mamba {
 		if (!installed) throw new MambaInstallException("Micromamba is not installed");
 		final List< String > cmd = new ArrayList<>( Arrays.asList( "-m", "pip", "install" ) );
 		cmd.addAll( Arrays.asList( args ) );
-		runPythonIn( envName, cmd.stream().toArray( String[]::new ) );
+		runPythonIn( envName, cmd.toArray(new String[0]));
 	}
 
 	/**
@@ -937,17 +933,18 @@ public class Mamba {
 	}
 
 	/**
-	 * TODO stop process if the thread is interrupted, same as with mamba, look for runmamna method for example
-	 * TODO stop process if the thread is interrupted, same as with mamba, look for runmamna method for example
-	 * TODO stop process if the thread is interrupted, same as with mamba, look for runmamna method for example
-	 * TODO stop process if the thread is interrupted, same as with mamba, look for runmamna method for example
-	 * TODO stop process if the thread is interrupted, same as with mamba, look for runmamna method for example
-	 * 
-	 * Run a Python command in the specified environment. This method automatically
+	 * Runs a Python command in the specified environment. This method automatically
 	 * sets environment variables associated with the specified environment. In
 	 * Windows, this method also sets the {@code PATH} environment variable so that
 	 * the specified environment runs as expected.
-	 * 
+	 * <p>
+	 * TODO stop process if the thread is interrupted, same as with mamba, look for runmamna method for example
+	 * TODO stop process if the thread is interrupted, same as with mamba, look for runmamna method for example
+	 * TODO stop process if the thread is interrupted, same as with mamba, look for runmamna method for example
+	 * TODO stop process if the thread is interrupted, same as with mamba, look for runmamna method for example
+	 * TODO stop process if the thread is interrupted, same as with mamba, look for runmamna method for example
+	 * </p>
+	 *
 	 * @param envName
 	 *            The environment name used to run the Python command.
 	 * @param args
@@ -965,7 +962,7 @@ public class Mamba {
 		checkMambaInstalled();
 		if (!installed) throw new MambaInstallException("Micromamba is not installed");
 		final List< String > cmd = getBaseCommand();
-		List<String> argsList = new ArrayList<String>();
+		List<String> argsList = new ArrayList<>();
 		String envDir;
 		if (new File(envName, PYTHON_COMMAND).isFile()) {
 			argsList.add( coverArgWithDoubleQuotes(Paths.get( envName, PYTHON_COMMAND ).toAbsolutePath().toString()) );
@@ -976,11 +973,11 @@ public class Mamba {
 		} else 
 			throw new IOException("The environment provided ("
 					+ envName + ") does not exist or does not contain a Python executable (" + PYTHON_COMMAND + ").");
-		argsList.addAll( Arrays.asList( args ).stream().map(aa -> {
+		argsList.addAll( Arrays.stream( args ).map(aa -> {
 							if (aa.contains(" ") && SystemUtils.IS_OS_WINDOWS) return coverArgWithDoubleQuotes(aa);
 							else return aa;
 						}).collect(Collectors.toList()) );
-		boolean containsSpaces = argsList.stream().filter(aa -> aa.contains(" ")).collect(Collectors.toList()).size() > 0;
+		boolean containsSpaces = argsList.stream().anyMatch(aa -> aa.contains(" "));
 		
 		if (!containsSpaces || !SystemUtils.IS_OS_WINDOWS) cmd.addAll(argsList);
 		else cmd.add(surroundWithQuotes(argsList));
@@ -990,9 +987,9 @@ public class Mamba {
 		{
 			final Map< String, String > envs = builder.environment();
 			envs.put( "Path", envDir + ";" + envs.get( "Path" ) );
-			envs.put( "Path", Paths.get( envDir, "Scripts" ).toString() + ";" + envs.get( "Path" ) );
-			envs.put( "Path", Paths.get( envDir, "Library" ).toString() + ";" + envs.get( "Path" ) );
-			envs.put( "Path", Paths.get( envDir, "Library", "Bin" ).toString() + ";" + envs.get( "Path" ) );
+			envs.put( "Path", Paths.get( envDir, "Scripts" ) + ";" + envs.get( "Path" ) );
+			envs.put( "Path", Paths.get( envDir, "Library" ) + ";" + envs.get( "Path" ) );
+			envs.put( "Path", Paths.get( envDir, "Library", "Bin" ) + ";" + envs.get( "Path" ) );
 		}
 		// TODO find way to get env vars in micromamba builder.environment().putAll( getEnvironmentVariables( envName ) );
 		if ( builder.command( cmd ).start().waitFor() != 0 )
@@ -1022,13 +1019,13 @@ public class Mamba {
 			throw new IOException("No Python found in the environment provided. The following "
 					+ "file does not exist: " + Paths.get( envFile.getAbsolutePath(), PYTHON_COMMAND ).toAbsolutePath());
 		final List< String > cmd = getBaseCommand();
-		List<String> argsList = new ArrayList<String>();
+		List<String> argsList = new ArrayList<>();
 		argsList.add( coverArgWithDoubleQuotes(Paths.get( envFile.getAbsolutePath(), PYTHON_COMMAND ).toAbsolutePath().toString()) );
-		argsList.addAll( Arrays.asList( args ).stream().map(aa -> {
+		argsList.addAll( Arrays.stream( args ).map(aa -> {
 							if (Platform.isWindows() && aa.contains(" ")) return coverArgWithDoubleQuotes(aa);
 							else return aa;
 						}).collect(Collectors.toList()) );
-		boolean containsSpaces = argsList.stream().filter(aa -> aa.contains(" ")).collect(Collectors.toList()).size() > 0;
+		boolean containsSpaces = argsList.stream().anyMatch(aa -> aa.contains(" "));
 		
 		if (!containsSpaces || !SystemUtils.IS_OS_WINDOWS) cmd.addAll(argsList);
 		else cmd.add(surroundWithQuotes(argsList));
@@ -1041,9 +1038,9 @@ public class Mamba {
 			final Map< String, String > envs = builder.environment();
 			final String envDir = envFile.getAbsolutePath();
 			envs.put( "Path", envDir + ";" + envs.get( "Path" ) );
-			envs.put( "Path", Paths.get( envDir, "Scripts" ).toString() + ";" + envs.get( "Path" ) );
-			envs.put( "Path", Paths.get( envDir, "Library" ).toString() + ";" + envs.get( "Path" ) );
-			envs.put( "Path", Paths.get( envDir, "Library", "Bin" ).toString() + ";" + envs.get( "Path" ) );
+			envs.put( "Path", Paths.get( envDir, "Scripts" ) + ";" + envs.get( "Path" ) );
+			envs.put( "Path", Paths.get( envDir, "Library" ) + ";" + envs.get( "Path" ) );
+			envs.put( "Path", Paths.get( envDir, "Library", "Bin" ) + ";" + envs.get( "Path" ) );
 		}
 		// TODO find way to get env vars in micromamba builder.environment().putAll( getEnvironmentVariables( envName ) );
 		if ( builder.command( cmd ).start().waitFor() != 0 )
@@ -1060,10 +1057,8 @@ public class Mamba {
 	 *             If the current thread is interrupted by another thread while it
 	 *             is waiting, then the wait is ended and an InterruptedException is
 	 *             thrown.
-	 * @throws MambaInstallException if Micromamba has not been installed, thus the instance of {@link Mamba} cannot be used
 	 */
-	public String getVersion() throws IOException, InterruptedException, MambaInstallException
-	{
+	public String getVersion() throws IOException, InterruptedException {
 		final List< String > cmd = getBaseCommand();
 		if (mambaCommand.contains(" ") && SystemUtils.IS_OS_WINDOWS)
 			cmd.add( surroundWithQuotes(Arrays.asList( coverArgWithDoubleQuotes(mambaCommand), "--version" )) );
@@ -1101,13 +1096,13 @@ public class Mamba {
 		SimpleDateFormat sdf = new SimpleDateFormat("HH:mm:ss");
 		
 		final List< String > cmd = getBaseCommand();
-		List<String> argsList = new ArrayList<String>();
+		List<String> argsList = new ArrayList<>();
 		argsList.add( coverArgWithDoubleQuotes(mambaCommand) );
-		argsList.addAll( Arrays.asList( args ).stream().map(aa -> {
+		argsList.addAll( Arrays.stream( args ).map(aa -> {
 			if (aa.contains(" ") && SystemUtils.IS_OS_WINDOWS) return coverArgWithDoubleQuotes(aa);
 			else return aa;
 		}).collect(Collectors.toList()) );
-		boolean containsSpaces = argsList.stream().filter(aa -> aa.contains(" ")).collect(Collectors.toList()).size() > 0;
+		boolean containsSpaces = argsList.stream().anyMatch(aa -> aa.contains(" "));
 		
 		if (!containsSpaces || !SystemUtils.IS_OS_WINDOWS) cmd.addAll(argsList);
 		else cmd.add(surroundWithQuotes(argsList));
@@ -1120,12 +1115,12 @@ public class Mamba {
 		Thread outputThread = new Thread(() -> {
 			try (
 			        InputStream inputStream = process.getInputStream();
-			        InputStream errStream = process.getErrorStream();
+			        InputStream errStream = process.getErrorStream()
 					){
 		        byte[] buffer = new byte[1024]; // Buffer size can be adjusted
 		        StringBuilder processBuff = new StringBuilder();
 		        StringBuilder errBuff = new StringBuilder();
-		        String processChunk = "";
+						String processChunk = "";
 		        String errChunk = "";
                 int newLineIndex;
 		        long t0 = System.currentTimeMillis();
@@ -1137,8 +1132,8 @@ public class Mamba {
 		            if (inputStream.available() > 0) {
 		                processBuff.append(new String(buffer, 0, inputStream.read(buffer)));
 		                while ((newLineIndex = processBuff.indexOf(System.lineSeparator())) != -1) {
-		                	processChunk += sdf.format(Calendar.getInstance().getTime()) + " -- " 
-		                					+ processBuff.substring(0, newLineIndex + 1).trim() + System.lineSeparator();
+											processChunk += sdf.format(Calendar.getInstance().getTime()) + " -- "
+												+ processBuff.substring(0, newLineIndex + 1).trim() + System.lineSeparator();
 		                	processBuff.delete(0, newLineIndex + 1);
 		                }
 		            }
@@ -1279,7 +1274,7 @@ public class Mamba {
 	{
 		checkMambaInstalled();
 		if (!installed) throw new MambaInstallException("Micromamba is not installed");
-		final List< String > envs = new ArrayList<>( Arrays.asList( DEFAULT_ENVIRONMENT_NAME ) );
+		final List< String > envs = new ArrayList<>(Collections.singletonList(DEFAULT_ENVIRONMENT_NAME));
 		envs.addAll( Files.list( Paths.get( envsdir ) )
 				.map( p -> p.getFileName().toString() )
 				.filter( p -> !p.startsWith( "." ) )
@@ -1304,7 +1299,7 @@ public class Mamba {
 	public boolean checkAllDependenciesInEnv(String envName, List<String> dependencies) throws MambaInstallException {
 		checkMambaInstalled();
 		if (!installed) throw new MambaInstallException("Micromamba is not installed");
-		return checkUninstalledDependenciesInEnv(envName, dependencies).size() == 0;
+		return checkUninstalledDependenciesInEnv(envName, dependencies).isEmpty();
 	}
 	
 	/**
@@ -1319,7 +1314,7 @@ public class Mamba {
 	 * 	They can contain version requirements. The names should be the ones used to import the package inside python,
 	 * 	"skimage", not "scikit-image" or "sklearn", not "scikit-learn"
 	 * 	An example list: "numpy", "numba&gt;=0.43.1", "torch==1.6", "torch&gt;=1.6, &lt;2.0"
-	 * @return true if the packages are installed or false otherwise
+	 * @return the list of packages that are not already installed
 	 * @throws MambaInstallException if Micromamba has not been installed, thus the instance of {@link Mamba} cannot be used
 	 */
 	public List<String>  checkUninstalledDependenciesInEnv(String envName, List<String> dependencies) throws MambaInstallException {
@@ -1329,14 +1324,13 @@ public class Mamba {
 		File envFile2 = new File(envName);
 		if (!envFile.isDirectory() && !envFile2.isDirectory())
 			return dependencies;
-		List<String> uninstalled = dependencies.stream().filter(dep -> {
+		return dependencies.stream().filter(dep -> {
 			try {
 				return !checkDependencyInEnv(envName, dep);
 			} catch (Exception ex) {
 				return true;
 			}
 		}).collect(Collectors.toList());
-		return uninstalled;
 	}
 	
 	/**
@@ -1604,7 +1598,7 @@ public class Mamba {
 	public boolean checkEnvFromYamlExists(String envYaml) throws MambaInstallException {
 		checkMambaInstalled();
 		if (!installed) throw new MambaInstallException("Micromamba is not installed");
-		if (envYaml == null || new File(envYaml).isFile() == false 
+		if (envYaml == null || !new File(envYaml).isFile()
 				|| (envYaml.endsWith(".yaml") && envYaml.endsWith(".yml"))) {
 			return false;
 		}
@@ -1651,8 +1645,8 @@ public class Mamba {
 		
 		Mamba m = new Mamba("C:\\Users\\angel\\Desktop\\Fiji app\\appose_x86_64");
 		String envName = "efficientvit_sam_env";
-		m.pipInstallIn(envName, new String[] {m.getEnvsDir() + File.separator + envName
-				+ File.separator + "appose-python"});
+		m.pipInstallIn(envName,
+			m.getEnvsDir() + File.separator + envName + File.separator + "appose-python");
 	}
 	
 	/**
@@ -1670,28 +1664,28 @@ public class Mamba {
 		String zipResourcePath = "appose-python.zip";
         String outputDirectory = this.getEnvsDir() + File.separator + envName;
 		if (new File(envName).isDirectory()) outputDirectory = new File(envName).getAbsolutePath();
-        try (
-            	InputStream zipInputStream = Mamba.class.getClassLoader().getResourceAsStream(zipResourcePath);
-            	ZipInputStream zipInput = new ZipInputStream(zipInputStream);
-            		) {
-            	ZipEntry entry;
-            	while ((entry = zipInput.getNextEntry()) != null) {
-                    File entryFile = new File(outputDirectory + File.separator + entry.getName());
-                    if (entry.isDirectory()) {
-                    	entryFile.mkdirs();
-                    	continue;
-                    }
-                	entryFile.getParentFile().mkdirs();
-                    try (OutputStream entryOutput = new FileOutputStream(entryFile)) {
-                        byte[] buffer = new byte[1024];
-                        int bytesRead;
-                        while ((bytesRead = zipInput.read(buffer)) != -1) {
-                            entryOutput.write(buffer, 0, bytesRead);
-                        }
-                    }
-                }
-            }
-        this.pipInstallIn(envName, new String[] {outputDirectory + File.separator + "appose-python"});
+		try (
+			InputStream zipInputStream = Mamba.class.getClassLoader().getResourceAsStream(zipResourcePath);
+			ZipInputStream zipInput = new ZipInputStream(zipInputStream)
+		) {
+			ZipEntry entry;
+			while ((entry = zipInput.getNextEntry()) != null) {
+				File entryFile = new File(outputDirectory + File.separator + entry.getName());
+				if (entry.isDirectory()) {
+					entryFile.mkdirs();
+					continue;
+				}
+				entryFile.getParentFile().mkdirs();
+				try (OutputStream entryOutput = new FileOutputStream(entryFile)) {
+					byte[] buffer = new byte[1024];
+					int bytesRead;
+					while ((bytesRead = zipInput.read(buffer)) != -1) {
+						entryOutput.write(buffer, 0, bytesRead);
+					}
+				}
+			}
+		}
+		this.pipInstallIn(envName, outputDirectory + File.separator + "appose-python");
 	}
 
 }
