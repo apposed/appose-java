@@ -26,7 +26,7 @@ This is the **Java implementation of Appose**.
 
 ## How do I use it?
 
-The dependency coordinate is `org.apposed:appose:0.1.0`.
+The dependency coordinate is `org.apposed:appose:0.2.0`.
 
 ### Maven
 
@@ -37,7 +37,7 @@ In your project's `pom.xml`:
   <dependency>
     <groupId>org.apposed</groupId>
     <artifactId>appose</artifactId>
-    <version>0.1.0</version>
+    <version>0.2.0</version>
   </dependency>
 </dependencies>
 ```
@@ -51,7 +51,7 @@ repositories {
     mavenCentral()
 }
 dependencies {
-    implementation("org.apposed:appose:0.1.0")
+    implementation("org.apposed:appose:0.2.0")
 }
 ```
 
