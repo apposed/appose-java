@@ -11,7 +11,7 @@
 
 	<groupId>org.apposed</groupId>
 	<artifactId>appose</artifactId>
-	<version>0.2.0-SNAPSHOT</version>
+	<version>0.2.0</version>
 
 	<name>Appose</name>
 	<description>Appose: multi-language interprocess cooperation with shared memory.</description>
@@ -71,7 +71,7 @@
 	<scm>
 		<connection>scm:git:https://github.com/apposed/appose-java</connection>
 		<developerConnection>scm:git:git@github.com:apposed/appose-java</developerConnection>
-		<tag>HEAD</tag>
+		<tag>appose-0.2.0</tag>
 		<url>https://github.com/apposed/appose-java</url>
 	</scm>
 	<issueManagement>
