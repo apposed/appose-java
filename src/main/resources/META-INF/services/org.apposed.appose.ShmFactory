@@ -1,0 +1,3 @@
+org.apposed.appose.shm.ShmLinux
+org.apposed.appose.shm.ShmMacOS
+org.apposed.appose.shm.ShmWindows

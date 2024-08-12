@@ -26,23 +26,19 @@
  * POSSIBILITY OF SUCH DAMAGE.
  * #L%
  */
-
 package org.apposed.appose;
 
-import org.apposed.appose.Service.ResponseType;
-
-public class TaskEvent {
-
-	public final Service.Task task;
-	public final ResponseType responseType;
-
-	public TaskEvent(Service.Task task, ResponseType responseType) {
-		this.task = task;
-		this.responseType = responseType;
-	}
-
-	@Override
-	public String toString() {
-		return String.format("[%s] %s", responseType, task);
-	}
+/**
+ * Interface for platform-specific creation of {@link SharedMemory} instances.
+ * <p>
+ * Each platform (e.g. Linux, macOS, Windows) provides its own implementation
+ * of this interface, which knows how to manufacture {@link SharedMemory} blocks
+ * for that platform. These implementations are declared as implementations in
+ * {@code META-INF/services/org.apposed.appose.ShmFactory}, so that Java's
+ * {@code ServiceLoader} can discover them in an extensible way, and then use
+ * the one best suited for the platform at hand.
+ * </p>
+ */
+public interface ShmFactory {
+	SharedMemory create(String name, boolean create, int size);
 }

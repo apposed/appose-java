@@ -2,7 +2,7 @@
  * #%L
  * Appose: multi-language interprocess cooperation with shared memory.
  * %%
- * Copyright (C) 2023 Appose developers.
+ * Copyright (C) 2023 - 2024 Appose developers.
  * %%
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions are met:
@@ -72,7 +72,7 @@ public final class FilePaths {
 				// Candidate is a relative path; check beneath each given directory.
 				for (String dir : dirs) {
 					File f = Paths.get(dir, exe).toFile();
-					if (f.canExecute()) return f;
+					if (f.canExecute() && !f.isDirectory()) return f;
 				}
 			}
 		}

@@ -2,7 +2,7 @@
  * #%L
  * Appose: multi-language interprocess cooperation with shared memory.
  * %%
- * Copyright (C) 2023 Appose developers.
+ * Copyright (C) 2023 - 2024 Appose developers.
  * %%
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions are met:
@@ -27,33 +27,44 @@
  * #L%
  */
 
-package org.apposed.appose;
+package org.apposed.appose.shm;
 
-/**
- * Implementation of {@link NDArray} backed by {@link SharedMemory}.
- *
- * @param <T> The type of each array element.
- */
-public abstract class ShmNDArray<T> implements NDArray<T> {
-	
-	// Mark really wants this to be called ShmagePlus! :-P
+import com.sun.jna.Library;
+import com.sun.jna.Native;
+import java.io.File;
+import java.io.IOException;
+import java.io.InputStream;
+import java.nio.file.Files;
+import java.nio.file.StandardCopyOption;
 
-	/**
-	 * TODO
-	 * 
-	 * @param shape tuple of ints : Shape of created array.
-	 * @param dtype data-type, optional : Any object that can be interpreted as a
-	 *          numpy data type.
-	 * @param buffer object exposing buffer interface, optional : Used to fill the
-	 *          array with data.
-	 * @param offset int, optional : Offset of array data in buffer.
-	 * @param strides tuple of ints, optional : Strides of data in memory.
-	 * @param cOrder {'C', 'F'}, optional : If true, row-major (C-style) order; if
-	 *          false, column-major (Fortran-style) order.
-	 */
-	public ShmNDArray(long[] shape, Class<T> dtype, SharedMemory buffer,
-		long offset, long[] strides, boolean cOrder)
-	{
-		
+interface MacosHelpers extends Library {
+
+	String LIBRARY_NAME = "ShmCreate";
+
+	String LIBRARY_NAME_SUF = ".dylib";
+
+	// Load the native library
+	MacosHelpers INSTANCE = loadLibrary();
+
+	static MacosHelpers loadLibrary() {
+		try(
+			final InputStream in =  MacosHelpers.class.getResourceAsStream(LIBRARY_NAME + LIBRARY_NAME_SUF);) {
+			final File tempFile = File.createTempFile(LIBRARY_NAME, LIBRARY_NAME_SUF);
+			tempFile.deleteOnExit();
+			Files.copy(in, tempFile.toPath(), StandardCopyOption.REPLACE_EXISTING);
+			return Native.load(tempFile.getAbsolutePath(), MacosHelpers.class);
+		}
+		catch (IOException e) {
+			throw new RuntimeException(e);
+		}
 	}
+
+	// Declare methods corresponding to the native functions
+	int create_shared_memory(String name, int size);
+
+	void unlink_shared_memory(String name);
+
+	long get_shared_memory_size(int fd);
 }
+
+

@@ -2,7 +2,7 @@
  * #%L
  * Appose: multi-language interprocess cooperation with shared memory.
  * %%
- * Copyright (C) 2023 Appose developers.
+ * Copyright (C) 2023 - 2024 Appose developers.
  * %%
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions are met:
@@ -57,7 +57,7 @@ public interface Environment {
 	 */
 	default Service python() throws IOException {
 		List<String> pythonExes = Arrays.asList(
-			"python", "python.exe",
+			"python", "python3", "python.exe",
 			"bin/python", "bin/python.exe"
 		);
 		return service(pythonExes, "-c",
