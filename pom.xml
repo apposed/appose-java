@@ -88,8 +88,6 @@
 
 		<license.licenseName>bsd_2</license.licenseName>
 		<license.copyrightOwners>Appose developers.</license.copyrightOwners>
-
-		<ivy.version>2.5.1</ivy.version>
 	</properties>
 
 	<dependencies>
