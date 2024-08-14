@@ -87,14 +87,28 @@ public class ApposeTest {
 		}
 	}
 
-	public void testConda() {
-		Environment env = Appose.conda(new File("appose-environment.yml")).build();
+	@Test
+	public void testConda() throws IOException, InterruptedException {
+		Environment env = Appose.conda(new File("src/test/resources/envs/cowsay.yml")).build();
 		try (Service service = env.python()) {
-			service.debug(System.err::println);
-			executeAndAssert(service, "import cowsay; ");
-		} catch (IOException | InterruptedException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
+			Task task = service.task(
+				"import cowsay\n" +
+				"moo = cowsay.get_output_string(\"cow\", \"moo\")\n"
+			);
+			task.waitFor();
+			String expectedMoo =
+				"  ___\n" +
+				"| moo |\n" +
+				"===\n" +
+				" \\\n" +
+				"  \\\n" +
+				"    ^__^\n" +
+				"    (oo)\\_______\n" +
+				"    (__)\\       )\\/\\\n" +
+				"        ||----w |\n" +
+				"        ||     ||";
+			String actualMoo = (String) task.outputs.get("moo");
+			assertEquals(expectedMoo, actualMoo);
 		}
 	}
 
