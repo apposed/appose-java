@@ -37,6 +37,10 @@ import org.apache.commons.compress.archivers.ArchiveException;
 
 public class Builder {
 	
+	Builder() {
+		// Prevent external instantiation.
+	}
+
 	public Environment build() {
 		String base = baseDir.getPath();
 		boolean useSystemPath = systemPath;
