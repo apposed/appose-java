@@ -160,10 +160,6 @@ public class Appose {
 		return base(new File(directory));
 	}
 
-	public static Builder java(String vendor, String version) {
-		return new Builder().java(vendor, version);
-	}
-
 	public static Builder conda(File environmentYaml) {
 		return new Builder().conda(environmentYaml);
 	}

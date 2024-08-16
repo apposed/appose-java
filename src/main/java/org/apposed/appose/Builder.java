@@ -92,15 +92,4 @@ public class Builder {
 		this.condaEnvironmentYaml = environmentYaml;
 		return this;
 	}
-
-	// -- Java --
-
-	private String javaVendor;
-	private String javaVersion;
-
-	public Builder java(String vendor, String version) {
-		this.javaVendor = vendor;
-		this.javaVersion = version;
-		return this;
-	}
 }
