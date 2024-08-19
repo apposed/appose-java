@@ -576,8 +576,6 @@ public class Mamba {
 			throw new EnvironmentExistsException();
 		runMamba("env", "create", "--prefix",
 				envsdir + File.separator + envName, "-f", envYaml, "-y", "-vv" );
-		if (this.checkDependencyInEnv(envsdir + File.separator + envName, "python"))
-			installApposeFromSource(envsdir + File.separator + envName);
 	}
 
 	/**
@@ -626,8 +624,6 @@ public class Mamba {
 		if ( !isForceCreation && getEnvironmentNames().contains( envName ) )
 			throw new EnvironmentExistsException();
 		runMamba( "create", "-y", "-p", envsdir + File.separator + envName );
-		if (this.checkDependencyInEnv(envsdir + File.separator + envName, "python"))
-			installApposeFromSource(envsdir + File.separator + envName);
 	}
 
 	/**
@@ -685,8 +681,6 @@ public class Mamba {
 		cmd.addAll( Arrays.asList( args ) );
 		if (!cmd.contains("--yes") && !cmd.contains("-y")) cmd.add("--yes");
 		runMamba(cmd.toArray(new String[0]));
-		if (this.checkDependencyInEnv(envsdir + File.separator + envName, "python"))
-			installApposeFromSource(envsdir + File.separator + envName);
 	}
 
 	/**
@@ -728,8 +722,6 @@ public class Mamba {
 		cmd.addAll(packages);
 		if (!cmd.contains("--yes") && !cmd.contains("-y")) cmd.add("--yes");
 		runMamba(cmd.toArray(new String[0]));
-		if (this.checkDependencyInEnv(envsdir + File.separator + envName, "python"))
-			installApposeFromSource(envsdir + File.separator + envName);
 	}
 
 	/**
@@ -1681,44 +1673,4 @@ public class Mamba {
 		m.pipInstallIn(envName,
 			m.getEnvsDir() + File.separator + envName + File.separator + "appose-python");
 	}
-	
-	/**
-	 * TODO keep until release of stable Appose
-	 * Install the Python package to run Appose in Python
-	 * @param envName
-	 * 	environment where Appose is going to be installed
-	 * @throws IOException if there is any file creation related issue
-	 * @throws InterruptedException if the package installation is interrupted
-	 * @throws MambaInstallException if there is any error with the Mamba installation
-	 */
-	private void installApposeFromSource(String envName) throws IOException, InterruptedException, MambaInstallException {
-		checkMambaInstalled();
-		if (!installed) throw new MambaInstallException("Micromamba is not installed");
-		String zipResourcePath = "appose-python.zip";
-        String outputDirectory = this.getEnvsDir() + File.separator + envName;
-		if (new File(envName).isDirectory()) outputDirectory = new File(envName).getAbsolutePath();
-		try (
-			InputStream zipInputStream = Mamba.class.getClassLoader().getResourceAsStream(zipResourcePath);
-			ZipInputStream zipInput = new ZipInputStream(zipInputStream)
-		) {
-			ZipEntry entry;
-			while ((entry = zipInput.getNextEntry()) != null) {
-				File entryFile = new File(outputDirectory + File.separator + entry.getName());
-				if (entry.isDirectory()) {
-					entryFile.mkdirs();
-					continue;
-				}
-				entryFile.getParentFile().mkdirs();
-				try (OutputStream entryOutput = new FileOutputStream(entryFile)) {
-					byte[] buffer = new byte[1024];
-					int bytesRead;
-					while ((bytesRead = zipInput.read(buffer)) != -1) {
-						entryOutput.write(buffer, 0, bytesRead);
-					}
-				}
-			}
-		}
-		this.pipInstallIn(envName, outputDirectory + File.separator + "appose-python");
-	}
-
 }
