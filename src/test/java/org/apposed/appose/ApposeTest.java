@@ -93,20 +93,20 @@ public class ApposeTest {
 		try (Service service = env.python()) {
 			Task task = service.task(
 				"import cowsay\n" +
-				"moo = cowsay.get_output_string(\"cow\", \"moo\")\n"
+				"task.outputs['moo'] = cowsay.get_output_string('cow', 'moo')\n"
 			);
 			task.waitFor();
 			String expectedMoo =
 				"  ___\n" +
 				"| moo |\n" +
-				"===\n" +
-				" \\\n" +
-				"  \\\n" +
-				"    ^__^\n" +
-				"    (oo)\\_______\n" +
-				"    (__)\\       )\\/\\\n" +
-				"        ||----w |\n" +
-				"        ||     ||";
+				"  ===\n" +
+				"   \\\n" +
+				"    \\\n" +
+				"      ^__^\n" +
+				"      (oo)\\_______\n" +
+				"      (__)\\       )\\/\\\n" +
+				"          ||----w |\n" +
+				"          ||     ||";
 			String actualMoo = (String) task.outputs.get("moo");
 			assertEquals(expectedMoo, actualMoo);
 		}
