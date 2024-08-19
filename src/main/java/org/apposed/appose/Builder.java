@@ -42,29 +42,31 @@ public class Builder {
 	}
 
 	public Environment build() {
-		String base = baseDir.getPath();
-		boolean useSystemPath = systemPath;
-
 		// TODO Build the thing!~
 		// Hash the state to make a base directory name.
 		// - Construct conda environment from condaEnvironmentYaml.
 		// - Download and unpack JVM of the given vendor+version.
 		// - Populate ${baseDirectory}/jars with Maven artifacts?
 
+		final String base;
 		if (condaEnvironmentYaml != null) {
 			try {
 				Mamba conda = new Mamba(Mamba.BASE_PATH);
 				conda.installMicromamba();
-				String envName = "appose";
+				String envName = Mamba.envNameFromYaml(condaEnvironmentYaml);
 				if (conda.getEnvironmentNames().contains(envName)) {
 					// TODO: Should we update it? For now, we just use it.
 				} else {
 					conda.createWithYaml(envName, condaEnvironmentYaml.getAbsolutePath());
 				}
+				base = conda.getEnvDir(envName);
+				// TODO: If baseDir is already set, we should use that directory instead.
 			} catch (IOException | InterruptedException | ArchiveException | URISyntaxException | MambaInstallException e) {
 				throw new RuntimeException(e);
 			}
 		}
+		else base = baseDir.getPath();
+		final boolean useSystemPath = systemPath;
 
 		return new Environment() {
 			@Override public String base() { return base; }
