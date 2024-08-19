@@ -459,6 +459,10 @@ public class Mamba {
 		return this.envsdir;
 	}
 
+	public String getEnvDir(String envName) {
+		return getEnvsDir() + File.separator + envName;
+	}
+
 	/**
 	 * Returns {@code \{"cmd.exe", "/c"\}} for Windows and an empty list for
 	 * Mac/Linux.
@@ -517,7 +521,7 @@ public class Mamba {
 	{
 		checkMambaInstalled();
 		if (!installed) throw new MambaInstallException("Micromamba is not installed");
-		final List< String > cmd = new ArrayList<>( Arrays.asList( "update", "-p", this.envsdir + File.separator + envName ) );
+		final List< String > cmd = new ArrayList<>( Arrays.asList( "update", "-p", getEnvDir(envName) ) );
 		cmd.addAll( Arrays.asList( args ) );
 		if (!cmd.contains("--yes") && !cmd.contains("-y")) cmd.add("--yes");
 		runMamba(cmd.toArray(new String[0]));
@@ -575,7 +579,7 @@ public class Mamba {
 		if ( !isForceCreation && getEnvironmentNames().contains( envName ) )
 			throw new EnvironmentExistsException();
 		runMamba("env", "create", "--prefix",
-				envsdir + File.separator + envName, "-f", envYaml, "-y", "-vv" );
+				getEnvDir(envName), "-f", envYaml, "-y", "-vv" );
 	}
 
 	/**
@@ -623,7 +627,7 @@ public class Mamba {
 		if (!installed) throw new MambaInstallException("Micromamba is not installed");
 		if ( !isForceCreation && getEnvironmentNames().contains( envName ) )
 			throw new EnvironmentExistsException();
-		runMamba( "create", "-y", "-p", envsdir + File.separator + envName );
+		runMamba( "create", "-y", "-p", getEnvDir(envName) );
 	}
 
 	/**
@@ -677,7 +681,7 @@ public class Mamba {
 		if (!installed) throw new MambaInstallException("Micromamba is not installed");
 		if ( !isForceCreation && getEnvironmentNames().contains( envName ) )
 			throw new EnvironmentExistsException();
-		final List< String > cmd = new ArrayList<>( Arrays.asList( "create", "-p", envsdir + File.separator + envName ) );
+		final List< String > cmd = new ArrayList<>( Arrays.asList( "create", "-p", getEnvDir(envName) ) );
 		cmd.addAll( Arrays.asList( args ) );
 		if (!cmd.contains("--yes") && !cmd.contains("-y")) cmd.add("--yes");
 		runMamba(cmd.toArray(new String[0]));
@@ -715,7 +719,7 @@ public class Mamba {
 		Objects.requireNonNull(envName, "The name of the environment of interest needs to be provided.");
 		if ( !isForceCreation && getEnvironmentNames().contains( envName ) )
 			throw new EnvironmentExistsException();
-		final List< String > cmd = new ArrayList<>( Arrays.asList( "create", "-p", envsdir + File.separator + envName ) );
+		final List< String > cmd = new ArrayList<>( Arrays.asList( "create", "-p", getEnvDir(envName) ) );
 		if (channels == null) channels = new ArrayList<>();
 		for (String chan : channels) { cmd.add("-c"); cmd.add(chan);}
 		if (packages == null) packages = new ArrayList<>();
@@ -851,7 +855,7 @@ public class Mamba {
 		checkMambaInstalled();
 		if (!installed) throw new MambaInstallException("Micromamba is not installed");
 		Objects.requireNonNull(envName, "The name of the environment of interest needs to be provided.");		
-		final List< String > cmd = new ArrayList<>( Arrays.asList( "install", "-y", "-p", this.envsdir + File.separator + envName ) );
+		final List< String > cmd = new ArrayList<>( Arrays.asList( "install", "-y", "-p", getEnvDir(envName) ) );
 		if (channels == null) channels = new ArrayList<>();
 		for (String chan : channels) { cmd.add("-c"); cmd.add(chan);}
 		if (packages == null) packages = new ArrayList<>();
@@ -880,7 +884,7 @@ public class Mamba {
 	{
 		checkMambaInstalled();
 		if (!installed) throw new MambaInstallException("Micromamba is not installed");
-		final List< String > cmd = new ArrayList<>( Arrays.asList( "install", "-p", this.envsdir + File.separator + envName ) );
+		final List< String > cmd = new ArrayList<>( Arrays.asList( "install", "-p", getEnvDir(envName) ) );
 		cmd.addAll( Arrays.asList( args ) );
 		if (!cmd.contains("--yes") && !cmd.contains("-y")) cmd.add("--yes");
 		runMamba(cmd.toArray(new String[0]));
@@ -992,9 +996,9 @@ public class Mamba {
 		if (new File(envName, PYTHON_COMMAND).isFile()) {
 			argsList.add( coverArgWithDoubleQuotes(Paths.get( envName, PYTHON_COMMAND ).toAbsolutePath().toString()) );
 			envDir = Paths.get( envName ).toAbsolutePath().toString();
-		} else if (Paths.get( this.envsdir, envName, PYTHON_COMMAND ).toFile().isFile()) {
-			argsList.add( coverArgWithDoubleQuotes(Paths.get( this.envsdir, envName, PYTHON_COMMAND ).toAbsolutePath().toString()) );
-			envDir = Paths.get( envsdir, envName ).toAbsolutePath().toString();
+		} else if (Paths.get( getEnvDir(envName), PYTHON_COMMAND ).toFile().isFile()) {
+			argsList.add( coverArgWithDoubleQuotes(Paths.get( getEnvDir(envName), PYTHON_COMMAND ).toAbsolutePath().toString()) );
+			envDir = Paths.get( getEnvDir(envName) ).toAbsolutePath().toString();
 		} else 
 			throw new IOException("The environment provided ("
 					+ envName + ") does not exist or does not contain a Python executable (" + PYTHON_COMMAND + ").");
@@ -1671,6 +1675,6 @@ public class Mamba {
 		Mamba m = new Mamba("C:\\Users\\angel\\Desktop\\Fiji app\\appose_x86_64");
 		String envName = "efficientvit_sam_env";
 		m.pipInstallIn(envName,
-			m.getEnvsDir() + File.separator + envName + File.separator + "appose-python");
+			m.getEnvDir(envName) + File.separator + "appose-python");
 	}
 }
