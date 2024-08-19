@@ -60,6 +60,7 @@
 package org.apposed.appose;
 
 import org.apache.commons.compress.archivers.ArchiveException;
+import org.apache.commons.compress.utils.FileNameUtils;
 import org.apache.commons.lang3.SystemUtils;
 
 import com.sun.jna.Platform;
@@ -455,6 +456,15 @@ public class Mamba {
 		checkMambaInstalled();
 	}
 	
+	public static String envNameFromYaml(File condaEnvironmentYaml) throws IOException {
+		List<String> lines = Files.readAllLines(condaEnvironmentYaml.toPath());
+		return lines.stream()
+			.filter(line -> line.startsWith("name:"))
+			.map(line -> line.substring(5).trim())
+			.findFirst()
+			.orElseGet(() -> FileNameUtils.getBaseName(condaEnvironmentYaml.toPath()));
+	}
+
 	public String getEnvsDir() {
 		return this.envsdir;
 	}
