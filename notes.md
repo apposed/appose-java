@@ -29,7 +29,7 @@ The interface is `BuildHandler`:
 And the implementations + supported schemes are:
 * `PixiHandler` -- `environment.yml`, `pixi.toml`, `pypi`, `conda`, and null.
 * `MavenHandler` -- `maven`
-* `OpenJDKHandler` -- `openjdk`
+* `JDKHandler` -- `openjdk`
 
 Although the term "scheme" might be confused with URI scheme, other terms are problematic too:
 * "platform" will be confused with OS/arch.
@@ -72,6 +72,63 @@ Appose.env()
     .channel(name: str, location: str = None)
     .build()  // Whew!
 ```
+
+### 2024-08-20 update
+
+One tricky thing is the base directory when combining paradigms:
+* Get rid of "base directory" naming (in conda, the "base" environment is something else, so it's a confusing word here) in favor of `${appose-cache-dir}/${env-name}` convention. By default, `appose-cache-dir` equals `~/.local/share/appose`, but we could provide a way to override it...
+* Similarly, get rid of the `base(...)` builder method in favor of adding a `build(String envName) -> Environment` signature.
+* But what to name `Environment#base` property now? I really like `base`... Maybe `basedir`? Or `prefix``?
+* Each `BuildHandler` catalogs the `include` and `channel` calls it feels are relevant, but does not do anything until `build` is finally called.
+* If `build()` is called with no args, then the build handlers are queried sequentially (`default String envName() { return null; }`?). The first non-null name that comes back is taken as truth and then `build(thatName)` is passed to all handlers. Otherwise, an exception is raised "No environment name given".
+* Environments all live in `~/.local/share/appose/<name>`, where `<name>` is the name of the environment. If `name:` is given in a `pixi.toml` or `environment.yml`, great, the `PixiBuildHandler` can parse out that string when its `envName()` method is called.
+
+What about starting child processes via `pixi run`? That's not agnostic of the builder...
+* What if the build handlers are also involved in child process launches? The `service(exes, args)` method could delegate to them...
+* `BuildHandler` &rarr; `EnvHandler`?
+* In `Environment`, how about replacing `use_system_path` with just a `path` list of dirs to check for executables being launched by `service`? Then we could dispense with the boilerplate `python`, `bin/python` repetition.
+* Each env handler gets a chance to influence the worker launch args... and/or bin dirs...
+  - The pixi handler could prepend `.../pixi run` when a `pixi.toml` is present.
+    But this is tricky, because it goes *before* the selected exe... pre-args vs post-args uhhh
+
+So, environment has:
+* path (list of directories -- only used if `all_args[0]` is not already an absolute path to an executable program already?)
+* launcher (list of string args to prepend)
+* classpath (list of elements to include when running java)
+
+* `Map<String, List<String>>` is what's returned by the `build(...)` step of each `BuildHandler`.
+  - Relevant keys include: "path", "classpath", "launcher"
+  - The `new Environment() { ... }` invocation will aggregate the values given here into its accessors.
+
+* When running a service, it first uses the path to search for the requested exe, before prepending the launcher args.
+  - What about pixi + cjdk? We'll need the full path to java...
+  - How can we tell the difference between that and pixi alone with openjdk from conda-forge?
+  - In the former case, we need the full path, in the latter case, no.
+  - Pixi should just put `${envDir}/bin` onto the path, no?
+  - There is an edge case where `pixi run foo` works, even though `foo` is not an executable on the path... in which case, the environment service can just plow ahead with it when it can't find a `foo` executable on the path. But it should *first* make an attempt to reify the `foo` from the environment `path` before punting in that way.
+
+#### pixi
+
+During its build step, it prepends `[/path/to/pixi, run]` to the environment's launcher list, and `${env-dir}/bin` to the environment's path list.
+
+#### cjdk
+
+```
+cjdk -j adoptium:21 java-home
+/home/curtis/.cache/cjdk/v0/jdks/d217ee819493b9c56beed2e4d481e4c370de993d/jdk-21.0.4+7
+/home/curtis/.cache/cjdk/v0/jdks/d217ee819493b9c56beed2e4d481e4c370de993d/jdk-21.0.4+7/bin/java -version
+openjdk version "21.0.4" 2024-07-16 LTS
+OpenJDK Runtime Environment Temurin-21.0.4+7 (build 21.0.4+7-LTS)
+OpenJDK 64-Bit Server VM Temurin-21.0.4+7 (build 21.0.4+7-LTS, mixed mode, sharing)
+```
+
+So `JDKHandler`, during its build step, prepends the java-home directory to the environment's path: `$(cjdk -j adoptium:21 java-home)/bin`
+
+#### Maven
+
+No need to add any directories to the environment path!
+
+However, if Maven artifacts are added via `includes`, they should not only be downloaded, but also be part of the class path when launching java-based programs. We could do that by putting classpath into the `Environment` class directly, along side `path`... it's only a little hacky ;_;
 
 ## Pixi
 
@@ -174,7 +231,7 @@ So we'll just settle for pixi's standard behavior here: a single environment
 named `default` per pixi project, with one pixi project per Appose environment.
 Unfortunately, that means our environment directory structure will be:
 ```
-~/.local/share/appose/sc-fiji-spiff/envs/default
+~/.local/share/appose/sc-fiji-spiff/.pixi/envs/default
 ```
 for an Appose environment named `sc-fiji-spiff`.
 (Note that environment names cannot contain dots, only alphameric and dash.)
@@ -197,7 +254,7 @@ So there is no escape from pixi's directory convention of:
 ```
 Which of these is the least annoying?
 ```
-~/.local/share/appose/sc-fiji-spiff/envs/default
+~/.local/share/appose/sc-fiji-spiff/.pixi/envs/default
 ~/.local/share/appose/sc-fiji-spiff-782634298734/envs/default
 ~/.local/share/appose/sc-fiji-spiff/envs/sc-fiji-spiff
 ~/.local/share/appose/sc-fiji-spiff-782634298734/envs/sc-fiji-spiff
@@ -209,7 +266,7 @@ behavior anyway.
 
 The only shorter one would be:
 ```
-~/.local/share/appose/envs/sc-fiji-spiff
+~/.local/share/appose/.pixi/envs/sc-fiji-spiff
 ```
 if we opted to keep `~/.local/share/appose` as a single Pixi project
 root with multiple environments... but the inconvenience and risks
