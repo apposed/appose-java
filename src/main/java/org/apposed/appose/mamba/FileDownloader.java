@@ -26,7 +26,7 @@
  * POSSIBILITY OF SUCH DAMAGE.
  * #L%
  */
-package org.apposed.appose;
+package org.apposed.appose.mamba;
 
 import java.io.FileOutputStream;
 import java.io.IOException;

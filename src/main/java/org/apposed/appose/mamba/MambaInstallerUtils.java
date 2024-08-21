@@ -27,7 +27,7 @@
  * #L%
  */
 
-package org.apposed.appose;
+package org.apposed.appose.mamba;
 
 import java.io.BufferedInputStream;
 import java.io.File;

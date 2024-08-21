@@ -26,7 +26,7 @@
  * POSSIBILITY OF SUCH DAMAGE.
  * #L%
  */
-package org.apposed.appose;
+package org.apposed.appose.mamba;
 
 public class CondaException
 {

@@ -26,7 +26,7 @@
  * POSSIBILITY OF SUCH DAMAGE.
  * #L%
  */
-package org.apposed.appose;
+package org.apposed.appose.mamba;
 
 /**
  * Exception to be thrown when Micromamba is not found in the wanted directory

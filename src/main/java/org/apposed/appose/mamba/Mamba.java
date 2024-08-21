@@ -57,7 +57,7 @@
  * POSSIBILITY OF SUCH DAMAGE.
  ******************************************************************************/
 
-package org.apposed.appose;
+package org.apposed.appose.mamba;
 
 import org.apache.commons.compress.archivers.ArchiveException;
 import org.apache.commons.compress.utils.FileNameUtils;
@@ -65,7 +65,7 @@ import org.apache.commons.lang3.SystemUtils;
 
 import com.sun.jna.Platform;
 
-import org.apposed.appose.CondaException.EnvironmentExistsException;
+import org.apposed.appose.mamba.CondaException.EnvironmentExistsException;
 
 import java.io.BufferedReader;
 import java.io.File;
@@ -73,7 +73,6 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
-import java.io.OutputStream;
 import java.net.URISyntaxException;
 import java.net.URL;
 import java.nio.channels.Channels;
@@ -91,8 +90,6 @@ import java.util.Objects;
 import java.util.UUID;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
-import java.util.zip.ZipEntry;
-import java.util.zip.ZipInputStream;
 
 /**
  * Python environment manager, implemented by delegating to micromamba.
