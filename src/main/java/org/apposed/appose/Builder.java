@@ -33,10 +33,6 @@ import java.io.File;
 import java.io.IOException;
 import java.net.URISyntaxException;
 
-import org.apache.commons.compress.archivers.ArchiveException;
-import org.apposed.appose.mamba.Mamba;
-import org.apposed.appose.mamba.MambaInstallException;
-
 public class Builder {
 	
 	Builder() {
