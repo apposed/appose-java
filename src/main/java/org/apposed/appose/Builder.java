@@ -59,7 +59,7 @@ public class Builder {
 				}
 				base = conda.getEnvDir(envName);
 				// TODO: If baseDir is already set, we should use that directory instead.
-			} catch (IOException | InterruptedException | ArchiveException | URISyntaxException | MambaInstallException e) {
+			} catch (IOException | InterruptedException | URISyntaxException | MambaInstallException e) {
 				throw new RuntimeException(e);
 			}
 		}

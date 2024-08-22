@@ -116,9 +116,8 @@ public final class MambaInstallerUtils {
 	 * @param outputDir     the output directory file. 
 	 * @throws IOException 
 	 * @throws FileNotFoundException
-	 * @throws ArchiveException 
 	 */
-	public static void unTar(final File inputFile, final File outputDir) throws FileNotFoundException, IOException, ArchiveException, InterruptedException {
+	public static void unTar(final File inputFile, final File outputDir) throws FileNotFoundException, IOException, InterruptedException {
 
 		try (
 				InputStream is = new FileInputStream(inputFile);
@@ -143,7 +142,9 @@ public final class MambaInstallerUtils {
 		            }
 		        }
 		    }
-		} 
+		} catch (ArchiveException e) {
+			throw new IOException(e);
+		}
 
 	}
 	
@@ -153,11 +154,10 @@ public final class MambaInstallerUtils {
 	 * 	no args are required
 	 * @throws FileNotFoundException if some file is not found
 	 * @throws IOException if there is any error reading or writting
-	 * @throws ArchiveException if there is any error decompressing
 	 * @throws URISyntaxException if the url is wrong or there is no internet connection
 	 * @throws InterruptedException if there is interrruption
 	 */
-	public static void main(String[] args) throws FileNotFoundException, IOException, ArchiveException, URISyntaxException, InterruptedException {
+	public static void main(String[] args) throws FileNotFoundException, IOException, URISyntaxException, InterruptedException {
 		String url = Mamba.MICROMAMBA_URL;
 		final File tempFile = File.createTempFile( "miniconda", ".tar.bz2" );
 		tempFile.deleteOnExit();

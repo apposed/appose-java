@@ -59,7 +59,6 @@
 
 package org.apposed.appose.mamba;
 
-import org.apache.commons.compress.archivers.ArchiveException;
 import org.apache.commons.compress.utils.FileNameUtils;
 import org.apache.commons.lang3.SystemUtils;
 
@@ -418,7 +417,7 @@ public class Mamba {
 	}
 	
 	private void decompressMicromamba(final File tempFile) 
-				throws IOException, ArchiveException, InterruptedException {
+				throws IOException, InterruptedException {
 		final File tempTarFile = File.createTempFile( "micromamba", ".tar" );
 		tempTarFile.deleteOnExit();
 		MambaInstallerUtils.unBZip2(tempFile, tempTarFile);
@@ -443,10 +442,9 @@ public class Mamba {
 	 *             If the current thread is interrupted by another thread while it
 	 *             is waiting, then the wait is ended and an InterruptedException is
 	 *             thrown.
-	 * @throws ArchiveException if there is any error decompressing
 	 * @throws URISyntaxException  if there is any error with the micromamba url
 	 */
-	public void installMicromamba() throws IOException, InterruptedException, ArchiveException, URISyntaxException {
+	public void installMicromamba() throws IOException, InterruptedException, URISyntaxException {
 		checkMambaInstalled();
 		if (installed) return;
 		decompressMicromamba(downloadMicromamba());
