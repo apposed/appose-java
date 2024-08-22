@@ -231,6 +231,7 @@ public final class MambaInstallerUtils {
 		HttpURLConnection conn = null;
 		try {
 			conn = (HttpURLConnection) url.openConnection();
+			// TODO: Fix user agent.
 			conn.setRequestProperty("User-Agent", "Appose/0.1.0(" + System.getProperty("os.name") + "; Java " + System.getProperty("java.version"));
 			if (conn.getResponseCode() >= 300 && conn.getResponseCode() <= 308)
 				return getFileSize(redirectedURL(url));
