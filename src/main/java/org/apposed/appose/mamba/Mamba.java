@@ -30,7 +30,7 @@
 // Adapted from JavaConda (https://github.com/javaconda/javaconda),
 // which has the following license:
 
-/*******************************************************************************
+/*-*****************************************************************************
  * Copyright (C) 2021, Ko Sugawara
  * All rights reserved.
  * 
@@ -55,7 +55,7 @@
  * CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
  * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
  * POSSIBILITY OF SUCH DAMAGE.
- ******************************************************************************/
+ ****************************************************************************-*/
 
 package org.apposed.appose.mamba;
 
