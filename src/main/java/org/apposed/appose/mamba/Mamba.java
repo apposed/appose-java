@@ -112,11 +112,11 @@ public class Mamba {
 	 * <pre>
 	 * rootdir
 	 * ├── bin
-	 * │   ├── micromamba(.exe)
-	 * │   ... 
+	 * │   ├── micromamba(.exe)
+	 * │   ...
 	 * ├── envs
-	 * │   ├── your_env
-	 * │   │   ├── python(.exe)
+	 * │   ├── your_env
+	 * │   │   ├── python(.exe)
 	 * </pre>
 	 */
 	private final String rootdir;
@@ -276,11 +276,11 @@ public class Mamba {
 	 * <pre>
 	 * MAMBA_ROOT
 	 * ├── bin
-	 * │   ├── micromamba(.exe)
-	 * │   ... 
+	 * │   ├── micromamba(.exe)
+	 * │   ...
 	 * ├── envs
-	 * │   ├── your_env
-	 * │   │   ├── python(.exe)
+	 * │   ├── your_env
+	 * │   │   ├── python(.exe)
 	 * </pre>
 	 */
 	public Mamba() {
@@ -298,11 +298,11 @@ public class Mamba {
 	 * <pre>
 	 * MAMBA_ROOT
 	 * ├── bin
-	 * │   ├── micromamba(.exe)
-	 * │   ... 
+	 * │   ├── micromamba(.exe)
+	 * │   ...
 	 * ├── envs
-	 * │   ├── your_env
-	 * │   │   ├── python(.exe)
+	 * │   ├── your_env
+	 * │   │   ├── python(.exe)
 	 * </pre>
 	 * 
 	 * @param rootdir
