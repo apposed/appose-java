@@ -94,7 +94,7 @@ import java.util.stream.Collectors;
  * Python environment manager, implemented by delegating to micromamba.
  * 
  * @author Ko Sugawara
- * @author Curtis Rueden
+ * @author Carlos Garcia
  */
 public class Mamba {
 	
