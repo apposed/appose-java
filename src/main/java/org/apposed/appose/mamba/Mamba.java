@@ -59,12 +59,7 @@
 
 package org.apposed.appose.mamba;
 
-import org.apache.commons.compress.utils.FileNameUtils;
 import org.apache.commons.lang3.SystemUtils;
-
-import com.sun.jna.Platform;
-
-import org.apposed.appose.mamba.CondaException.EnvironmentExistsException;
 
 import java.io.BufferedReader;
 import java.io.File;
@@ -82,9 +77,7 @@ import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Calendar;
-import java.util.Collections;
 import java.util.List;
-import java.util.Map;
 import java.util.Objects;
 import java.util.UUID;
 import java.util.function.Consumer;
@@ -103,10 +96,6 @@ public class Mamba {
 	 */
 	final String mambaCommand;
 	/**
-	 * Name of the environment where the changes are going to be applied
-	 */
-	private String envName;
-	/**
 	 * Root directory of micromamba that also contains the environments folder
 	 * 
 	 * <pre>
@@ -124,10 +113,6 @@ public class Mamba {
 	 * Path to the folder that contains the directories
 	 */
 	private final String envsdir;
-	/**
-	 * Whether Micromamba is installed or not
-	 */
-	private boolean installed = false;
 	/**
 	 * Progress made on the download from the Internet of the micromamba software. VAlue between 0 and 1.
 	 * 
@@ -173,14 +158,6 @@ public class Mamba {
 	 * This consumer saves all the log of every micromamba execution
 	 */
 	private final Consumer<String> errConsumer = this::updateErrorConsumer;
-	/*
-	 * Path to Python executable from the environment directory
-	 */
-	final static String PYTHON_COMMAND = SystemUtils.IS_OS_WINDOWS ? "python.exe" : "bin/python";
-	/**
-	 * Default name for a Python environment
-	 */
-	public final static String DEFAULT_ENVIRONMENT_NAME = "base";
 	/**
 	 * Relative path to the micromamba executable from the micromamba {@link #rootdir}
 	 */
@@ -323,24 +300,29 @@ public class Mamba {
 		} catch (Exception ex) {
 			return;
 		}
-		installed = true;
 	}
-	
+
 	/**
-	 * Check whether micromamba is installed or not to be able to use the instance of {@link Mamba}
+	 * Gets whether micromamba is installed or not to be able to use the instance of {@link Mamba}
 	 * @return whether micromamba is installed or not to be able to use the instance of {@link Mamba}
 	 */
-	public boolean checkMambaInstalled() {
+	public boolean isMambaInstalled() {
 		try {
 			getVersion();
-			this.installed = true;
-		} catch (Exception ex) {
-			this.installed = false;
+			return true;
+		} catch (IOException | InterruptedException e) {
 			return false;
-		}
-		return true;
+        }
+    }
+
+	/**
+	 * Check whether micromamba is installed or not to be able to use the instance of {@link Mamba}
+	 * @throws MambaInstallException if micromamba is not installed
+	 */
+	private void checkMambaInstalled() throws MambaInstallException {
+		if (!isMambaInstalled()) throw new MambaInstallException("Micromamba is not installed");
 	}
-	
+
 	/**
 	 * 
 	 * @return the progress made on the download from the Internet of the micromamba software. VAlue between 0 and 1.
@@ -445,21 +427,10 @@ public class Mamba {
 	 * @throws URISyntaxException  if there is any error with the micromamba url
 	 */
 	public void installMicromamba() throws IOException, InterruptedException, URISyntaxException {
-		checkMambaInstalled();
-		if (installed) return;
+		if (isMambaInstalled()) return;
 		decompressMicromamba(downloadMicromamba());
-		checkMambaInstalled();
 	}
 	
-	public static String envNameFromYaml(File condaEnvironmentYaml) throws IOException {
-		List<String> lines = Files.readAllLines(condaEnvironmentYaml.toPath());
-		return lines.stream()
-			.filter(line -> line.startsWith("name:"))
-			.map(line -> line.substring(5).trim())
-			.findFirst()
-			.orElseGet(() -> FileNameUtils.getBaseName(condaEnvironmentYaml.toPath()));
-	}
-
 	public String getEnvsDir() {
 		return this.envsdir;
 	}
@@ -484,28 +455,6 @@ public class Mamba {
 	}
 
 	/**
-	 * Run {@code conda update} in the activated environment. A list of packages to
-	 * be updated and extra parameters can be specified as {@code args}.
-	 * 
-	 * @param args
-	 *            The list of packages to be updated and extra parameters as
-	 *            {@code String...}.
-	 * @throws IOException
-	 *             If an I/O error occurs.
-	 * @throws InterruptedException
-	 *             If the current thread is interrupted by another thread while it
-	 *             is waiting, then the wait is ended and an InterruptedException is
-	 *             thrown.
-	 * @throws MambaInstallException if Micromamba has not been installed, thus the instance of {@link Mamba} cannot be used
-	 */
-	public void update( final String... args ) throws IOException, InterruptedException, MambaInstallException
-	{
-		checkMambaInstalled();
-		if (!installed) throw new MambaInstallException("Micromamba is not installed");
-		updateIn( envName, args );
-	}
-
-	/**
 	 * Run {@code conda update} in the specified environment. A list of packages to
 	 * update and extra parameters can be specified as {@code args}.
 	 * 
@@ -525,7 +474,6 @@ public class Mamba {
 	public void updateIn( final String envName, final String... args ) throws IOException, InterruptedException, MambaInstallException
 	{
 		checkMambaInstalled();
-		if (!installed) throw new MambaInstallException("Micromamba is not installed");
 		final List< String > cmd = new ArrayList<>( Arrays.asList( "update", "-p", getEnvDir(envName) ) );
 		cmd.addAll( Arrays.asList( args ) );
 		if (!cmd.contains("--yes") && !cmd.contains("-y")) cmd.add("--yes");
@@ -550,36 +498,6 @@ public class Mamba {
 	public void createWithYaml( final File envDir, final String envYaml ) throws IOException, InterruptedException, MambaInstallException
 	{
 		checkMambaInstalled();
-		if (!installed) throw new MambaInstallException("Micromamba is not installed");
-		createWithYaml(envDir, envYaml, false);
-	}
-
-	/**
-	 * Run {@code conda create} to create a conda environment defined by the input environment yaml file.
-	 * 
-	 * @param envDir
-	 *            The directory within which the environment will be created.
-	 * @param envYaml
-	 *            The environment yaml file containing the information required to build it  
-	 * @param isForceCreation
-	 *            Force creation of the environment if {@code true}. If this value
-	 *            is {@code false} and an environment with the specified name
-	 *            already exists, throw an {@link EnvironmentExistsException}.
-	 * @throws IOException
-	 *             If an I/O error occurs.
-	 * @throws InterruptedException
-	 *             If the current thread is interrupted by another thread while it
-	 *             is waiting, then the wait is ended and an InterruptedException is
-	 *             thrown.
-	 * @throws RuntimeException if the process to create the env of the yaml file is not terminated correctly. If there is any error running the commands
-	 * @throws MambaInstallException if Micromamba has not been installed, thus the instance of {@link Mamba} cannot be used
-	 */
-	public void createWithYaml( final File envDir, final String envYaml, final boolean isForceCreation) throws IOException, InterruptedException, RuntimeException, MambaInstallException
-	{
-		checkMambaInstalled();
-		if (!installed) throw new MambaInstallException("Micromamba is not installed");
-		if ( !isForceCreation && getEnvironmentNames().contains( envName ) )
-			throw new EnvironmentExistsException();
 		runMamba("env", "create", "--prefix",
 				envDir.getAbsolutePath(), "-f", envYaml, "-y", "-vv" );
 	}
@@ -600,35 +518,6 @@ public class Mamba {
 	public void create( final String envName ) throws IOException, InterruptedException, MambaInstallException
 	{
 		checkMambaInstalled();
-		if (!installed) throw new MambaInstallException("Micromamba is not installed");
-		create( envName, false );
-	}
-
-	/**
-	 * Run {@code conda create} to create an empty conda environment.
-	 * 
-	 * @param envName
-	 *            The environment name to be created.
-	 * @param isForceCreation
-	 *            Force creation of the environment if {@code true}. If this value
-	 *            is {@code false} and an environment with the specified name
-	 *            already exists, throw an {@link EnvironmentExistsException}.
-	 * @throws IOException
-	 *             If an I/O error occurs.
-	 * @throws InterruptedException
-	 *             If the current thread is interrupted by another thread while it
-	 *             is waiting, then the wait is ended and an InterruptedException is
-	 *             thrown.
-	 * @throws RuntimeException
-	 *             If there is any error running the commands
-	 * @throws MambaInstallException if Micromamba has not been installed, thus the instance of {@link Mamba} cannot be used
-	 */
-	public void create( final String envName, final boolean isForceCreation ) throws IOException, InterruptedException, RuntimeException, MambaInstallException
-	{
-		checkMambaInstalled();
-		if (!installed) throw new MambaInstallException("Micromamba is not installed");
-		if ( !isForceCreation && getEnvironmentNames().contains( envName ) )
-			throw new EnvironmentExistsException();
 		runMamba( "create", "-y", "-p", getEnvDir(envName) );
 	}
 
@@ -652,37 +541,6 @@ public class Mamba {
 	public void create( final String envName, final String... args ) throws IOException, InterruptedException, MambaInstallException
 	{
 		checkMambaInstalled();
-		if (!installed) throw new MambaInstallException("Micromamba is not installed");
-		create( envName, false, args );
-	}
-
-	/**
-	 * Run {@code conda create} to create a new conda environment with a list of
-	 * specified packages.
-	 * 
-	 * @param envName
-	 *            The environment name to be created.
-	 * @param isForceCreation
-	 *            Force creation of the environment if {@code true}. If this value
-	 *            is {@code false} and an environment with the specified name
-	 *            already exists, throw an {@link EnvironmentExistsException}.
-	 * @param args
-	 *            The list of packages to be installed on environment creation and
-	 *            extra parameters as {@code String...}.
-	 * @throws IOException
-	 *             If an I/O error occurs.
-	 * @throws InterruptedException
-	 *             If the current thread is interrupted by another thread while it
-	 *             is waiting, then the wait is ended and an InterruptedException is
-	 *             thrown.
-	 * @throws MambaInstallException if Micromamba has not been installed, thus the instance of {@link Mamba} cannot be used
-	 */
-	public void create( final String envName, final boolean isForceCreation, final String... args ) throws IOException, InterruptedException, MambaInstallException
-	{
-		checkMambaInstalled();
-		if (!installed) throw new MambaInstallException("Micromamba is not installed");
-		if ( !isForceCreation && getEnvironmentNames().contains( envName ) )
-			throw new EnvironmentExistsException();
 		final List< String > cmd = new ArrayList<>( Arrays.asList( "create", "-p", getEnvDir(envName) ) );
 		cmd.addAll( Arrays.asList( args ) );
 		if (!cmd.contains("--yes") && !cmd.contains("-y")) cmd.add("--yes");
@@ -695,10 +553,6 @@ public class Mamba {
 	 * 
 	 * @param envName
 	 *            The environment name to be created. CAnnot be null.
-	 * @param isForceCreation
-	 *            Force creation of the environment if {@code true}. If this value
-	 *            is {@code false} and an environment with the specified name
-	 *            already exists, throw an {@link EnvironmentExistsException}.
 	 * @param channels
 	 *            the channels from where the packages can be installed. Can be null
 	 * @param packages
@@ -714,13 +568,10 @@ public class Mamba {
 	 *             If there is any error running the commands
 	 * @throws MambaInstallException if Micromamba has not been installed, thus the instance of {@link Mamba} cannot be used
 	 */
-	public void create( final String envName, final boolean isForceCreation, List<String> channels, List<String> packages ) throws IOException, InterruptedException, RuntimeException, MambaInstallException
+	public void create( final String envName, List<String> channels, List<String> packages ) throws IOException, InterruptedException, RuntimeException, MambaInstallException
 	{
 		checkMambaInstalled();
-		if (!installed) throw new MambaInstallException("Micromamba is not installed");
 		Objects.requireNonNull(envName, "The name of the environment of interest needs to be provided.");
-		if ( !isForceCreation && getEnvironmentNames().contains( envName ) )
-			throw new EnvironmentExistsException();
 		final List< String > cmd = new ArrayList<>( Arrays.asList( "create", "-p", getEnvDir(envName) ) );
 		if (channels == null) channels = new ArrayList<>();
 		for (String chan : channels) { cmd.add("-c"); cmd.add(chan);}
@@ -728,354 +579,6 @@ public class Mamba {
 		cmd.addAll(packages);
 		if (!cmd.contains("--yes") && !cmd.contains("-y")) cmd.add("--yes");
 		runMamba(cmd.toArray(new String[0]));
-	}
-
-	/**
-	 * This method works as if the user runs {@code conda activate envName}. This
-	 * method internally calls {@link Mamba#setEnvName(String)}.
-	 * 
-	 * @param envName
-	 *            The environment name to be activated.
-	 * @throws IOException
-	 *             If an I/O error occurs.
-	 * @throws MambaInstallException if Micromamba has not been installed, thus the instance of {@link Mamba} cannot be used
-	 */
-	public void activate(final String envName ) throws IOException, MambaInstallException
-	{
-		checkMambaInstalled();
-		if (!installed) throw new MambaInstallException("Micromamba is not installed");
-		if ( getEnvironmentNames().contains( envName ) )
-			setEnvName( envName );
-		else
-			throw new IllegalArgumentException( "environment: " + envName + " not found." );
-	}
-
-	/**
-	 * This method works as if the user runs {@code conda deactivate}. This method
-	 * internally sets the {@code envName} to {@code base}.
-	 * @throws MambaInstallException if Micromamba has not been installed, thus the instance of {@link Mamba} cannot be used
-	 */
-	public void deactivate() throws MambaInstallException
-	{
-		checkMambaInstalled();
-		if (!installed) throw new MambaInstallException("Micromamba is not installed");
-		setEnvName( DEFAULT_ENVIRONMENT_NAME );
-	}
-
-	/**
-	 * This method is used by {@code Conda#activate(String)} and
-	 * {@code Conda#deactivate()}. This method is kept private since it is not
-	 * expected to call this method directory.
-	 * 
-	 * @param envName
-	 *            The environment name to be set.
-	 */
-	private void setEnvName( final String envName )
-	{
-		this.envName = envName;
-	}
-
-	/**
-	 * Returns the active environment name.
-	 *
-	 * @return The active environment name.
-	 *
-	 */
-	public String getEnvName()
-	{
-		return envName;
-	}
-
-	/**
-	 * Run {@code conda install} in the activated environment. A list of packages to
-	 * install and extra parameters can be specified as {@code args}.
-	 * 
-	 * @param args
-	 *            The list of packages to be installed and extra parameters as
-	 *            {@code String...}.
-	 * @throws IOException
-	 *             If an I/O error occurs.
-	 * @throws InterruptedException
-	 *             If the current thread is interrupted by another thread while it
-	 *             is waiting, then the wait is ended and an InterruptedException is
-	 *             thrown.
-	 * @throws MambaInstallException if Micromamba has not been installed, thus the instance of {@link Mamba} cannot be used
-	 */
-	public void install( final String... args ) throws IOException, InterruptedException, MambaInstallException
-	{
-		checkMambaInstalled();
-		if (!installed) throw new MambaInstallException("Micromamba is not installed");
-		installIn( envName, args );
-	}
-
-	/**
-	 * Run {@code conda install} in the activated environment. A list of packages to
-	 * install and extra parameters can be specified as {@code args}.
-	 * 
-	 * @param channels
-	 *            the channels from where the packages can be installed. Can be null
-	 * @param packages
-	 * 			  the packages that want to be installed during env creation. They can contain the version.
-	 * 			  For example, "python" or "python=3.10.1", "numpy" or "numpy=1.20.1". CAn be null if no packages want to be installed
-	 * @throws IOException
-	 *             If an I/O error occurs.
-	 * @throws InterruptedException
-	 *             If the current thread is interrupted by another thread while it
-	 *             is waiting, then the wait is ended and an InterruptedException is
-	 *             thrown.
-	 * @throws MambaInstallException if Micromamba has not been installed, thus the instance of {@link Mamba} cannot be used
-	 */
-	public void install( List<String> channels, List<String> packages ) throws IOException, InterruptedException, MambaInstallException
-	{
-		checkMambaInstalled();
-		if (!installed) throw new MambaInstallException("Micromamba is not installed");
-		installIn( envName, channels, packages );
-	}
-
-	/**
-	 * Run {@code conda install} in the specified environment. A list of packages to
-	 * install and extra parameters can be specified as {@code args}.
-	 * 
-	 * @param envName
-	 *            The environment name to be used for the install command.
-	 * @param channels
-	 *            the channels from where the packages can be installed. Can be null
-	 * @param packages
-	 * 			  the packages that want to be installed during env creation. They can contain the version.
-	 * 			  For example, "python" or "python=3.10.1", "numpy" or "numpy=1.20.1". CAn be null if no packages want to be installed
-	 * @throws IOException
-	 *             If an I/O error occurs.
-	 * @throws InterruptedException
-	 *             If the current thread is interrupted by another thread while it
-	 *             is waiting, then the wait is ended and an InterruptedException is
-	 *             thrown.
-	 * @throws RuntimeException if the process to create the env of the yaml file is not terminated correctly. If there is any error running the commands
-	 * @throws MambaInstallException if Micromamba has not been installed, thus the instance of {@link Mamba} cannot be used
-	 */
-	public void installIn( final String envName, List<String> channels, List<String> packages ) throws IOException, InterruptedException, RuntimeException, MambaInstallException
-	{
-		checkMambaInstalled();
-		if (!installed) throw new MambaInstallException("Micromamba is not installed");
-		Objects.requireNonNull(envName, "The name of the environment of interest needs to be provided.");		
-		final List< String > cmd = new ArrayList<>( Arrays.asList( "install", "-y", "-p", getEnvDir(envName) ) );
-		if (channels == null) channels = new ArrayList<>();
-		for (String chan : channels) { cmd.add("-c"); cmd.add(chan);}
-		if (packages == null) packages = new ArrayList<>();
-		cmd.addAll(packages);
-		runMamba(cmd.toArray(new String[0]));
-	}
-
-	/**
-	 * Run {@code conda install} in the specified environment. A list of packages to
-	 * install and extra parameters can be specified as {@code args}.
-	 * 
-	 * @param envName
-	 *            The environment name to be used for the install command.
-	 * @param args
-	 *            The list of packages to be installed and extra parameters as
-	 *            {@code String...}.
-	 * @throws IOException
-	 *             If an I/O error occurs.
-	 * @throws InterruptedException
-	 *             If the current thread is interrupted by another thread while it
-	 *             is waiting, then the wait is ended and an InterruptedException is
-	 *             thrown.
-	 * @throws MambaInstallException if Micromamba has not been installed, thus the instance of {@link Mamba} cannot be used
-	 */
-	public void installIn( final String envName, final String... args ) throws IOException, InterruptedException, MambaInstallException
-	{
-		checkMambaInstalled();
-		if (!installed) throw new MambaInstallException("Micromamba is not installed");
-		final List< String > cmd = new ArrayList<>( Arrays.asList( "install", "-p", getEnvDir(envName) ) );
-		cmd.addAll( Arrays.asList( args ) );
-		if (!cmd.contains("--yes") && !cmd.contains("-y")) cmd.add("--yes");
-		runMamba(cmd.toArray(new String[0]));
-	}
-
-	/**
-	 * Run {@code pip install} in the activated environment. A list of packages to
-	 * install and extra parameters can be specified as {@code args}.
-	 * 
-	 * @param args
-	 *            The list of packages to be installed and extra parameters as
-	 *            {@code String...}.
-	 * @throws IOException
-	 *             If an I/O error occurs.
-	 * @throws InterruptedException
-	 *             If the current thread is interrupted by another thread while it
-	 *             is waiting, then the wait is ended and an InterruptedException is
-	 *             thrown.
-	 * @throws MambaInstallException if Micromamba has not been installed, thus the instance of {@link Mamba} cannot be used
-	 */
-	public void pipInstall( final String... args ) throws IOException, InterruptedException, MambaInstallException
-	{
-		checkMambaInstalled();
-		if (!installed) throw new MambaInstallException("Micromamba is not installed");
-		pipInstallIn( envName, args );
-	}
-
-	/**
-	 * Run {@code pip install} in the specified environment. A list of packages to
-	 * install and extra parameters can be specified as {@code args}.
-	 * 
-	 * @param envName
-	 *            The environment name to be used for the install command.
-	 * @param args
-	 *            The list of packages to be installed and extra parameters as
-	 *            {@code String...}.
-	 * @throws IOException
-	 *             If an I/O error occurs.
-	 * @throws InterruptedException
-	 *             If the current thread is interrupted by another thread while it
-	 *             is waiting, then the wait is ended and an InterruptedException is
-	 *             thrown.
-	 * @throws MambaInstallException if Micromamba has not been installed, thus the instance of {@link Mamba} cannot be used
-	 */
-	public void pipInstallIn( final String envName, final String... args ) throws IOException, InterruptedException, MambaInstallException
-	{
-		checkMambaInstalled();
-		if (!installed) throw new MambaInstallException("Micromamba is not installed");
-		final List< String > cmd = new ArrayList<>( Arrays.asList( "-m", "pip", "install" ) );
-		cmd.addAll( Arrays.asList( args ) );
-		runPythonIn( envName, cmd.toArray(new String[0]));
-	}
-
-	/**
-	 * Run a Python command in the activated environment. This method automatically
-	 * sets environment variables associated with the activated environment. In
-	 * Windows, this method also sets the {@code PATH} environment variable so that
-	 * the specified environment runs as expected.
-	 * 
-	 * @param args
-	 *            One or more arguments for the Python command.
-	 * @throws IOException
-	 *             If an I/O error occurs.
-	 * @throws InterruptedException
-	 *             If the current thread is interrupted by another thread while it
-	 *             is waiting, then the wait is ended and an InterruptedException is
-	 *             thrown.
-	 * @throws MambaInstallException if Micromamba has not been installed, thus the instance of {@link Mamba} cannot be used
-	 */
-	public void runPython( final String... args ) throws IOException, InterruptedException, MambaInstallException
-	{
-		checkMambaInstalled();
-		if (!installed) throw new MambaInstallException("Micromamba is not installed");
-		runPythonIn( envName, args );
-	}
-
-	/**
-	 * Runs a Python command in the specified environment. This method automatically
-	 * sets environment variables associated with the specified environment. In
-	 * Windows, this method also sets the {@code PATH} environment variable so that
-	 * the specified environment runs as expected.
-	 * <p>
-	 * TODO stop process if the thread is interrupted, same as with mamba, look for runmamna method for example
-	 * TODO stop process if the thread is interrupted, same as with mamba, look for runmamna method for example
-	 * TODO stop process if the thread is interrupted, same as with mamba, look for runmamna method for example
-	 * TODO stop process if the thread is interrupted, same as with mamba, look for runmamna method for example
-	 * TODO stop process if the thread is interrupted, same as with mamba, look for runmamna method for example
-	 * </p>
-	 *
-	 * @param envName
-	 *            The environment name used to run the Python command.
-	 * @param args
-	 *            One or more arguments for the Python command.
-	 * @throws IOException
-	 *             If an I/O error occurs.
-	 * @throws InterruptedException
-	 *             If the current thread is interrupted by another thread while it
-	 *             is waiting, then the wait is ended and an InterruptedException is
-	 *             thrown.
-	 * @throws MambaInstallException if Micromamba has not been installed, thus the instance of {@link Mamba} cannot be used
-	 */
-	public void runPythonIn( final String envName, final String... args ) throws IOException, InterruptedException, MambaInstallException
-	{
-		checkMambaInstalled();
-		if (!installed) throw new MambaInstallException("Micromamba is not installed");
-		final List< String > cmd = getBaseCommand();
-		List<String> argsList = new ArrayList<>();
-		String envDir;
-		if (new File(envName, PYTHON_COMMAND).isFile()) {
-			argsList.add( coverArgWithDoubleQuotes(Paths.get( envName, PYTHON_COMMAND ).toAbsolutePath().toString()) );
-			envDir = Paths.get( envName ).toAbsolutePath().toString();
-		} else if (Paths.get( getEnvDir(envName), PYTHON_COMMAND ).toFile().isFile()) {
-			argsList.add( coverArgWithDoubleQuotes(Paths.get( getEnvDir(envName), PYTHON_COMMAND ).toAbsolutePath().toString()) );
-			envDir = Paths.get( getEnvDir(envName) ).toAbsolutePath().toString();
-		} else 
-			throw new IOException("The environment provided ("
-					+ envName + ") does not exist or does not contain a Python executable (" + PYTHON_COMMAND + ").");
-		argsList.addAll( Arrays.stream( args ).map(aa -> {
-							if (aa.contains(" ") && SystemUtils.IS_OS_WINDOWS) return coverArgWithDoubleQuotes(aa);
-							else return aa;
-						}).collect(Collectors.toList()) );
-		boolean containsSpaces = argsList.stream().anyMatch(aa -> aa.contains(" "));
-		
-		if (!containsSpaces || !SystemUtils.IS_OS_WINDOWS) cmd.addAll(argsList);
-		else cmd.add(surroundWithQuotes(argsList));
-
-		final ProcessBuilder builder = getBuilder( true );
-		if ( SystemUtils.IS_OS_WINDOWS )
-		{
-			final Map< String, String > envs = builder.environment();
-			envs.put( "Path", envDir + ";" + envs.get( "Path" ) );
-			envs.put( "Path", Paths.get( envDir, "Scripts" ) + ";" + envs.get( "Path" ) );
-			envs.put( "Path", Paths.get( envDir, "Library" ) + ";" + envs.get( "Path" ) );
-			envs.put( "Path", Paths.get( envDir, "Library", "Bin" ) + ";" + envs.get( "Path" ) );
-		}
-		// TODO find way to get env vars in micromamba builder.environment().putAll( getEnvironmentVariables( envName ) );
-		if ( builder.command( cmd ).start().waitFor() != 0 )
-			throw new RuntimeException("Error executing the following command: " + builder.command());
-	}
-
-	/**
-	 * Run a Python command in the specified environment. This method automatically
-	 * sets environment variables associated with the specified environment. In
-	 * Windows, this method also sets the {@code PATH} environment variable so that
-	 * the specified environment runs as expected.
-	 * 
-	 * @param envFile
-	 *            file corresponding to the environment directory
-	 * @param args
-	 *            One or more arguments for the Python command.
-	 * @throws IOException
-	 *             If an I/O error occurs.
-	 * @throws InterruptedException
-	 *             If the current thread is interrupted by another thread while it
-	 *             is waiting, then the wait is ended and an InterruptedException is
-	 *             thrown.
-	 */
-	public static void runPythonIn( final File envFile, final String... args ) throws IOException, InterruptedException
-	{
-		if (!Paths.get( envFile.getAbsolutePath(), PYTHON_COMMAND ).toFile().isFile())
-			throw new IOException("No Python found in the environment provided. The following "
-					+ "file does not exist: " + Paths.get( envFile.getAbsolutePath(), PYTHON_COMMAND ).toAbsolutePath());
-		final List< String > cmd = getBaseCommand();
-		List<String> argsList = new ArrayList<>();
-		argsList.add( coverArgWithDoubleQuotes(Paths.get( envFile.getAbsolutePath(), PYTHON_COMMAND ).toAbsolutePath().toString()) );
-		argsList.addAll( Arrays.stream( args ).map(aa -> {
-							if (Platform.isWindows() && aa.contains(" ")) return coverArgWithDoubleQuotes(aa);
-							else return aa;
-						}).collect(Collectors.toList()) );
-		boolean containsSpaces = argsList.stream().anyMatch(aa -> aa.contains(" "));
-		
-		if (!containsSpaces || !SystemUtils.IS_OS_WINDOWS) cmd.addAll(argsList);
-		else cmd.add(surroundWithQuotes(argsList));
-		
-		
-		final ProcessBuilder builder = new ProcessBuilder().directory( envFile );
-		builder.inheritIO();
-		if ( SystemUtils.IS_OS_WINDOWS )
-		{
-			final Map< String, String > envs = builder.environment();
-			final String envDir = envFile.getAbsolutePath();
-			envs.put( "Path", envDir + ";" + envs.get( "Path" ) );
-			envs.put( "Path", Paths.get( envDir, "Scripts" ) + ";" + envs.get( "Path" ) );
-			envs.put( "Path", Paths.get( envDir, "Library" ) + ";" + envs.get( "Path" ) );
-			envs.put( "Path", Paths.get( envDir, "Library", "Bin" ) + ";" + envs.get( "Path" ) );
-		}
-		// TODO find way to get env vars in micromamba builder.environment().putAll( getEnvironmentVariables( envName ) );
-		if ( builder.command( cmd ).start().waitFor() != 0 )
-			throw new RuntimeException("Error executing the following command: " + builder.command());
 	}
 
 	/**
@@ -1122,7 +625,6 @@ public class Mamba {
 	public void runMamba(boolean isInheritIO, final String... args ) throws RuntimeException, IOException, InterruptedException, MambaInstallException
 	{
 		checkMambaInstalled();
-		if (!installed) throw new MambaInstallException("Micromamba is not installed");
 		Thread mainThread = Thread.currentThread();
 		SimpleDateFormat sdf = new SimpleDateFormat("HH:mm:ss");
 		
@@ -1233,410 +735,9 @@ public class Mamba {
 	public void runMamba(final String... args ) throws RuntimeException, IOException, InterruptedException, MambaInstallException
 	{
 		checkMambaInstalled();
-		if (!installed) throw new MambaInstallException("Micromamba is not installed");
 		runMamba(false, args);
 	}
 
-	/**
-	 * Returns environment variables associated with the activated environment as
-	 * {@code Map< String, String >}.
-	 * 
-	 * @return The environment variables as {@code Map< String, String >}.
-	 * @throws IOException
-	 *             If an I/O error occurs.
-	 * @throws InterruptedException
-	 *             If the current thread is interrupted by another thread while it
-	 *             is waiting, then the wait is ended and an InterruptedException is
-	 *             thrown.
-	 */
-	/* TODO find equivalent in mamba
-	public Map< String, String > getEnvironmentVariables() throws IOException, InterruptedException
-	{
-		return getEnvironmentVariables( envName );
-	}
-	*/
-
-	/**
-	 * Returns environment variables associated with the specified environment as
-	 * {@code Map< String, String >}.
-	 * 
-	 * @param envName
-	 *            The environment name used to run the Python command.
-	 * @return The environment variables as {@code Map< String, String >}.
-	 * @throws IOException
-	 *             If an I/O error occurs.
-	 * @throws InterruptedException
-	 *             If the current thread is interrupted by another thread while it
-	 *             is waiting, then the wait is ended and an InterruptedException is
-	 *             thrown.
-	 */
-	/**
-	 * TODO find equivalent in mamba
-	public Map< String, String > getEnvironmentVariables( final String envName ) throws IOException, InterruptedException
-	{
-		final List< String > cmd = getBaseCommand();
-		cmd.addAll( Arrays.asList( condaCommand, "env", "config", "vars", "list", "-n", envName ) );
-		final Process process = getBuilder( false ).command( cmd ).start();
-		if ( process.waitFor() != 0 )
-			throw new RuntimeException();
-		final Map< String, String > map = new HashMap<>();
-		try (final BufferedReader reader = new BufferedReader( new InputStreamReader( process.getInputStream() ) ))
-		{
-			String line;
-
-			while ( ( line = reader.readLine() ) != null )
-			{
-				final String[] keyVal = line.split( " = " );
-				map.put( keyVal[ 0 ], keyVal[ 1 ] );
-			}
-		}
-		return map;
-	}
-	*/
-
-	/**
-	 * Returns a list of the Mamba environment names as {@code List< String >}.
-	 * 
-	 * @return The list of the Mamba environment names as {@code List< String >}.
-	 * @throws IOException If an I/O error occurs.
-	 * @throws MambaInstallException if Micromamba has not been installed, thus the instance of {@link Mamba} cannot be used
-	 */
-	public List< String > getEnvironmentNames() throws IOException, MambaInstallException
-	{
-		checkMambaInstalled();
-		if (!installed) throw new MambaInstallException("Micromamba is not installed");
-		final List< String > envs = new ArrayList<>(Collections.singletonList(DEFAULT_ENVIRONMENT_NAME));
-		envs.addAll( Files.list( Paths.get( envsdir ) )
-				.map( p -> p.getFileName().toString() )
-				.filter( p -> !p.startsWith( "." ) )
-				.filter( p -> Paths.get(p, "conda-meta").toFile().isDirectory() )
-				.collect( Collectors.toList() ) );
-		return envs;
-	}
-	
-	/**
-	 * Check whether a list of dependencies provided is installed in the wanted environment.
-	 * 
-	 * @param envName
-	 * 	The name of the environment of interest. Should be one of the environments of the current Mamba instance.
-	 * 	This parameter can also be the full path to an independent environment.
-	 * @param dependencies
-	 * 	The list of dependencies that should be installed in the environment.
-	 * 	They can contain version requirements. The names should be the ones used to import the package inside python,
-	 * 	"skimage", not "scikit-image" or "sklearn", not "scikit-learn"
-	 * 	An example list: "numpy", "numba&gt;=0.43.1", "torch==1.6", "torch&gt;=1.6, &lt;2.0"
-	 * @return true if the packages are installed or false otherwise
-	 * @throws MambaInstallException if Micromamba has not been installed, thus the instance of {@link Mamba} cannot be used
-	 */
-	public boolean checkAllDependenciesInEnv(String envName, List<String> dependencies) throws MambaInstallException {
-		checkMambaInstalled();
-		if (!installed) throw new MambaInstallException("Micromamba is not installed");
-		return checkUninstalledDependenciesInEnv(envName, dependencies).isEmpty();
-	}
-	
-	/**
-	 * Returns a list containing the packages that are not installed in the wanted environment
-	 * from the list of dependencies provided
-	 * 
-	 * @param envName
-	 * 	The name of the environment of interest. Should be one of the environments of the current Mamba instance.
-	 * 	This parameter can also be the full path to an independent environment.
-	 * @param dependencies
-	 * 	The list of dependencies that should be installed in the environment.
-	 * 	They can contain version requirements. The names should be the ones used to import the package inside python,
-	 * 	"skimage", not "scikit-image" or "sklearn", not "scikit-learn"
-	 * 	An example list: "numpy", "numba&gt;=0.43.1", "torch==1.6", "torch&gt;=1.6, &lt;2.0"
-	 * @return the list of packages that are not already installed
-	 * @throws MambaInstallException if Micromamba has not been installed, thus the instance of {@link Mamba} cannot be used
-	 */
-	public List<String>  checkUninstalledDependenciesInEnv(String envName, List<String> dependencies) throws MambaInstallException {
-		checkMambaInstalled();
-		if (!installed) throw new MambaInstallException("Micromamba is not installed");
-		File envFile = new File(this.envsdir, envName);
-		File envFile2 = new File(envName);
-		if (!envFile.isDirectory() && !envFile2.isDirectory())
-			return dependencies;
-		return dependencies.stream().filter(dep -> {
-			try {
-				return !checkDependencyInEnv(envName, dep);
-			} catch (Exception ex) {
-				return true;
-			}
-		}).collect(Collectors.toList());
-	}
-	
-	/**
-	 * Checks whether a package is installed in the wanted environment.
-	 * 
-	 * @param envName
-	 * 	The name of the environment of interest. Should be one of the environments of the current Mamba instance.
-	 * 	This parameter can also be the full path to an independent environment.
-	 * @param dependency
-	 * 	The name of the package that should be installed in the env
-	 * 	They can contain version requirements. The names should be the ones used to import the package inside python,
-	 * 	"skimage", not "scikit-image" or "sklearn", not "scikit-learn"
-	 * 	An example list: "numpy", "numba&gt;=0.43.1", "torch==1.6", "torch&gt;=1.6, &lt;2.0"
-	 * @return true if the package is installed or false otherwise
-	 * @throws MambaInstallException if Micromamba has not been installed, thus the instance of {@link Mamba} cannot be used
-	 */
-	public boolean checkDependencyInEnv(String envName, String dependency) throws MambaInstallException {
-		checkMambaInstalled();
-		if (!installed) throw new MambaInstallException("Micromamba is not installed");
-		if (dependency.contains("==")) {
-			int ind = dependency.indexOf("==");
-			return checkDependencyInEnv(envName, dependency.substring(0, ind).trim(), dependency.substring(ind + 2).trim());
-		} else if (dependency.contains(">=") && dependency.contains("<=") && dependency.contains(",")) {
-			int commaInd = dependency.indexOf(",");
-			int highInd = dependency.indexOf(">=");
-			int lowInd = dependency.indexOf("<=");
-			int minInd = Math.min(Math.min(commaInd, lowInd), highInd);
-			String packName = dependency.substring(0, minInd).trim();
-			String minV = dependency.substring(lowInd + 1, lowInd < highInd ? commaInd : dependency.length());
-			String maxV = dependency.substring(highInd + 1, lowInd < highInd ? dependency.length() : commaInd);
-			return checkDependencyInEnv(envName, packName, minV, maxV, false);
-		} else if (dependency.contains(">=") && dependency.contains("<") && dependency.contains(",")) {
-			int commaInd = dependency.indexOf(",");
-			int highInd = dependency.indexOf(">=");
-			int lowInd = dependency.indexOf("<");
-			int minInd = Math.min(Math.min(commaInd, lowInd), highInd);
-			String packName = dependency.substring(0, minInd).trim();
-			String minV = dependency.substring(lowInd + 1, lowInd < highInd ? commaInd : dependency.length());
-			String maxV = dependency.substring(highInd + 1, lowInd < highInd ? dependency.length() : commaInd);
-			return checkDependencyInEnv(envName, packName, minV, null, false) && checkDependencyInEnv(envName, packName, null, maxV, true);
-		} else if (dependency.contains(">") && dependency.contains("<=") && dependency.contains(",")) {
-			int commaInd = dependency.indexOf(",");
-			int highInd = dependency.indexOf(">");
-			int lowInd = dependency.indexOf("<=");
-			int minInd = Math.min(Math.min(commaInd, lowInd), highInd);
-			String packName = dependency.substring(0, minInd).trim();
-			String minV = dependency.substring(lowInd + 1, lowInd < highInd ? commaInd : dependency.length());
-			String maxV = dependency.substring(highInd + 1, lowInd < highInd ? dependency.length() : commaInd);
-			return checkDependencyInEnv(envName, packName, minV, null, true) && checkDependencyInEnv(envName, packName, null, maxV, false);
-		} else if (dependency.contains(">") && dependency.contains("<") && dependency.contains(",")) {
-			int commaInd = dependency.indexOf(",");
-			int highInd = dependency.indexOf(">");
-			int lowInd = dependency.indexOf(">");
-			int minInd = Math.min(Math.min(commaInd, lowInd), highInd);
-			String packName = dependency.substring(0, minInd).trim();
-			String minV = dependency.substring(lowInd + 1, lowInd < highInd ? commaInd : dependency.length());
-			String maxV = dependency.substring(highInd + 1, lowInd < highInd ? dependency.length() : commaInd);
-			return checkDependencyInEnv(envName, packName, minV, maxV, true);
-		} else if (dependency.contains(">")) {
-			int ind = dependency.indexOf(">");
-			return checkDependencyInEnv(envName, null, dependency.substring(0, ind).trim(), dependency.substring(ind + 2).trim(), true);
-		} else if (dependency.contains(">=")) {
-			int ind = dependency.indexOf(">=");
-			return checkDependencyInEnv(envName, null, dependency.substring(0, ind).trim(), dependency.substring(ind + 2).trim(), false);
-		} else if (dependency.contains("<=")) {
-			int ind = dependency.indexOf("<=");
-			return checkDependencyInEnv(envName, dependency.substring(0, ind).trim(), dependency.substring(ind + 2).trim(), null, false);
-		} else if (dependency.contains("<")) {
-			int ind = dependency.indexOf("<");
-			return checkDependencyInEnv(envName, dependency.substring(0, ind).trim(), dependency.substring(ind + 1).trim(), null, true);
-		} else if (dependency.contains("=")) {
-			int ind = dependency.indexOf("=");
-			return checkDependencyInEnv(envName, dependency.substring(0, ind).trim(), dependency.substring(ind + 1).trim());
-		}else {
-			return checkDependencyInEnv(envName, dependency, null);
-		}
-	}
-	
-	/**
-	 * Checks whether a package of a specific version is installed in the wanted environment.
-	 * 
-	 * @param envDir
-	 * 	The directory of the environment of interest. Should be one of the environments of the current Mamba instance.
-	 * 	This parameter can also be the full path to an independent environment.
-	 * @param dependency
-	 * 	The name of the package that should be installed in the env. The String should only contain the name, no version,
-	 * 	and the name should be the one used to import the package inside python. For example, "skimage", not "scikit-image"
-	 *  or "sklearn", not "scikit-learn".
-	 * @param version
-	 * 	the specific version of the package that needs to be installed. For example:, "0.43.1", "1.6", "2.0"
-	 * @return true if the package is installed or false otherwise
-	 * @throws MambaInstallException if Micromamba has not been installed, thus the instance of {@link Mamba} cannot be used
-	 */
-	public boolean checkDependencyInEnv(String envDir, String dependency, String version) throws MambaInstallException {
-		checkMambaInstalled();
-		if (!installed) throw new MambaInstallException("Micromamba is not installed");
-		return checkDependencyInEnv(envDir, dependency, version, version, true);
-	}
-	
-	/**
-	 * Checks whether a package with specific version constraints is installed in the wanted environment.
-	 * In this method the minversion argument should be strictly smaller than the version of interest and
-	 * the maxversion strictly bigger.
-	 * This method checks that: dependency &gt;minversion, &lt;maxversion
-	 * For smaller or equal or bigger or equal (dependency &gt;=minversion, &lt;=maxversion) look at the method
-	 * {@link #checkDependencyInEnv(String, String, String, String, boolean)} with the lst parameter set to false.
-	 * 
-	 * @param envDir
-	 * 	The directory of the environment of interest. Should be one of the environments of the current Mamba instance.
-	 * 	This parameter can also be the full path to an independent environment.
-	 * @param dependency
-	 * 	The name of the package that should be installed in the env. The String should only contain the name, no version,
-	 * 	and the name should be the one used to import the package inside python. For example, "skimage", not "scikit-image"
-	 *  or "sklearn", not "scikit-learn".
-	 * @param minversion
-	 * 	the minimum required version of the package that needs to be installed. For example:, "0.43.1", "1.6", "2.0".
-	 * 	This version should be strictly smaller than the one of interest, if for example "1.9" is given, it is assumed that
-	 * 	package_version&gt;1.9.
-	 * 	If there is no minimum version requirement for the package of interest, set this argument to null.
-	 * @param maxversion
-	 * 	the maximum required version of the package that needs to be installed. For example:, "0.43.1", "1.6", "2.0".
-	 * 	This version should be strictly bigger than the one of interest, if for example "1.9" is given, it is assumed that
-	 * 	package_version&lt;1.9.
-	 * 	If there is no maximum version requirement for the package of interest, set this argument to null.
-	 * @return true if the package is installed or false otherwise
-	 * @throws MambaInstallException if Micromamba has not been installed, thus the instance of {@link Mamba} cannot be used
-	 */
-	public boolean checkDependencyInEnv(String envDir, String dependency, String minversion, String maxversion) throws MambaInstallException {
-		checkMambaInstalled();
-		if (!installed) throw new MambaInstallException("Micromamba is not installed");
-		return checkDependencyInEnv(envDir, dependency, minversion, maxversion, true);
-	}
-	
-	/**
-	 * Checks whether a package with specific version constraints is installed in the wanted environment.
-	 * Depending on the last argument ('strictlyBiggerOrSmaller') 'minversion' and 'maxversion'
-	 * will be strictly bigger(&gt;=) or smaller(&lt;) or bigger or equal &gt;=) or smaller or equal&lt;=)
-	 * In this method the minversion argument should be strictly smaller than the version of interest and
-	 * the maxversion strictly bigger.
-	 * 
-	 * @param envDir
-	 * 	The directory of the environment of interest. Should be one of the environments of the current Mamba instance.
-	 * 	This parameter can also be the full path to an independent environment.
-	 * @param dependency
-	 * 	The name of the package that should be installed in the env. The String should only contain the name, no version,
-	 * 	and the name should be the one used to import the package inside python. For example, "skimage", not "scikit-image"
-	 *  or "sklearn", not "scikit-learn".
-	 * @param minversion
-	 * 	the minimum required version of the package that needs to be installed. For example:, "0.43.1", "1.6", "2.0".
-	 * 	If there is no minimum version requirement for the package of interest, set this argument to null.
-	 * @param maxversion
-	 * 	the maximum required version of the package that needs to be installed. For example:, "0.43.1", "1.6", "2.0".
-	 * 	If there is no maximum version requirement for the package of interest, set this argument to null.
-	 * @param strictlyBiggerOrSmaller
-	 * 	Whether the minversion and maxversion shuld be strictly smaller and bigger or not
-	 * @return true if the package is installed or false otherwise
-	 * @throws MambaInstallException if Micromamba has not been installed, thus the instance of {@link Mamba} cannot be used
-	 */
-	public boolean checkDependencyInEnv(String envDir, String dependency, String minversion, 
-			String maxversion, boolean strictlyBiggerOrSmaller) throws MambaInstallException {
-		checkMambaInstalled();
-		if (!installed) throw new MambaInstallException("Micromamba is not installed");
-		File envFile = new File(this.envsdir, envDir);
-		File envFile2 = new File(envDir);
-		if (!envFile.isDirectory() && !envFile2.isDirectory())
-			return false;
-		else if (!envFile.isDirectory())
-			envFile = envFile2;
-		if (dependency.trim().equals("python")) return checkPythonInstallation(envDir, minversion, maxversion, strictlyBiggerOrSmaller);
-		String checkDepCode;
-		if (minversion != null && maxversion != null && minversion.equals(maxversion)) {
-			checkDepCode = "import importlib.util, sys; "
-					+ "from importlib.metadata import version; "
-					+ "from packaging import version as vv; "
-					+ "pkg = '%s'; wanted_v = '%s'; "
-					+ "spec = importlib.util.find_spec(pkg); "
-					+ "sys.exit(0) if spec and vv.parse(version(pkg)) == vv.parse(wanted_v) else sys.exit(1)";
-			checkDepCode = String.format(checkDepCode, dependency, maxversion);
-		} else if (minversion == null && maxversion == null) {
-			checkDepCode = "import importlib.util, sys; sys.exit(0) if importlib.util.find_spec('%s') else sys.exit(1)";
-			checkDepCode = String.format(checkDepCode, dependency);
-		} else if (maxversion == null) {
-			checkDepCode = "import importlib.util, sys; "
-					+ "from importlib.metadata import version; "
-					+ "from packaging import version as vv; "
-					+ "pkg = '%s'; desired_version = '%s'; "
-					+ "spec = importlib.util.find_spec(pkg); "
-					+ "sys.exit(0) if spec and vv.parse(version(pkg)) %s vv.parse(desired_version) else sys.exit(1)";
-			checkDepCode = String.format(checkDepCode, dependency, minversion, strictlyBiggerOrSmaller ? ">" : ">=");
-		} else if (minversion == null) {
-			checkDepCode = "import importlib.util, sys; "
-					+ "from importlib.metadata import version; "
-					+ "from packaging import version as vv; "
-					+ "pkg = '%s'; desired_version = '%s'; "
-					+ "spec = importlib.util.find_spec(pkg); "
-					+ "sys.exit(0) if spec and vv.parse(version(pkg)) %s vv.parse(desired_version) else sys.exit(1)";
-			checkDepCode = String.format(checkDepCode, dependency, maxversion, strictlyBiggerOrSmaller ? "<" : "<=");
-		} else {
-			checkDepCode = "import importlib.util, sys; "
-					+ "from importlib.metadata import version; "
-					+ "from packaging import version as vv; "
-					+ "pkg = '%s'; min_v = '%s'; max_v = '%s'; "
-					+ "spec = importlib.util.find_spec(pkg); "
-					+ "sys.exit(0) if spec and vv.parse(version(pkg)) %s vv.parse(min_v) and vv.parse(version(pkg)) %s vv.parse(max_v) else sys.exit(1)";
-			checkDepCode = String.format(checkDepCode, dependency, minversion, maxversion, strictlyBiggerOrSmaller ? ">" : ">=", strictlyBiggerOrSmaller ? "<" : ">=");
-		}
-		try {
-			runPythonIn(envFile, "-c", checkDepCode);
-		} catch (RuntimeException | IOException | InterruptedException e) {
-			return false;
-		}
-		return true;
-	}
-	
-	private boolean checkPythonInstallation(String envDir, String minversion, String maxversion, boolean strictlyBiggerOrSmaller) throws MambaInstallException {
-		checkMambaInstalled();
-		if (!installed) throw new MambaInstallException("Micromamba is not installed");
-		File envFile = new File(this.envsdir, envDir);
-		File envFile2 = new File(envDir);
-		if (!envFile.isDirectory() && !envFile2.isDirectory())
-			return false;
-		else if (!envFile.isDirectory())
-			envFile = envFile2;
-		String checkDepCode;
-		if (minversion != null && maxversion != null && minversion.equals(maxversion)) {
-			checkDepCode = "import sys; import platform; from packaging import version as vv; desired_version = '%s'; "
-					+ "sys.exit(0) if vv.parse(platform.python_version()).major == vv.parse(desired_version).major"
-					+ " and vv.parse(platform.python_version()).minor == vv.parse(desired_version).minor else sys.exit(1)";
-			checkDepCode = String.format(checkDepCode, maxversion);
-		} else if (minversion == null && maxversion == null) {
-			checkDepCode = "2 + 2";
-		} else if (maxversion == null) {
-			checkDepCode = "import sys; import platform; from packaging import version as vv; desired_version = '%s'; "
-					+ "sys.exit(0) if vv.parse(platform.python_version()).major == vv.parse(desired_version).major "
-					+ "and vv.parse(platform.python_version()).minor %s vv.parse(desired_version).minor else sys.exit(1)";
-			checkDepCode = String.format(checkDepCode, minversion, strictlyBiggerOrSmaller ? ">" : ">=");
-		} else if (minversion == null) {
-			checkDepCode = "import sys; import platform; from packaging import version as vv; desired_version = '%s'; "
-					+ "sys.exit(0) if vv.parse(platform.python_version()).major == vv.parse(desired_version).major "
-					+ "and vv.parse(platform.python_version()).minor %s vv.parse(desired_version).minor else sys.exit(1)";
-			checkDepCode = String.format(checkDepCode, maxversion, strictlyBiggerOrSmaller ? "<" : "<=");
-		} else {
-			checkDepCode = "import platform; "
-					+ "from packaging import version as vv; min_v = '%s'; max_v = '%s'; "
-					+ "sys.exit(0) if vv.parse(platform.python_version()).major == vv.parse(desired_version).major "
-					+ "and vv.parse(platform.python_version()).minor %s vv.parse(min_v).minor "
-					+ "and vv.parse(platform.python_version()).minor %s vv.parse(max_v).minor else sys.exit(1)";
-			checkDepCode = String.format(checkDepCode, minversion, maxversion, strictlyBiggerOrSmaller ? ">" : ">=", strictlyBiggerOrSmaller ? "<" : ">=");
-		}
-		try {
-			runPythonIn(envFile, "-c", checkDepCode);
-		} catch (RuntimeException | IOException | InterruptedException e) {
-			return false;
-		}
-		return true;
-	}
-	
-	/**
-	 * TODO figure out whether to use a dependency or not to parse the yaml file
-	 * @param envYaml
-	 * 	the path to the yaml file where a Python environment should be specified
-	 * @return true if the env exists or false otherwise
-	 * @throws MambaInstallException if Micromamba has not been installed, thus the instance of {@link Mamba} cannot be used
-	 */
-	public boolean checkEnvFromYamlExists(String envYaml) throws MambaInstallException {
-		checkMambaInstalled();
-		if (!installed) throw new MambaInstallException("Micromamba is not installed");
-		if (envYaml == null || !new File(envYaml).isFile()
-				|| (envYaml.endsWith(".yaml") && envYaml.endsWith(".yml"))) {
-			return false;
-		}
-		return false;
-	}
-	
 	/**
 	 * In Windows, if a command prompt argument contains and space " " it needs to
 	 * start and end with double quotes
@@ -1671,13 +772,5 @@ public class Mamba {
 		arg = arg.substring(0, arg.length() - 1);
 		arg += "\"";
 		return arg;
-	}
-	
-	public static void main(String[] args) throws IOException, InterruptedException, MambaInstallException {
-		
-		Mamba m = new Mamba("C:\\Users\\angel\\Desktop\\Fiji app\\appose_x86_64");
-		String envName = "efficientvit_sam_env";
-		m.pipInstallIn(envName,
-			m.getEnvDir(envName) + File.separator + "appose-python");
 	}
 }
