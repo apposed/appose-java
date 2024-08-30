@@ -84,7 +84,7 @@ import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
 /**
- * Python environment manager, implemented by delegating to micromamba.
+ * Conda-based environment manager, implemented by delegating to micromamba.
  * 
  * @author Ko Sugawara
  * @author Carlos Garcia
@@ -125,7 +125,7 @@ class Mamba {
 	private Double mambaDecompressProgress = 0.0;
 	/**
 	 * Consumer that tracks the progress in the download of micromamba, the software used 
-	 * by this class to manage Python environments
+	 * by this class to manage Conda environments
 	 */
 	private final Consumer<Double> mambaDnwldProgressConsumer = this::updateMambaDnwldProgress;
 	/**
@@ -169,7 +169,7 @@ class Mamba {
 	 */
 	final public static String BASE_PATH = Paths.get(System.getProperty("user.home"), ".local", "share", "appose", "micromamba").toString();
 	/**
-	 * Name of the folder inside the {@link #rootdir} that contains the different Python environments created by the Appose Micromamba
+	 * Name of the folder inside the {@link #rootdir} that contains the different Conda environments created by the Appose Micromamba
 	 */
 	final public static String ENVS_NAME = "envs";
 	/**
@@ -481,7 +481,7 @@ class Mamba {
 	}
 
 	/**
-	 * Run {@code conda create} to create a conda environment defined by the input environment yaml file.
+	 * Run {@code conda create} to create a Conda environment defined by the input environment yaml file.
 	 * 
 	 * @param envDir
 	 *            The directory within which the environment will be created.
