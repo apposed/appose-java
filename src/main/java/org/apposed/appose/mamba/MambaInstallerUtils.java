@@ -54,7 +54,7 @@ import org.apache.commons.compress.compressors.bzip2.BZip2CompressorInputStream;
 /**
  * Utility methods  unzip bzip2 files and to enable the download of micromamba
  */
-public final class MambaInstallerUtils {
+final class MambaInstallerUtils {
 	
 	private MambaInstallerUtils() {
 		// Prevent instantiation of utility class.

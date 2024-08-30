@@ -32,7 +32,7 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.nio.channels.ReadableByteChannel;
 
-public class FileDownloader {
+class FileDownloader {
 	private static final long CHUNK_SIZE = 1024 * 1024 * 5;
 
 	private final ReadableByteChannel rbc;

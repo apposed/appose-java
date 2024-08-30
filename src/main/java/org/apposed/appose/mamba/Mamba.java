@@ -89,7 +89,7 @@ import java.util.stream.Collectors;
  * @author Ko Sugawara
  * @author Carlos Garcia
  */
-public class Mamba {
+class Mamba {
 	
 	/**
 	 * String containing the path that points to the micromamba executable
