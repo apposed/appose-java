@@ -30,6 +30,7 @@
 package org.apposed.appose;
 
 import java.io.File;
+import java.io.IOException;
 
 /**
  * Appose is a library for interprocess cooperation with shared memory. The
@@ -152,27 +153,64 @@ import java.io.File;
  */
 public class Appose {
 
-	public static Builder base(File directory) {
-		return new Builder().base(directory);
+	public static Builder scheme(String scheme) {
+		return new Builder().scheme(scheme);
 	}
 
-	public static Builder base(String directory) {
-		return base(new File(directory));
+	public static Builder file(String filePath) throws IOException {
+		return new Builder().file(filePath);
 	}
 
-	public static Builder conda(File environmentYaml) {
-		return new Builder().conda(environmentYaml);
+	public static Builder file(String filePath, String scheme) throws IOException {
+		return new Builder().file(filePath, scheme);
 	}
 
-	public static Environment system() {
+	public static Builder file(File file) throws IOException {
+		return new Builder().file(file);
+	}
+
+	public static Builder file(File file, String scheme) throws IOException {
+		return new Builder().file(file, scheme);
+	}
+
+	public static Builder channel(String name) {
+		return new Builder().channel(name);
+	}
+
+	public static Builder channel(String name, String location) {
+		return new Builder().channel(name, location);
+	}
+
+	public static Builder include(String content) {
+		return new Builder().include(content);
+	}
+
+	public static Builder include(String content, String scheme) {
+		return new Builder().include(content, scheme);
+	}
+
+	@Deprecated
+	public static Builder conda(File environmentYaml) throws IOException {
+		return file(environmentYaml, "environment.yml");
+	}
+
+	public static Environment build(File directory) throws IOException {
+		return new Builder().build(directory);
+	}
+
+	public static Environment build(String directory) throws IOException {
+		return build(new File(directory));
+	}
+
+	public static Environment system() throws IOException {
 		return system(new File("."));
 	}
 
-	public static Environment system(File directory) {
-		return new Builder().base(directory).useSystemPath().build();
+	public static Environment system(File directory) throws IOException {
+		return new Builder().useSystemPath().build(directory);
 	}
 
-	public static Environment system(String directory) {
+	public static Environment system(String directory) throws IOException {
 		return system(new File(directory));
 	}
 }

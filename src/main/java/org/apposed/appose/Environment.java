@@ -40,8 +40,10 @@ import java.util.Set;
 
 public interface Environment {
 
-	default String base() { return "."; }
-	default boolean useSystemPath() { return false; }
+	String base();
+	List<String> binPaths();
+	List<String> classpath();
+	List<String> launchArgs();
 
 	/**
 	 * Creates a Python script service.
@@ -56,10 +58,7 @@ public interface Environment {
 	 * @throws IOException If something goes wrong starting the worker process.
 	 */
 	default Service python() throws IOException {
-		List<String> pythonExes = Arrays.asList(
-			"python", "python3", "python.exe",
-			"bin/python", "bin/python.exe"
-		);
+		List<String> pythonExes = Arrays.asList("python", "python3", "python.exe");
 		return service(pythonExes, "-c",
 			"import appose.python_worker; appose.python_worker.main()");
 	}
@@ -179,19 +178,20 @@ public interface Environment {
 	 * @throws IOException If something goes wrong starting the worker process.
 	 */
 	default Service service(List<String> exes, String... args) throws IOException {
-		if (args.length == 0) throw new IllegalArgumentException("No executable given");
+		if (exes == null || exes.isEmpty()) throw new IllegalArgumentException("No executable given");
 
-		List<String> dirs = useSystemPath() //
-			? Arrays.asList(System.getenv("PATH").split(File.pathSeparator)) //
-			: Collections.singletonList(base());
+		// Discern path to executable by searching the environment's binPaths.
+		File exeFile = FilePaths.findExe(binPaths(), exes);
+		// If exeFile is null, just use the first executable bare, because there
+		// are scenarios like `pixi run python` where the intended executable will
+		// only by part of the system path while within the activated environment.
+		String exe = exeFile == null ? exes.get(0) : exeFile.getCanonicalPath();
 
-		File exeFile = FilePaths.findExe(dirs, exes);
-		if (exeFile == null) throw new IllegalArgumentException("No executables found amongst candidates: " + exes);
+		// Construct final args list: launchArgs + exe + args
+		List<String> allArgs = new ArrayList<>(launchArgs());
+		allArgs.add(exe);
+		allArgs.addAll(Arrays.asList(args));
 
-		String[] allArgs = new String[args.length + 1];
-		System.arraycopy(args, 0, allArgs, 1, args.length);
-		allArgs[0] = exeFile.getCanonicalPath();
-
-		return new Service(new File(base()), allArgs);
+		return new Service(new File(base()), allArgs.toArray(new String[0]));
 	}
 }

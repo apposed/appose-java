@@ -91,11 +91,13 @@ public class ApposeTest {
 	public void testConda() throws IOException, InterruptedException {
 		Environment env = Appose.conda(new File("src/test/resources/envs/cowsay.yml")).build();
 		try (Service service = env.python()) {
+			//service.debug(System.err::println);
 			Task task = service.task(
 				"import cowsay\n" +
 				"task.outputs['moo'] = cowsay.get_output_string('cow', 'moo')\n"
 			);
 			task.waitFor();
+			assertEquals(TaskStatus.COMPLETE, task.status);
 			String expectedMoo =
 				"  ___\n" +
 				"| moo |\n" +
@@ -114,7 +116,7 @@ public class ApposeTest {
 
 	@Test
 	public void testServiceStartupFailure() throws IOException {
-		Environment env = Appose.base("no-pythons-to-be-found-here").build();
+		Environment env = Appose.build("no-pythons-to-be-found-here");
 		try (Service service = env.python()) {
 			fail("Python worker process started successfully!?");
 		}

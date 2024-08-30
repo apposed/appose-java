@@ -535,8 +535,8 @@ public class Mamba {
 	/**
 	 * Run {@code conda create} to create a conda environment defined by the input environment yaml file.
 	 * 
-	 * @param envName
-	 *            The environment name to be created.
+	 * @param envDir
+	 *            The directory within which the environment will be created.
 	 * @param envYaml
 	 *            The environment yaml file containing the information required to build it 
 	 * @throws IOException
@@ -547,18 +547,18 @@ public class Mamba {
 	 *             thrown.
 	 * @throws MambaInstallException if Micromamba has not been installed, thus the instance of {@link Mamba} cannot be used
 	 */
-	public void createWithYaml( final String envName, final String envYaml ) throws IOException, InterruptedException, MambaInstallException
+	public void createWithYaml( final File envDir, final String envYaml ) throws IOException, InterruptedException, MambaInstallException
 	{
 		checkMambaInstalled();
 		if (!installed) throw new MambaInstallException("Micromamba is not installed");
-		createWithYaml(envName, envYaml, false);
+		createWithYaml(envDir, envYaml, false);
 	}
 
 	/**
 	 * Run {@code conda create} to create a conda environment defined by the input environment yaml file.
 	 * 
-	 * @param envName
-	 *            The environment name to be created. It should not be a path, just the name.
+	 * @param envDir
+	 *            The directory within which the environment will be created.
 	 * @param envYaml
 	 *            The environment yaml file containing the information required to build it  
 	 * @param isForceCreation
@@ -574,17 +574,14 @@ public class Mamba {
 	 * @throws RuntimeException if the process to create the env of the yaml file is not terminated correctly. If there is any error running the commands
 	 * @throws MambaInstallException if Micromamba has not been installed, thus the instance of {@link Mamba} cannot be used
 	 */
-	public void createWithYaml( final String envName, final String envYaml, final boolean isForceCreation) throws IOException, InterruptedException, RuntimeException, MambaInstallException
+	public void createWithYaml( final File envDir, final String envYaml, final boolean isForceCreation) throws IOException, InterruptedException, RuntimeException, MambaInstallException
 	{
-		if (envName.contains(File.pathSeparator))
-			throw new IllegalArgumentException("The environment name should not contain the file separator character: '"
-					+ File.separator + "'");
 		checkMambaInstalled();
 		if (!installed) throw new MambaInstallException("Micromamba is not installed");
 		if ( !isForceCreation && getEnvironmentNames().contains( envName ) )
 			throw new EnvironmentExistsException();
 		runMamba("env", "create", "--prefix",
-				getEnvDir(envName), "-f", envYaml, "-y", "-vv" );
+				envDir.getAbsolutePath(), "-f", envYaml, "-y", "-vv" );
 	}
 
 	/**
@@ -780,9 +777,9 @@ public class Mamba {
 
 	/**
 	 * Returns the active environment name.
-	 * 
+	 *
 	 * @return The active environment name.
-	 * 
+	 *
 	 */
 	public String getEnvName()
 	{
@@ -1312,6 +1309,7 @@ public class Mamba {
 		envs.addAll( Files.list( Paths.get( envsdir ) )
 				.map( p -> p.getFileName().toString() )
 				.filter( p -> !p.startsWith( "." ) )
+				.filter( p -> Paths.get(p, "conda-meta").toFile().isDirectory() )
 				.collect( Collectors.toList() ) );
 		return envs;
 	}
