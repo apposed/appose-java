@@ -373,26 +373,32 @@ class Mamba {
 		this.customErrorConsumer = custom;
 	}
 	
-	private File downloadMicromamba() throws IOException, URISyntaxException {
+	private File downloadMicromamba() throws IOException, InterruptedException, URISyntaxException {
 		final File tempFile = File.createTempFile( "micromamba", ".tar.bz2" );
 		tempFile.deleteOnExit();
 		URL website = MambaInstallerUtils.redirectedURL(new URL(MICROMAMBA_URL));
 		long size = MambaInstallerUtils.getFileSize(website);
 		Thread currentThread = Thread.currentThread();
+		IOException[] ioe = {null};
+		InterruptedException[] ie = {null};
 		Thread dwnldThread = new Thread(() -> {
 			try (
 					ReadableByteChannel rbc = Channels.newChannel(website.openStream());
 					FileOutputStream fos = new FileOutputStream(tempFile)
 			) {
 				new FileDownloader(rbc, fos).call(currentThread);
-			} catch (IOException | InterruptedException e) {
-				e.printStackTrace();
 			}
+			catch (IOException e) { ioe[0] = e; }
+			catch (InterruptedException e) { ie[0] = e; }
 		});
 		dwnldThread.start();
-		while (dwnldThread.isAlive()) 
+		while (dwnldThread.isAlive()) {
+			Thread.sleep(20); // 50 FPS update rate
 			this.mambaDnwldProgressConsumer.accept(((double) tempFile.length()) / ((double) size));
-		if ((((double) tempFile.length()) / ((double) size)) < 1)
+		}
+		if (ioe[0] != null) throw ioe[0];
+		if (ie[0] != null) throw ie[0];
+		if ((((double) tempFile.length()) / size) < 1)
 			throw new IOException("Error downloading micromamba from: " + MICROMAMBA_URL);
 		return tempFile;
 	}
