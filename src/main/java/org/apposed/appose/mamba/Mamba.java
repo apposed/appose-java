@@ -162,8 +162,8 @@ class Mamba {
 	 * Relative path to the micromamba executable from the micromamba {@link #rootdir}
 	 */
 	private final static String MICROMAMBA_RELATIVE_PATH = SystemUtils.IS_OS_WINDOWS ?
-			 File.separator + "Library" + File.separator + "bin" + File.separator + "micromamba.exe" 
-			: File.separator + "bin" + File.separator + "micromamba";
+			Paths.get("Library", "bin", "micromamba.exe").toString() :
+			Paths.get("bin", "micromamba").toString();
 	/**
 	 * Path where Appose installs Micromamba by default
 	 */
@@ -436,7 +436,7 @@ class Mamba {
 	}
 
 	public String getEnvDir(String envName) {
-		return getEnvsDir() + File.separator + envName;
+		return Paths.get(getEnvsDir(), envName).toString();
 	}
 
 	/**
