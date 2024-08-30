@@ -174,7 +174,7 @@ public class MambaHandler implements BuildHandler {
 			Mamba conda = new Mamba(Mamba.BASE_PATH);
 			conda.installMicromamba();
 			conda.createWithYaml(envDir, environmentYaml.getAbsolutePath());
-		} catch (InterruptedException | URISyntaxException | MambaInstallException e) {
+		} catch (InterruptedException | URISyntaxException e) {
 			throw new IOException(e);
 		}
 

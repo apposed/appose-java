@@ -78,7 +78,6 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Calendar;
 import java.util.List;
-import java.util.Objects;
 import java.util.UUID;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
@@ -246,7 +245,7 @@ class Mamba {
 	/**
 	 * Create a new {@link Mamba} object. The root dir for the Micromamba installation
 	 * will be the default base path defined at {@link #BASE_PATH}
-	 * If there is no Micromamba found at the base path {@link #BASE_PATH}, a {@link MambaInstallException} will be thrown
+	 * If there is no Micromamba found at the base path {@link #BASE_PATH}, an {@link IllegalStateException} will be thrown
 	 * <p></p>
 	 * It is expected that the Micromamba installation has executable commands as shown below:
 	 * </p>
@@ -268,7 +267,7 @@ class Mamba {
 	 * Create a new Conda object. The root dir for Conda installation can be
 	 * specified as {@code String}. 
 	 * If there is no Micromamba found at the specified path, it will be installed automatically 
-	 * if the parameter 'installIfNeeded' is true. If not a {@link MambaInstallException} will be thrown.
+	 * if the parameter 'installIfNeeded' is true. If not an {@link IllegalStateException} will be thrown.
 	 * <p>
 	 * It is expected that the Conda installation has executable commands as shown below:
 	 * </p>
@@ -317,10 +316,10 @@ class Mamba {
 
 	/**
 	 * Check whether micromamba is installed or not to be able to use the instance of {@link Mamba}
-	 * @throws MambaInstallException if micromamba is not installed
+	 * @throws IllegalStateException if micromamba is not installed
 	 */
-	private void checkMambaInstalled() throws MambaInstallException {
-		if (!isMambaInstalled()) throw new MambaInstallException("Micromamba is not installed");
+	private void checkMambaInstalled() {
+		if (!isMambaInstalled()) throw new IllegalStateException("Micromamba is not installed");
 	}
 
 	/**
@@ -398,8 +397,7 @@ class Mamba {
 		return tempFile;
 	}
 	
-	private void decompressMicromamba(final File tempFile) 
-				throws IOException, InterruptedException {
+	private void decompressMicromamba(final File tempFile) throws IOException, InterruptedException {
 		final File tempTarFile = File.createTempFile( "micromamba", ".tar" );
 		tempTarFile.deleteOnExit();
 		MambaInstallerUtils.unBZip2(tempFile, tempTarFile);
@@ -469,9 +467,9 @@ class Mamba {
 	 *             If the current thread is interrupted by another thread while it
 	 *             is waiting, then the wait is ended and an InterruptedException is
 	 *             thrown.
-	 * @throws MambaInstallException if Micromamba has not been installed, thus the instance of {@link Mamba} cannot be used
+	 * @throws IllegalStateException if Micromamba has not been installed, thus the instance of {@link Mamba} cannot be used
 	 */
-	public void updateIn( final String envName, final String... args ) throws IOException, InterruptedException, MambaInstallException
+	public void updateIn( final String envName, final String... args ) throws IOException, InterruptedException
 	{
 		checkMambaInstalled();
 		final List< String > cmd = new ArrayList<>( Arrays.asList( "update", "-p", getEnvDir(envName) ) );
@@ -493,92 +491,13 @@ class Mamba {
 	 *             If the current thread is interrupted by another thread while it
 	 *             is waiting, then the wait is ended and an InterruptedException is
 	 *             thrown.
-	 * @throws MambaInstallException if Micromamba has not been installed, thus the instance of {@link Mamba} cannot be used
+	 * @throws IllegalStateException if Micromamba has not been installed, thus the instance of {@link Mamba} cannot be used
 	 */
-	public void createWithYaml( final File envDir, final String envYaml ) throws IOException, InterruptedException, MambaInstallException
+	public void createWithYaml( final File envDir, final String envYaml ) throws IOException, InterruptedException
 	{
 		checkMambaInstalled();
 		runMamba("env", "create", "--prefix",
 				envDir.getAbsolutePath(), "-f", envYaml, "-y", "-vv" );
-	}
-
-	/**
-	 * Run {@code conda create} to create an empty conda environment.
-	 * 
-	 * @param envName
-	 *            The environment name to be created.
-	 * @throws IOException
-	 *             If an I/O error occurs.
-	 * @throws InterruptedException
-	 *             If the current thread is interrupted by another thread while it
-	 *             is waiting, then the wait is ended and an InterruptedException is
-	 *             thrown.
-	 * @throws MambaInstallException if Micromamba has not been installed, thus the instance of {@link Mamba} cannot be used
-	 */
-	public void create( final String envName ) throws IOException, InterruptedException, MambaInstallException
-	{
-		checkMambaInstalled();
-		runMamba( "create", "-y", "-p", getEnvDir(envName) );
-	}
-
-	/**
-	 * Run {@code conda create} to create a new mamba environment with a list of
-	 * specified packages.
-	 * 
-	 * @param envName
-	 *            The environment name to be created.
-	 * @param args
-	 *            The list of packages to be installed on environment creation and
-	 *            extra parameters as {@code String...}.
-	 * @throws IOException
-	 *             If an I/O error occurs.
-	 * @throws InterruptedException
-	 *             If the current thread is interrupted by another thread while it
-	 *             is waiting, then the wait is ended and an InterruptedException is
-	 *             thrown.
-	 * @throws MambaInstallException if Micromamba has not been installed, thus the instance of {@link Mamba} cannot be used
-	 */
-	public void create( final String envName, final String... args ) throws IOException, InterruptedException, MambaInstallException
-	{
-		checkMambaInstalled();
-		final List< String > cmd = new ArrayList<>( Arrays.asList( "create", "-p", getEnvDir(envName) ) );
-		cmd.addAll( Arrays.asList( args ) );
-		if (!cmd.contains("--yes") && !cmd.contains("-y")) cmd.add("--yes");
-		runMamba(cmd.toArray(new String[0]));
-	}
-
-	/**
-	 * Run {@code conda create} to create a new conda environment with a list of
-	 * specified packages.
-	 * 
-	 * @param envName
-	 *            The environment name to be created. CAnnot be null.
-	 * @param channels
-	 *            the channels from where the packages can be installed. Can be null
-	 * @param packages
-	 * 			  the packages that want to be installed during env creation. They can contain the version.
-	 * 			  For example, "python" or "python=3.10.1", "numpy" or "numpy=1.20.1". CAn be null if no packages want to be installed
-	 * @throws IOException
-	 *             If an I/O error occurs.
-	 * @throws InterruptedException
-	 *             If the current thread is interrupted by another thread while it
-	 *             is waiting, then the wait is ended and an InterruptedException is
-	 *             thrown.
-	 * @throws RuntimeException
-	 *             If there is any error running the commands
-	 * @throws MambaInstallException if Micromamba has not been installed, thus the instance of {@link Mamba} cannot be used
-	 */
-	public void create( final String envName, List<String> channels, List<String> packages ) throws IOException, InterruptedException, RuntimeException, MambaInstallException
-	{
-		checkMambaInstalled();
-		Objects.requireNonNull(envName, "The name of the environment of interest needs to be provided.");
-		final List< String > cmd = new ArrayList<>( Arrays.asList( "create", "-p", getEnvDir(envName) ) );
-		if (channels == null) channels = new ArrayList<>();
-		for (String chan : channels) { cmd.add("-c"); cmd.add(chan);}
-		if (packages == null) packages = new ArrayList<>();
-		cmd.addAll(packages);
-		if (!cmd.contains("--yes") && !cmd.contains("-y")) cmd.add("--yes");
-		runMamba(cmd.toArray(new String[0]));
 	}
 
 	/**
@@ -620,9 +539,9 @@ class Mamba {
 	 *             If the current thread is interrupted by another thread while it
 	 *             is waiting, then the wait is ended and an InterruptedException is
 	 *             thrown.
-	 * @throws MambaInstallException if Micromamba has not been installed, thus the instance of {@link Mamba} cannot be used
+	 * @throws IllegalStateException if Micromamba has not been installed, thus the instance of {@link Mamba} cannot be used
 	 */
-	public void runMamba(boolean isInheritIO, final String... args ) throws RuntimeException, IOException, InterruptedException, MambaInstallException
+	public void runMamba(boolean isInheritIO, final String... args ) throws RuntimeException, IOException, InterruptedException
 	{
 		checkMambaInstalled();
 		Thread mainThread = Thread.currentThread();
@@ -730,9 +649,9 @@ class Mamba {
 	 *             If the current thread is interrupted by another thread while it
 	 *             is waiting, then the wait is ended and an InterruptedException is
 	 *             thrown.
-	 * @throws MambaInstallException if Micromamba has not been installed, thus the instance of {@link Mamba} cannot be used
+	 * @throws IllegalStateException if Micromamba has not been installed, thus the instance of {@link Mamba} cannot be used
 	 */
-	public void runMamba(final String... args ) throws RuntimeException, IOException, InterruptedException, MambaInstallException
+	public void runMamba(final String... args ) throws RuntimeException, IOException, InterruptedException
 	{
 		checkMambaInstalled();
 		runMamba(false, args);
