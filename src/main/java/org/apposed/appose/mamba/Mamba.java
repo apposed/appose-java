@@ -109,10 +109,6 @@ class Mamba {
 	 */
 	private final String rootdir;
 	/**
-	 * Path to the folder that contains the directories
-	 */
-	private final String envsdir;
-	/**
 	 * Progress made on the download from the Internet of the micromamba software. VAlue between 0 and 1.
 	 * 
 	 */
@@ -167,10 +163,6 @@ class Mamba {
 	 * Path where Appose installs Micromamba by default
 	 */
 	final public static String BASE_PATH = Paths.get(System.getProperty("user.home"), ".local", "share", "appose", "micromamba").toString();
-	/**
-	 * Name of the folder inside the {@link #rootdir} that contains the different Conda environments created by the Appose Micromamba
-	 */
-	final public static String ENVS_NAME = "envs";
 	/**
 	 * URL from where Micromamba is downloaded to be installed
 	 */
@@ -290,7 +282,6 @@ class Mamba {
 		else
 			this.rootdir = rootdir;
 		this.mambaCommand = new File(this.rootdir + MICROMAMBA_RELATIVE_PATH).getAbsolutePath();
-		this.envsdir = Paths.get(rootdir, ENVS_NAME).toAbsolutePath().toString();
 		boolean filesExist = Files.notExists( Paths.get( mambaCommand ) );
 		if (!filesExist)
 			return;
@@ -412,8 +403,6 @@ class Mamba {
 	        throw new IOException("Failed to create Micromamba default directory " + mambaBaseDir.getParentFile().getAbsolutePath()
 	        		+ ". Please try installing it in another directory.");
 		MambaInstallerUtils.unTar(tempTarFile, mambaBaseDir);
-		if (!(new File(envsdir)).isDirectory() && !new File(envsdir).mkdirs())
-	        throw new IOException("Failed to create Micromamba default envs directory " + envsdir);
 		boolean executableSet = new File(mambaCommand).setExecutable(true);
 		if (!executableSet)
 			throw new IOException("Cannot set file as executable due to missing permissions, "
@@ -434,14 +423,6 @@ class Mamba {
 		if (isMambaInstalled()) return;
 		decompressMicromamba(downloadMicromamba());
 	}
-	
-	public String getEnvsDir() {
-		return this.envsdir;
-	}
-
-	public String getEnvDir(String envName) {
-		return Paths.get(getEnvsDir(), envName).toString();
-	}
 
 	/**
 	 * Returns {@code \{"cmd.exe", "/c"\}} for Windows and an empty list for
@@ -461,9 +442,9 @@ class Mamba {
 	/**
 	 * Run {@code conda update} in the specified environment. A list of packages to
 	 * update and extra parameters can be specified as {@code args}.
-	 * 
-	 * @param envName
-	 *            The environment name to be used for the update command.
+	 *
+	 * @param envDir
+	 *            The directory within which the environment will be updated.
 	 * @param args
 	 *            The list of packages to be updated and extra parameters as
 	 *            {@code String...}.
@@ -475,10 +456,10 @@ class Mamba {
 	 *             thrown.
 	 * @throws IllegalStateException if Micromamba has not been installed, thus the instance of {@link Mamba} cannot be used
 	 */
-	public void updateIn( final String envName, final String... args ) throws IOException, InterruptedException
+	public void updateIn( final File envDir, final String... args ) throws IOException, InterruptedException
 	{
 		checkMambaInstalled();
-		final List< String > cmd = new ArrayList<>( Arrays.asList( "update", "-p", getEnvDir(envName) ) );
+		final List< String > cmd = new ArrayList<>( Arrays.asList( "update", "--prefix", envDir.getAbsolutePath() ) );
 		cmd.addAll( Arrays.asList( args ) );
 		if (!cmd.contains("--yes") && !cmd.contains("-y")) cmd.add("--yes");
 		runMamba(cmd.toArray(new String[0]));
