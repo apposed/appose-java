@@ -93,7 +93,7 @@
 	<dependencies>
 		<!--
 		NB: This list of dependencies must be kept in sync with
-		the org.apposed.appose.Environment#javaService method!
+		the org.apposed.appose.Environment#java method!
 		-->
 
 		<!-- Groovy service executor -->
@@ -108,7 +108,6 @@
 		<dependency>
 			<groupId>org.apache.ivy</groupId>
 			<artifactId>ivy</artifactId>
-			<version>${ivy.version}</version>
 		</dependency>
 
 		<!-- Native shared memory APIs -->
@@ -121,14 +120,10 @@
 			<artifactId>jna-platform</artifactId>
 		</dependency>
 
-		<!-- TEMP - for javaconda code -->
-		<dependency>
-			<groupId>commons-io</groupId>
-			<artifactId>commons-io</artifactId>
-		</dependency>
+		<!-- For decompressing micromamba -->
 		<dependency>
 			<groupId>org.apache.commons</groupId>
-			<artifactId>commons-lang3</artifactId>
+			<artifactId>commons-compress</artifactId>
 		</dependency>
 
 		<!-- Test dependencies -->
@@ -143,9 +138,10 @@
 			<scope>test</scope>
 		</dependency>
 		<dependency>
-		    <groupId>org.apache.commons</groupId>
-		    <artifactId>commons-compress</artifactId>
-		    <version>1.24.0</version>
+			<groupId>commons-io</groupId>
+			<artifactId>commons-io</artifactId>
+			<scope>test</scope>
 		</dependency>
+
 	</dependencies>
 </project>

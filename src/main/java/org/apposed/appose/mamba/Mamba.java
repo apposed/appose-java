@@ -59,8 +59,6 @@
 
 package org.apposed.appose.mamba;
 
-import org.apache.commons.lang3.SystemUtils;
-
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileOutputStream;
@@ -156,7 +154,7 @@ class Mamba {
 	/**
 	 * Relative path to the micromamba executable from the micromamba {@link #rootdir}
 	 */
-	private final static String MICROMAMBA_RELATIVE_PATH = SystemUtils.IS_OS_WINDOWS ?
+	private final static String MICROMAMBA_RELATIVE_PATH = isWindowsOS() ?
 			Paths.get("Library", "bin", "micromamba.exe").toString() :
 			Paths.get("bin", "micromamba").toString();
 	/**
@@ -434,7 +432,7 @@ class Mamba {
 	private static List< String > getBaseCommand()
 	{
 		final List< String > cmd = new ArrayList<>();
-		if ( SystemUtils.IS_OS_WINDOWS )
+		if ( isWindowsOS() )
 			cmd.addAll( Arrays.asList( "cmd.exe", "/c" ) );
 		return cmd;
 	}
@@ -500,7 +498,7 @@ class Mamba {
 	 */
 	public String getVersion() throws IOException, InterruptedException {
 		final List< String > cmd = getBaseCommand();
-		if (mambaCommand.contains(" ") && SystemUtils.IS_OS_WINDOWS)
+		if (mambaCommand.contains(" ") && isWindowsOS())
 			cmd.add( surroundWithQuotes(Arrays.asList( coverArgWithDoubleQuotes(mambaCommand), "--version" )) );
 		else
 			cmd.addAll( Arrays.asList( coverArgWithDoubleQuotes(mambaCommand), "--version" ) );
@@ -538,12 +536,12 @@ class Mamba {
 		List<String> argsList = new ArrayList<>();
 		argsList.add( coverArgWithDoubleQuotes(mambaCommand) );
 		argsList.addAll( Arrays.stream( args ).map(aa -> {
-			if (aa.contains(" ") && SystemUtils.IS_OS_WINDOWS) return coverArgWithDoubleQuotes(aa);
+			if (aa.contains(" ") && isWindowsOS()) return coverArgWithDoubleQuotes(aa);
 			else return aa;
 		}).collect(Collectors.toList()) );
 		boolean containsSpaces = argsList.stream().anyMatch(aa -> aa.contains(" "));
 		
-		if (!containsSpaces || !SystemUtils.IS_OS_WINDOWS) cmd.addAll(argsList);
+		if (!containsSpaces || !isWindowsOS()) cmd.addAll(argsList);
 		else cmd.add(surroundWithQuotes(argsList));
 		
 		ProcessBuilder builder = getBuilder(isInheritIO).command(cmd);
@@ -656,7 +654,7 @@ class Mamba {
         for (String schar : specialChars) {
         	if (arg.startsWith("\"") && arg.endsWith("\""))
         		continue;
-        	if (arg.contains(schar) && SystemUtils.IS_OS_WINDOWS) {
+        	if (arg.contains(schar) && isWindowsOS()) {
         		return "\"" + arg + "\"";
         	}
         }
@@ -678,5 +676,9 @@ class Mamba {
 		arg = arg.substring(0, arg.length() - 1);
 		arg += "\"";
 		return arg;
+	}
+
+	private static boolean isWindowsOS() {
+		return System.getProperty("os.name").startsWith("Windows");
 	}
 }

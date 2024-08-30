@@ -127,14 +127,15 @@ public interface Environment {
 
 		// Ensure that the classpath includes Appose and its dependencies.
 		// NB: This list must match Appose's dependencies in pom.xml!
-		List<Class<?>> apposeDeps = Arrays.asList(//
-			org.apposed.appose.GroovyWorker.class, // ------> org.apposed:appose
-			org.apache.groovy.util.ScriptRunner.class, // --> org.codehaus.groovy:groovy
-			groovy.json.JsonOutput.class, // ---------------> org.codehaus.groovy:groovy-json
-			org.apache.ivy.Ivy.class, // -------------------> org.apache.ivy:ivy
-			com.sun.jna.Pointer.class, // ------------------> com.sun.jna:jna
-			com.sun.jna.platform.linux.LibRT.class, // -----> com.sun.jna:jna-platform
-			com.sun.jna.platform.win32.Kernel32.class // ---> com.sun.jna:jna-platform
+		List<Class<?>> apposeDeps = Arrays.asList(
+			org.apposed.appose.GroovyWorker.class, // ------------------------> org.apposed:appose
+			org.apache.groovy.util.ScriptRunner.class, // --------------------> org.codehaus.groovy:groovy
+			groovy.json.JsonOutput.class, // ---------------------------------> org.codehaus.groovy:groovy-json
+			org.apache.ivy.Ivy.class, // -------------------------------------> org.apache.ivy:ivy
+			com.sun.jna.Pointer.class, // ------------------------------------> com.sun.jna:jna
+			com.sun.jna.platform.linux.LibRT.class, // -----------------------> com.sun.jna:jna-platform
+			com.sun.jna.platform.win32.Kernel32.class, // --------------------> com.sun.jna:jna-platform
+			org.apache.commons.compress.archivers.ArchiveException.class // --> org.apache.commons:commons-compress
 		);
 		for (Class<?> depClass : apposeDeps) {
 			File location = FilePaths.location(depClass);
