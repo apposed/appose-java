@@ -100,7 +100,7 @@ public class MambaHandler implements BuildHandler {
 	public void build(File envDir, Builder builder) throws IOException {
 		if (!channels.isEmpty() || !condaIncludes.isEmpty() || !pypiIncludes.isEmpty()) {
 			throw new UnsupportedOperationException(
-				"Sorry, I don't know how to mix in additional packages from conda or PyPI yet." +
+				"Sorry, I don't know how to mix in additional packages from Conda or PyPI yet." +
 					" Please put them in your environment.yml for now.");
 		}
 		if (yamlIncludes.isEmpty()) {
@@ -110,7 +110,7 @@ public class MambaHandler implements BuildHandler {
 		}
 		if (yamlIncludes.size() > 1) {
 			throw new UnsupportedOperationException(
-				"Sorry, I can't synthesize micromamba environments from multiple environment.yml files yet." +
+				"Sorry, I can't synthesize Conda environments from multiple environment.yml files yet." +
 					" Please use a single environment.yml for now.");
 		}
 

@@ -108,11 +108,11 @@ class Mamba {
 	private final String rootdir;
 	/**
 	 * Progress made on the download from the Internet of the micromamba software. VAlue between 0 and 1.
-	 * 
+	 *
 	 */
 	private Double mambaDnwldProgress = 0.0;
 	/**
-	 * Progress made on the decompressing the micromamba files downloaded from the Internet of the micromamba 
+	 * Progress made on the decompressing the micromamba files downloaded from the Internet of the micromamba
 	 * software. VAlue between 0 and 1.
 	 */
 	private Double mambaDecompressProgress = 0.0;
@@ -312,38 +312,38 @@ class Mamba {
 	}
 
 	/**
-	 * 
+	 *
 	 * @return the progress made on the download from the Internet of the micromamba software. VAlue between 0 and 1.
 	 */
 	public double getMicromambaDownloadProgress(){
 		return this.mambaDnwldProgress;
 	}
-	
+
 	/**
-	 * 
-	 * @return the the progress made on the decompressing the micromamba files downloaded from the Internet of the micromamba 
+	 *
+	 * @return the the progress made on the decompressing the micromamba files downloaded from the Internet of the micromamba
 	 * 	software. VAlue between 0 and 1.
 	 */
 	public double getMicromambaDecompressProgress(){
 		return this.mambaDecompressProgress;
 	}
-	
+
 	/**
-	 * 
+	 *
 	 * @return all the console output produced by micromamba ever since the {@link Mamba} was instantiated
 	 */
 	public String getMicromambaConsoleStream(){
 		return this.mambaConsoleOut;
 	}
-	
+
 	/**
-	 * 
+	 *
 	 * @return all the error output produced by micromamba ever since the {@link Mamba} was instantiated
 	 */
 	public String getMicromambaErrStream(){
 		return mambaConsoleErr;
 	}
-	
+
 	/**
 	 * Set a custom consumer for the console output of every micromamba call
 	 * @param custom
@@ -408,7 +408,8 @@ class Mamba {
 	}
 	
 	/**
-	 * Install Micromamba automatically
+	 * Downloads and installs Micromamba.
+	 *
 	 * @throws IOException
 	 *             If an I/O error occurs.
 	 * @throws InterruptedException

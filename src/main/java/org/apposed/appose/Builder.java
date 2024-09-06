@@ -267,11 +267,11 @@ public class Builder {
 	 */
 	public Environment build(File envDir) throws IOException {
 		if (envDir == null) {
-			throw new IllegalArgumentException("No environment base directory given.");
+			throw new IllegalArgumentException("No environment directory given.");
 		}
 		if (!envDir.exists()) {
 			if (!envDir.mkdirs()) {
-				throw new RuntimeException("Failed to create environment base directory: " + envDir);
+				throw new RuntimeException("Failed to create environment directory: " + envDir);
 			}
 		}
 		if (!envDir.isDirectory()) {
@@ -287,7 +287,7 @@ public class Builder {
 		List<String> binPaths = listFromConfig("binPaths", config);
 		List<String> classpath = listFromConfig("classpath", config);
 
-		// Always add environment directory itself to the binPaths.
+		// Always add the environment directory itself to the binPaths.
 		// Especially important on Windows, where python.exe is not tucked into a bin subdirectory.
 		binPaths.add(envDir.getAbsolutePath());
 
@@ -303,8 +303,6 @@ public class Builder {
 			@Override public List<String> launchArgs() { return launchArgs; }
 		};
 	}
-
-	// -- Helper methods --
 
 	private boolean handle(Function<BuildHandler, Boolean> handlerFunction) {
 		boolean handled = false;
