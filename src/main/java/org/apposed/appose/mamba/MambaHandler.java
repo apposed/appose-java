@@ -173,6 +173,12 @@ public class MambaHandler implements BuildHandler {
 		// Finally, we can build the environment from the environment.yml file.
 		try {
 			Mamba conda = new Mamba(Mamba.BASE_PATH);
+			conda.setOutputConsumer(msg -> builder.outputSubscribers.forEach(sub -> sub.accept(msg)));
+			conda.setErrorConsumer(msg -> builder.errorSubscribers.forEach(sub -> sub.accept(msg)));
+			conda.setMambaDownloadProgressConsumer((cur, max) -> {
+				builder.progressSubscribers.forEach(subscriber -> subscriber.accept("Downloading micromamba", cur, max));
+			});
+
 			conda.installMicromamba();
 			conda.createWithYaml(envDir, environmentYaml.getAbsolutePath());
 		} catch (InterruptedException | URISyntaxException e) {
