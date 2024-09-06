@@ -280,14 +280,6 @@ class Mamba {
 		else
 			this.rootdir = rootdir;
 		this.mambaCommand = new File(this.rootdir + MICROMAMBA_RELATIVE_PATH).getAbsolutePath();
-		boolean filesExist = Files.notExists( Paths.get( mambaCommand ) );
-		if (!filesExist)
-			return;
-		try {
-			getVersion();
-		} catch (Exception ex) {
-			return;
-		}
 	}
 
 	/**
