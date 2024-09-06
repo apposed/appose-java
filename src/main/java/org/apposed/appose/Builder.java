@@ -52,6 +52,8 @@ import java.util.stream.Collectors;
  */
 public class Builder {
 
+	public final Map<String, List<String>> config = new HashMap<>();
+
 	private final List<BuildHandler> handlers;
 
 	private boolean includeSystemPath;
@@ -276,8 +278,8 @@ public class Builder {
 			throw new IllegalArgumentException("Not a directory: " + envDir);
 		}
 
-		Map<String, List<String>> config = new HashMap<>();
-		for (BuildHandler handler : handlers) handler.build(envDir, config);
+		config.clear();
+		for (BuildHandler handler : handlers) handler.build(envDir, this);
 
 		String base = envDir.getAbsolutePath();
 

@@ -64,9 +64,10 @@ public interface BuildHandler {
 	 * Executes the environment build, according to the configured channels and includes.
 	 *
 	 * @param envDir The directory into which the environment will be built.
-	 * @param config The table into which environment configuration will be recorded.
-	 * @see Builder#build(String)
+	 * @param builder The {@link Builder} instance managing the build process.
+	 *                Contains output configuration table.
 	 * @throws IOException If something goes wrong building the environment.
+	 * @see Builder#build(String)
 	 */
-	void build(File envDir, Map<String, List<String>> config) throws IOException;
+	void build(File envDir, Builder builder) throws IOException;
 }

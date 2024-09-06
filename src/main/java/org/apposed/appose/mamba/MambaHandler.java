@@ -29,6 +29,7 @@
 package org.apposed.appose.mamba;
 
 import org.apposed.appose.BuildHandler;
+import org.apposed.appose.Builder;
 import org.apposed.appose.FilePaths;
 
 import java.io.File;
@@ -96,7 +97,7 @@ public class MambaHandler implements BuildHandler {
 	}
 
 	@Override
-	public void build(File envDir, Map<String, List<String>> config) throws IOException {
+	public void build(File envDir, Builder builder) throws IOException {
 		if (!channels.isEmpty() || !condaIncludes.isEmpty() || !pypiIncludes.isEmpty()) {
 			throw new UnsupportedOperationException(
 				"Sorry, I don't know how to mix in additional packages from conda or PyPI yet." +
@@ -104,7 +105,7 @@ public class MambaHandler implements BuildHandler {
 		}
 		if (yamlIncludes.isEmpty()) {
 			// Nothing for this handler to do.
-			fillConfig(envDir, config);
+			fillConfig(envDir, builder.config);
 			return;
 		}
 		if (yamlIncludes.size() > 1) {
@@ -118,7 +119,7 @@ public class MambaHandler implements BuildHandler {
 		if (new File(envDir, "conda-meta").isDirectory()) {
 			// This environment has already been populated.
 			// TODO: Should we update it? For now, we just use it.
-			fillConfig(envDir, config);
+			fillConfig(envDir, builder.config);
 			return;
 		}
 
@@ -182,7 +183,7 @@ public class MambaHandler implements BuildHandler {
 		// at least the environment.yml file, and maybe other files from other handlers.
 		FilePaths.moveDirectory(workDir, envDir, false);
 
-		fillConfig(envDir, config);
+		fillConfig(envDir, builder.config);
 	}
 
 	private List<String> lines(String content) {
