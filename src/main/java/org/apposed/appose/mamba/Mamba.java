@@ -87,11 +87,12 @@ import java.util.stream.Collectors;
  * @author Carlos Garcia
  */
 class Mamba {
-	
+
 	/**
 	 * String containing the path that points to the micromamba executable
 	 */
 	final String mambaCommand;
+
 	/**
 	 * Root directory of micromamba that also contains the environments folder
 	 * 
@@ -129,15 +130,18 @@ class Mamba {
 	private final static String MICROMAMBA_RELATIVE_PATH = isWindowsOS() ?
 			Paths.get("Library", "bin", "micromamba.exe").toString() :
 			Paths.get("bin", "micromamba").toString();
+
 	/**
 	 * Path where Appose installs Micromamba by default
 	 */
 	final public static String BASE_PATH = Paths.get(System.getProperty("user.home"), ".local", "share", "appose", "micromamba").toString();
+
 	/**
 	 * URL from where Micromamba is downloaded to be installed
 	 */
 	public final static String MICROMAMBA_URL =
 		"https://micro.mamba.pm/api/micromamba/" + microMambaPlatform() + "/latest";
+
 	/**
 	 * ID used to identify the text retrieved from the error stream when a consumer is used
 	 */
@@ -322,22 +326,23 @@ class Mamba {
 			throw new IOException("Error downloading micromamba from: " + MICROMAMBA_URL);
 		return tempFile;
 	}
-	
+
 	private void decompressMicromamba(final File tempFile) throws IOException, InterruptedException {
 		final File tempTarFile = File.createTempFile( "micromamba", ".tar" );
 		tempTarFile.deleteOnExit();
 		MambaInstallerUtils.unBZip2(tempFile, tempTarFile);
 		File mambaBaseDir = new File(rootdir);
 		if (!mambaBaseDir.isDirectory() && !mambaBaseDir.mkdirs())
-	        throw new IOException("Failed to create Micromamba default directory " + mambaBaseDir.getParentFile().getAbsolutePath()
-	        		+ ". Please try installing it in another directory.");
+			throw new IOException("Failed to create Micromamba default directory " +
+				mambaBaseDir.getParentFile().getAbsolutePath() +
+				". Please try installing it in another directory.");
 		MambaInstallerUtils.unTar(tempTarFile, mambaBaseDir);
 		boolean executableSet = new File(mambaCommand).setExecutable(true);
 		if (!executableSet)
 			throw new IOException("Cannot set file as executable due to missing permissions, "
 					+ "please do it manually: " + mambaCommand);
 	}
-	
+
 	/**
 	 * Downloads and installs Micromamba.
 	 *
