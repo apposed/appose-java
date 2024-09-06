@@ -77,6 +77,7 @@ import java.util.Arrays;
 import java.util.Calendar;
 import java.util.List;
 import java.util.UUID;
+import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
@@ -106,51 +107,23 @@ class Mamba {
 	 * </pre>
 	 */
 	private final String rootdir;
-	/**
-	 * Progress made on the download from the Internet of the micromamba software. VAlue between 0 and 1.
-	 *
-	 */
-	private Double mambaDnwldProgress = 0.0;
-	/**
-	 * Progress made on the decompressing the micromamba files downloaded from the Internet of the micromamba
-	 * software. VAlue between 0 and 1.
-	 */
-	private Double mambaDecompressProgress = 0.0;
+
 	/**
 	 * Consumer that tracks the progress in the download of micromamba, the software used 
-	 * by this class to manage Conda environments
+	 * by this class to manage Conda environments.
 	 */
-	private final Consumer<Double> mambaDnwldProgressConsumer = this::updateMambaDnwldProgress;
+	private BiConsumer<Long, Long> mambaDownloadProgressConsumer;
+
 	/**
-	 * Consumer that tracks the progress decompressing the downloaded micromamba files.
+	 * Consumer that tracks the standard output stream produced by the micromamba process when it is executed.
 	 */
-	private final Consumer<Double> mambaDecompressProgressConsumer = this::updateMambaDecompressProgress;
+	private Consumer<String> outputConsumer;
+
 	/**
-	 * String that contains all the console output produced by micromamba ever since the {@link Mamba} was instantiated
+	 * Consumer that tracks the standard error stream produced by the micromamba process when it is executed.
 	 */
-	private String mambaConsoleOut = "";
-	/**
-	 * String that contains all the error output produced by micromamba ever since the {@link Mamba} was instantiated
-	 */
-	private String mambaConsoleErr = "";
-	/**
-	 * User custom consumer that tracks the console output produced by the micromamba process when it is executed.
-	 */
-	private Consumer<String> customConsoleConsumer;
-	/**
-	 * User custom consumer that tracks the error output produced by the micromamba process when it is executed.
-	 */
-	private Consumer<String> customErrorConsumer;
-	/**
-	 * Consumer that tracks the console output produced by the micromamba process when it is executed.
-	 * This consumer saves all the log of every micromamba execution
-	 */
-	private final Consumer<String> consoleConsumer = this::updateConsoleConsumer;
-	/**
-	 * Consumer that tracks the error output produced by the micromamba process when it is executed.
-	 * This consumer saves all the log of every micromamba execution
-	 */
-	private final Consumer<String> errConsumer = this::updateErrorConsumer;
+	private Consumer<String> errorConsumer;
+
 	/**
 	 * Relative path to the micromamba executable from the micromamba {@link #rootdir}
 	 */
@@ -189,29 +162,20 @@ class Mamba {
 			default:                 return null;
 		}
 	}
-	
-	private void updateMambaDnwldProgress(Double pp) {
-	    double progress = pp != null ? pp : 0.0;
-	    mambaDnwldProgress = progress * 1.0;
+
+	private void updateMambaDownloadProgress(long current, long total) {
+		if (mambaDownloadProgressConsumer != null)
+			mambaDownloadProgressConsumer.accept(current, total);
 	}
-	
-	private void updateConsoleConsumer(String str) {
-		if (str == null) str = "";
-		mambaConsoleOut += str;
-		if (customConsoleConsumer != null)
-			customConsoleConsumer.accept(str);
+
+	private void updateOutputConsumer(String str) {
+		if (outputConsumer != null)
+			outputConsumer.accept(str == null ? "" : str);
 	}
-	
+
 	private void updateErrorConsumer(String str) {
-		if (str == null) str = "";
-		mambaConsoleErr += str;
-		if (customErrorConsumer != null)
-			customErrorConsumer.accept(str);
-	}
-	
-	private void updateMambaDecompressProgress(Double pp) {
-	    double progress = pp != null ? pp : 0.0;
-	    this.mambaDecompressProgress = progress * 1.0;
+		if (errorConsumer != null)
+			errorConsumer.accept(str == null ? "" : str);
 	}
 
 	/**
@@ -304,56 +268,32 @@ class Mamba {
 	}
 
 	/**
-	 *
-	 * @return the progress made on the download from the Internet of the micromamba software. VAlue between 0 and 1.
+	 * Registers the consumer for the standard error stream of every micromamba call.
+	 * @param consumer
+	 * 	callback function invoked for each stderr line of every micromamba call
 	 */
-	public double getMicromambaDownloadProgress(){
-		return this.mambaDnwldProgress;
+	public void setMambaDownloadProgressConsumer(BiConsumer<Long, Long> consumer) {
+		this.mambaDownloadProgressConsumer = consumer;
 	}
 
 	/**
-	 *
-	 * @return the the progress made on the decompressing the micromamba files downloaded from the Internet of the micromamba
-	 * 	software. VAlue between 0 and 1.
+	 * Registers the consumer for the standard output stream of every micromamba call.
+	 * @param consumer
+	 * 	callback function invoked for each stdout line of every micromamba call
 	 */
-	public double getMicromambaDecompressProgress(){
-		return this.mambaDecompressProgress;
+	public void setOutputConsumer(Consumer<String> consumer) {
+		this.outputConsumer = consumer;
 	}
 
 	/**
-	 *
-	 * @return all the console output produced by micromamba ever since the {@link Mamba} was instantiated
+	 * Registers the consumer for the standard error stream of every micromamba call.
+	 * @param consumer
+	 * 	callback function invoked for each stderr line of every micromamba call
 	 */
-	public String getMicromambaConsoleStream(){
-		return this.mambaConsoleOut;
+	public void setErrorConsumer(Consumer<String> consumer) {
+		this.errorConsumer = consumer;
 	}
 
-	/**
-	 *
-	 * @return all the error output produced by micromamba ever since the {@link Mamba} was instantiated
-	 */
-	public String getMicromambaErrStream(){
-		return mambaConsoleErr;
-	}
-
-	/**
-	 * Set a custom consumer for the console output of every micromamba call
-	 * @param custom
-	 * 	custom consumer that receives every console line outputed by ecery micromamba call
-	 */
-	public void setConsoleOutputConsumer(Consumer<String> custom) {
-		this.customConsoleConsumer = custom;
-	}
-	
-	/**
-	 * Set a custom consumer for the error output of every micromamba call
-	 * @param custom
-	 * 	custom consumer that receives every error line outputed by ecery micromamba call
-	 */
-	public void setErrorOutputConsumer(Consumer<String> custom) {
-		this.customErrorConsumer = custom;
-	}
-	
 	private File downloadMicromamba() throws IOException, InterruptedException, URISyntaxException {
 		final File tempFile = File.createTempFile( "micromamba", ".tar.bz2" );
 		tempFile.deleteOnExit();
@@ -375,11 +315,11 @@ class Mamba {
 		dwnldThread.start();
 		while (dwnldThread.isAlive()) {
 			Thread.sleep(20); // 50 FPS update rate
-			this.mambaDnwldProgressConsumer.accept(((double) tempFile.length()) / ((double) size));
+			updateMambaDownloadProgress(tempFile.length(), size);
 		}
 		if (ioe[0] != null) throw ioe[0];
 		if (ie[0] != null) throw ie[0];
-		if ((((double) tempFile.length()) / size) < 1)
+		if (tempFile.length() < size)
 			throw new IOException("Error downloading micromamba from: " + MICROMAMBA_URL);
 		return tempFile;
 	}
@@ -540,7 +480,7 @@ class Mamba {
 		ProcessBuilder builder = getBuilder(isInheritIO).command(cmd);
 		Process process = builder.start();
 		// Use separate threads to read each stream to avoid a deadlock.
-		this.consoleConsumer.accept(sdf.format(Calendar.getInstance().getTime()) + " -- STARTING INSTALLATION" + System.lineSeparator());
+		updateOutputConsumer(sdf.format(Calendar.getInstance().getTime()) + " -- STARTING INSTALLATION" + System.lineSeparator());
 		long updatePeriod = 300;
 		Thread outputThread = new Thread(() -> {
 			try (
@@ -577,7 +517,7 @@ class Mamba {
 	                // Sleep for a bit to avoid busy waiting
 	                Thread.sleep(60);
 	                if (System.currentTimeMillis() - t0 > updatePeriod) {
-						this.consoleConsumer.accept(processChunk);
+						updateOutputConsumer(processChunk);
 						processChunk = "";
 						errChunk = "";
 						t0 = System.currentTimeMillis();
@@ -591,8 +531,8 @@ class Mamba {
 	                errBuff.append(new String(buffer, 0, errStream.read(buffer)));
 	                errChunk += ERR_STREAM_UUUID + errBuff.toString().trim();
 	            }
-				this.errConsumer.accept(errChunk);
-				this.consoleConsumer.accept(processChunk + System.lineSeparator() 
+				updateErrorConsumer(errChunk);
+				updateOutputConsumer(processChunk + System.lineSeparator()
 								+ sdf.format(Calendar.getInstance().getTime()) + " -- TERMINATED PROCESS");
 		    } catch (IOException | InterruptedException e) {
 		        e.printStackTrace();
@@ -609,9 +549,7 @@ class Mamba {
 		// Wait for all output to be read
 		outputThread.join();
 		if (processResult != 0)
-        	throw new RuntimeException("Error executing the following command: " + builder.command()
-        								+ System.lineSeparator() + this.mambaConsoleOut
-        								+ System.lineSeparator() + this.mambaConsoleErr);
+			throw new RuntimeException("Exit code " + processResult + " from command execution: " + builder.command());
 	}
 
 	/**
