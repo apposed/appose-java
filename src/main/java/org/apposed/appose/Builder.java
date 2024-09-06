@@ -42,6 +42,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.ServiceLoader;
+import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
@@ -53,6 +54,9 @@ import java.util.stream.Collectors;
 public class Builder {
 
 	public final Map<String, List<String>> config = new HashMap<>();
+	public final List<ProgressConsumer> progressSubscribers = new ArrayList<>();
+	public final List<Consumer<String>> outputSubscribers = new ArrayList<>();
+	public final List<Consumer<String>> errorSubscribers = new ArrayList<>();
 
 	private final List<BuildHandler> handlers;
 
@@ -62,6 +66,28 @@ public class Builder {
 	Builder() {
 		handlers = new ArrayList<>();
 		ServiceLoader.load(BuildHandler.class).forEach(handlers::add);
+	}
+
+	/**
+	 * Registers a callback method to be invoked when progress happens during environment building.
+	 *
+	 * @param subscriber Party to inform when build progress happens.
+	 * @return This {@code Builder} instance, for fluent-style programming.
+	 * @see ProgressConsumer#accept
+	 */
+	public Builder subscribeProgress(ProgressConsumer subscriber) {
+		progressSubscribers.add(subscriber);
+		return this;
+	}
+
+	public Builder subscribeOutput(Consumer<String> subscriber) {
+		outputSubscribers.add(subscriber);
+		return this;
+	}
+
+	public Builder subscribeError(Consumer<String> subscriber) {
+		errorSubscribers.add(subscriber);
+		return this;
 	}
 
 	/**
@@ -314,5 +340,9 @@ public class Builder {
 	private static List<String> listFromConfig(String key, Map<String, List<String>> config) {
 		List<?> value = config.getOrDefault(key, Collections.emptyList());
 		return value.stream().map(Object::toString).collect(Collectors.toList());
+	}
+
+	public interface ProgressConsumer {
+		void accept(String title, long current, long maximum);
 	}
 }

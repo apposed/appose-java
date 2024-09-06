@@ -65,9 +65,25 @@ public interface BuildHandler {
 	 *
 	 * @param envDir The directory into which the environment will be built.
 	 * @param builder The {@link Builder} instance managing the build process.
-	 *                Contains output configuration table.
+	 *                Contains event subscribers and output configuration table.
 	 * @throws IOException If something goes wrong building the environment.
 	 * @see Builder#build(String)
 	 */
 	void build(File envDir, Builder builder) throws IOException;
+
+	default void progress(Builder builder, String title, long current) {
+		progress(builder, title, current, -1);
+	}
+
+	default void progress(Builder builder, String title, long current, long maximum) {
+		builder.progressSubscribers.forEach(subscriber -> subscriber.accept(title, current, maximum));
+	}
+
+	default void output(Builder builder, String message) {
+		builder.outputSubscribers.forEach(subscriber -> subscriber.accept(message));
+	}
+
+	default void error(Builder builder, String message) {
+		builder.errorSubscribers.forEach(subscriber -> subscriber.accept(message));
+	}
 }
