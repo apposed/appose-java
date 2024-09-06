@@ -56,8 +56,8 @@ public class FilePathsTest {
 		File tmpDir = Files.createTempDirectory("appose-FilePathsTest-testFindExe-").toFile();
 		try {
 			// Set up some red herrings.
-			File walk = createStubFile(tmpDir, "walk");
-			File fly = createStubFile(tmpDir, "fly");
+			createStubFile(tmpDir, "walk");
+			createStubFile(tmpDir, "fly");
 			File binDir = createDirectory(tmpDir, "bin");
 			File binFly = createStubFile(binDir, "fly");
 			// Mark the desired match as executable.
@@ -103,7 +103,7 @@ public class FilePathsTest {
 			File dinnerFile2 = createStubFile(dinnerDir, "wine");
 			File destDir = createDirectory(tmpDir, "dest");
 			File destLunchDir = createDirectory(destDir, "lunch");
-			File destLunchFile1 = createStubFile(destLunchDir, "apples", "gala");
+			createStubFile(destLunchDir, "apples", "gala");
 
 			// Move the source directory to the destination.
 			FilePaths.moveDirectory(srcDir, destDir, false);
