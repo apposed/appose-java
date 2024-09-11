@@ -73,7 +73,7 @@ public class ApposeTest {
 	public void testGroovy() throws IOException, InterruptedException {
 		Environment env = Appose.system();
 		try (Service service = env.groovy()) {
-			//service.debug(System.err::println);
+			maybeDebug(service);
 			executeAndAssert(service, COLLATZ_GROOVY);
 		}
 	}
@@ -82,7 +82,7 @@ public class ApposeTest {
 	public void testPython() throws IOException, InterruptedException {
 		Environment env = Appose.system();
 		try (Service service = env.python()) {
-			//service.debug(System.err::println);
+			maybeDebug(service);
 			executeAndAssert(service, COLLATZ_PYTHON);
 		}
 	}
@@ -91,13 +91,13 @@ public class ApposeTest {
 	public void testConda() throws IOException, InterruptedException {
 		Environment env = Appose.conda(new File("src/test/resources/envs/cowsay.yml")).build();
 		try (Service service = env.python()) {
-			//service.debug(System.err::println);
+			maybeDebug(service);
 			Task task = service.task(
 				"import cowsay\n" +
 				"task.outputs['moo'] = cowsay.get_output_string('cow', 'moo')\n"
 			);
 			task.waitFor();
-			assertEquals(TaskStatus.COMPLETE, task.status);
+			assertComplete(task);
 			String expectedMoo =
 				"  ___\n" +
 				"| moo |\n" +
@@ -156,9 +156,10 @@ public class ApposeTest {
 
 		// Wait for task to finish.
 		task.waitFor();
+		assertComplete(task);
 
 		// Validate the execution result.
-		assertSame(TaskStatus.COMPLETE, task.status);
+		assertComplete(task);
 		Number result = (Number) task.outputs.get("result");
 		assertEquals(91, result.intValue());
 
@@ -184,10 +185,34 @@ public class ApposeTest {
 		}
 		TaskState completion = events.get(92);
 		assertSame(ResponseType.COMPLETION, completion.responseType);
-		assertSame(TaskStatus.COMPLETE, completion.status);
 		assertEquals("[90] -> 1", completion.message);
 		assertEquals(90, completion.current);
 		assertEquals(1, completion.maximum);
 		assertNull(completion.error);
+	}
+
+	private void maybeDebug(Service service) {
+		String debug1 = System.getenv("DEBUG");
+		String debug2 = System.getProperty("appose.debug");
+		if (falsy(debug1) && falsy(debug2)) return;
+		service.debug(System.err::println);
+	}
+
+	private boolean falsy(String value) {
+		if (value == null) return true;
+		String tValue = value.trim();
+		if (tValue.isEmpty()) return true;
+		if (tValue.equalsIgnoreCase("false")) return true;
+		if (tValue.equals("0")) return true;
+		return false;
+	}
+	private void assertComplete(Task task) {
+		String errorMessage = "";
+		if (task.status != TaskStatus.COMPLETE) {
+			String caller = new RuntimeException().getStackTrace()[1].getMethodName();
+			errorMessage = "TASK ERROR in method " + caller + ":\n" + task.error;
+			System.err.println();
+		}
+		assertEquals(TaskStatus.COMPLETE, task.status, errorMessage);
 	}
 }
