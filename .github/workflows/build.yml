@@ -34,6 +34,15 @@ jobs:
         with:
           python-version: '3.10'
 
+      - name: Cache Appose environments
+        id: cache-appose
+        uses: actions/cache@v4
+        with:
+          path: ~/.local/share/appose
+          key: ${{ runner.os }}-build-appose-${{ hashFiles('*') }}
+          restore-keys: |
+            ${{ runner.os }}-build-appose-
+
       - name: Set up CI environment
         run: .github/setup.sh
 
