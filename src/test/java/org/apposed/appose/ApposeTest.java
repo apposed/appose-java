@@ -115,10 +115,23 @@ public class ApposeTest {
 	}
 
 	@Test
-	public void testServiceStartupFailure() throws IOException {
+	public void testServiceStartupFailure() throws IOException, InterruptedException {
 		Environment env = Appose.build("no-pythons-to-be-found-here");
 		try (Service service = env.python()) {
-			fail("Python worker process started successfully!?");
+			String info = "";
+			try {
+				Task task = service.task(
+					"import sys\n" +
+						"task.outputs['executable'] = sys.executable\n" +
+						"task.outputs['version'] = sys.version"
+				);
+				task.waitFor();
+				info += "\n- sys.executable = " + task.outputs.get("executable");
+				info += "\n- sys.version = " + task.outputs.get("version");
+			}
+			finally {
+				fail("Python worker process started successfully!?" + info);
+			}
 		}
 		catch (IllegalArgumentException exc) {
 			assertEquals(
