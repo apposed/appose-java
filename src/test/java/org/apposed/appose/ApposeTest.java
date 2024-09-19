@@ -136,7 +136,7 @@ public class ApposeTest {
 		catch (IllegalArgumentException exc) {
 			assertEquals(
 				"No executables found amongst candidates: " +
-				"[python, python3, python.exe, bin/python, bin/python.exe]",
+				"[python, python3, python.exe]",
 				exc.getMessage()
 			);
 		}

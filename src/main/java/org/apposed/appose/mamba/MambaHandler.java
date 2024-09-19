@@ -200,11 +200,11 @@ public class MambaHandler implements BuildHandler {
 	}
 
 	public void fillConfig(File envDir, Map<String, List<String>> config) {
-		// If ${envDir}/bin directory exists, add it to binDirs.
+		// If ${envDir}/bin directory exists, add it to binPaths.
 		File binDir = new File(envDir, "bin");
 		if (binDir.isDirectory()) {
-			config.computeIfAbsent("binDirs", k -> new ArrayList<>());
-			config.get("binDirs").add(binDir.getAbsolutePath());
+			config.computeIfAbsent("binPaths", k -> new ArrayList<>());
+			config.get("binPaths").add(binDir.getAbsolutePath());
 		}
 	}
 }

@@ -69,6 +69,7 @@ import java.net.URISyntaxException;
 import java.net.URL;
 import java.nio.channels.Channels;
 import java.nio.channels.ReadableByteChannel;
+import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
@@ -127,9 +128,9 @@ class Mamba {
 	/**
 	 * Relative path to the micromamba executable from the micromamba {@link #rootdir}
 	 */
-	private final static String MICROMAMBA_RELATIVE_PATH = isWindowsOS() ?
-			Paths.get("Library", "bin", "micromamba.exe").toString() :
-			Paths.get("bin", "micromamba").toString();
+	private final static Path MICROMAMBA_RELATIVE_PATH = isWindowsOS() ?
+			Paths.get("Library", "bin", "micromamba.exe") :
+			Paths.get("bin", "micromamba");
 
 	/**
 	 * Path where Appose installs Micromamba by default
@@ -246,7 +247,7 @@ class Mamba {
 			this.rootdir = BASE_PATH;
 		else
 			this.rootdir = rootdir;
-		this.mambaCommand = new File(this.rootdir + MICROMAMBA_RELATIVE_PATH).getAbsolutePath();
+		this.mambaCommand = Paths.get(this.rootdir).resolve(MICROMAMBA_RELATIVE_PATH).toAbsolutePath().toString();
 	}
 
 	/**
@@ -337,10 +338,14 @@ class Mamba {
 				mambaBaseDir.getParentFile().getAbsolutePath() +
 				". Please try installing it in another directory.");
 		MambaInstallerUtils.unTar(tempTarFile, mambaBaseDir);
-		boolean executableSet = new File(mambaCommand).setExecutable(true);
-		if (!executableSet)
-			throw new IOException("Cannot set file as executable due to missing permissions, "
+		File mmFile = new File(mambaCommand);
+		if (!mmFile.exists()) throw new IOException("Expected micromamba binary is missing: " + mambaCommand);
+		if (!mmFile.canExecute()) {
+			boolean executableSet = new File(mambaCommand).setExecutable(true);
+			if (!executableSet)
+				throw new IOException("Cannot set file as executable due to missing permissions, "
 					+ "please do it manually: " + mambaCommand);
+		}
 	}
 
 	/**

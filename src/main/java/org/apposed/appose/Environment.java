@@ -183,13 +183,24 @@ public interface Environment {
 
 		// Discern path to executable by searching the environment's binPaths.
 		File exeFile = FilePaths.findExe(binPaths(), exes);
-		// If exeFile is null, just use the first executable bare, because there
-		// are scenarios like `pixi run python` where the intended executable will
-		// only by part of the system path while within the activated environment.
-		String exe = exeFile == null ? exes.get(0) : exeFile.getCanonicalPath();
+
+		// Calculate exe string.
+		List<String> launchArgs = launchArgs();
+		final String exe;
+		if (exeFile == null) {
+			if (launchArgs.isEmpty()) {
+				throw new IllegalArgumentException("No executables found amongst candidates: " + exes);
+			}
+			// No exeFile was found in the binPaths, but there are prefixed launchArgs.
+			// So we now try to use the first executable bare, because in this scenario
+			// we may have a situation like `pixi run python` where the intended executable
+			// become available on the system path while the environment is activated.
+			exe = exes.get(0);
+		}
+		else exe = exeFile.getCanonicalPath();
 
 		// Construct final args list: launchArgs + exe + args
-		List<String> allArgs = new ArrayList<>(launchArgs());
+		List<String> allArgs = new ArrayList<>(launchArgs);
 		allArgs.add(exe);
 		allArgs.addAll(Arrays.asList(args));
 
