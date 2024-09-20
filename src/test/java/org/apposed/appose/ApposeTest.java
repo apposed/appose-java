@@ -143,7 +143,7 @@ public class ApposeTest {
 	}
 
 	public void executeAndAssert(Service service, String script)
-		throws InterruptedException, IOException
+		throws IOException, InterruptedException
 	{
 		Task task = service.task(script);
 
