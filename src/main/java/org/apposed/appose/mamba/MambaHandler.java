@@ -103,9 +103,12 @@ public class MambaHandler implements BuildHandler {
 				"Sorry, I don't know how to mix in additional packages from Conda or PyPI yet." +
 					" Please put them in your environment.yml for now.");
 		}
+
+		Mamba conda = new Mamba(Mamba.BASE_PATH);
+
 		if (yamlIncludes.isEmpty()) {
 			// Nothing for this handler to do.
-			fillConfig(envDir, builder.config);
+			fillConfig(conda, envDir, builder.config);
 			return;
 		}
 		if (yamlIncludes.size() > 1) {
@@ -119,7 +122,7 @@ public class MambaHandler implements BuildHandler {
 		if (new File(envDir, "conda-meta").isDirectory()) {
 			// This environment has already been populated.
 			// TODO: Should we update it? For now, we just use it.
-			fillConfig(envDir, builder.config);
+			fillConfig(conda, envDir, builder.config);
 			return;
 		}
 
@@ -172,7 +175,6 @@ public class MambaHandler implements BuildHandler {
 
 		// Finally, we can build the environment from the environment.yml file.
 		try {
-			Mamba conda = new Mamba(Mamba.BASE_PATH);
 			conda.setOutputConsumer(msg -> builder.outputSubscribers.forEach(sub -> sub.accept(msg)));
 			conda.setErrorConsumer(msg -> builder.errorSubscribers.forEach(sub -> sub.accept(msg)));
 			conda.setMambaDownloadProgressConsumer((cur, max) -> {
@@ -181,15 +183,16 @@ public class MambaHandler implements BuildHandler {
 
 			conda.installMicromamba();
 			conda.createWithYaml(envDir, environmentYaml.getAbsolutePath());
-		} catch (InterruptedException | URISyntaxException e) {
+			fillConfig(conda, envDir, builder.config);
+		}
+		catch (InterruptedException | URISyntaxException e) {
 			throw new IOException(e);
 		}
-
-		// Lastly, we merge the contents of workDir into envDir. This will be
-		// at least the environment.yml file, and maybe other files from other handlers.
-		FilePaths.moveDirectory(workDir, envDir, false);
-
-		fillConfig(envDir, builder.config);
+		finally {
+			// Lastly, we merge the contents of workDir into envDir. This will be
+			// at least the environment.yml file, and maybe other files from other handlers.
+			FilePaths.moveDirectory(workDir, envDir, false);
+		}
 	}
 
 	private List<String> lines(String content) {
@@ -199,12 +202,9 @@ public class MambaHandler implements BuildHandler {
 			.collect(Collectors.toList());
 	}
 
-	public void fillConfig(File envDir, Map<String, List<String>> config) {
-		// If ${envDir}/bin directory exists, add it to binPaths.
-		File binDir = new File(envDir, "bin");
-		if (binDir.isDirectory()) {
-			config.computeIfAbsent("binPaths", k -> new ArrayList<>());
-			config.get("binPaths").add(binDir.getAbsolutePath());
-		}
+	private void fillConfig(Mamba conda, File envDir, Map<String, List<String>> config) {
+		// Use `mamba run -p $envDir ...` to run within this environment.
+		config.computeIfAbsent("launchArgs", k -> new ArrayList<>());
+		config.get("launchArgs").addAll(Arrays.asList(conda.mambaCommand, "run", "-p", envDir.getAbsolutePath()));
 	}
 }
