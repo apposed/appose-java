@@ -89,7 +89,10 @@ public class ApposeTest {
 
 	@Test
 	public void testConda() throws IOException, InterruptedException {
-		Environment env = Appose.conda(new File("src/test/resources/envs/cowsay.yml")).build();
+		Environment env = Appose
+			.conda(new File("src/test/resources/envs/cowsay.yml"))
+			.logDebug()
+			.build();
 		try (Service service = env.python()) {
 			maybeDebug(service);
 			Task task = service.task(

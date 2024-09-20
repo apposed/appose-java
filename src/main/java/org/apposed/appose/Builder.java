@@ -91,6 +91,22 @@ public class Builder {
 	}
 
 	/**
+	 * Shorthand for {@link #subscribeProgress}, {@link #subscribeOutput},
+	 * and {@link #subscribeError} calls registering subscribers that
+	 * emit their arguments to stdout. Useful for debugging environment
+	 * construction, e.g. complex environments with many conda packages.
+	 *
+	 * @return This {@code Builder} instance, for fluent-style programming.
+	 */
+	public Builder logDebug() {
+			return subscribeProgress(
+				(title, cur, max) -> System.out.printf("%s: %d/%d\n", title, cur, max)
+			)
+			.subscribeOutput(msg -> System.out.printf("[stdout] %s\n", msg))
+			.subscribeError(msg -> System.out.printf("[stderr] %s\n", msg));
+	}
+
+	/**
 	 * TODO
 	 *
 	 * @return This {@code Builder} instance, for fluent-style programming.
