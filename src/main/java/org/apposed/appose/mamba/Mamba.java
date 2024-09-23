@@ -542,7 +542,7 @@ class Mamba {
 	            }
 				updateErrorConsumer(errChunk);
 				updateOutputConsumer(processChunk + System.lineSeparator()
-								+ sdf.format(Calendar.getInstance().getTime()) + " -- TERMINATED PROCESS");
+								+ sdf.format(Calendar.getInstance().getTime()) + " -- TERMINATED PROCESS\n");
 		    } catch (IOException | InterruptedException e) {
 		        e.printStackTrace();
 		    }

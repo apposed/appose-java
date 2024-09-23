@@ -99,11 +99,12 @@ public class Builder {
 	 * @return This {@code Builder} instance, for fluent-style programming.
 	 */
 	public Builder logDebug() {
-			return subscribeProgress(
-				(title, cur, max) -> System.out.printf("%s: %d/%d\n", title, cur, max)
-			)
-			.subscribeOutput(msg -> System.out.printf("[stdout] %s\n", msg))
-			.subscribeError(msg -> System.out.printf("[stderr] %s\n", msg));
+		String reset = "\u001b[0m";
+		String yellow = "\u001b[0;33m";
+		String red = "\u001b[0;31m";
+		return subscribeProgress((title, cur, max) -> System.out.printf("%s: %d/%d\n", title, cur, max))
+			.subscribeOutput(msg -> System.out.printf("%s%s%s", yellow, msg.isEmpty() ? "." : msg, reset))
+			.subscribeError(msg -> System.out.printf("%s%s%s", red, msg.isEmpty() ? "." : msg, reset));
 	}
 
 	/**
