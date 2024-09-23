@@ -50,10 +50,6 @@ import java.io.IOException;
  * {@link Service.Task#listen via callbacks}.</li>
  * </ol>
  * <h2>Examples</h2>
- * <ul>
- * <li>TODO - move the below code somewhere linkable, for succinctness
- * here.</li>
- * </ul>
  * <p>
  * Here is a very simple example written in Java:
  * </p>
@@ -144,11 +140,104 @@ import java.io.IOException;
  * <li>The worker must issue responses in Appose's response format on its
  * standard output (stdout) stream.</li>
  * </ol>
+ * <h3>Requests to worker from service</h3>
  * <p>
- * TODO - write up the request and response formats in detail here!
- * JSON, one line per request/response.
+ * A <em>request</em> is a single line of JSON sent to the worker process via
+ * its standard input stream. It has a {@code task} key taking the form of a
+ * <a href="https://en.wikipedia.org/wiki/Universally_unique_identifier">UUID</a>,
+ * and a {@code requestType} key with one of the following values:
  * </p>
+ * <h4>EXECUTE</h4>
+ * <p>
+ * Asynchronously execute a script within the worker process. E.g.:
+ * </p>
+ * <pre><code>
+ * {
+ *    "task" : "87427f91-d193-4b25-8d35-e1292a34b5c4",
+ *    "requestType" : "EXECUTE",
+ *    "script" : "task.outputs[\"result\"] = computeResult(gamma)\n",
+ *    "inputs" : {"gamma": 2.2}
+ * }
+ * </code></pre>
+ * <h4>CANCEL</h4>
+ * <p>
+ * Cancel a running script. E.g.:
+ * </p>
+ * <pre><code>
+ * {
+ *    "task" : "87427f91-d193-4b25-8d35-e1292a34b5c4",
+ *    "requestType" : "CANCEL"
+ * }
+ * </code></pre>
  * 
+ * <h3>Responses from worker to service</h3>
+ * <p>
+ * A <em>response</em> is a single line of JSON with a {@code task} key
+ * taking the form of a
+ * <a href="https://en.wikipedia.org/wiki/Universally_unique_identifier">UUID</a>,
+ * and a {@code responseType} key with one of the following values:
+ * </p>
+ * <h4>LAUNCH</h4>
+ * <p>
+ * A LAUNCH response is issued to confirm the success of an EXECUTE request.
+ * </p>
+ * <pre><code>
+ * {
+ *    "task" : "87427f91-d193-4b25-8d35-e1292a34b5c4",
+ *    "responseType" : "LAUNCH"
+ * }
+ * </code></pre>
+ * <h4>UPDATE</h4>
+ * <p>
+ * An UPDATE response is issued to convey that a task has somehow made
+ * progress. The UPDATE response typically comes bundled with a {@code message}
+ * string indicating what has changed, {@code current} and/or {@code maximum}
+ * progress indicators conveying the step the task has reached, or both.
+ * </p>
+ * <pre><code>
+ * {
+ *    "task" : "87427f91-d193-4b25-8d35-e1292a34b5c4",
+ *    "responseType" : "UPDATE",
+ *    "message" : "Processing step 0 of 91",
+ *    "current" : 0,
+ *    "maximum" : 91
+ * }
+ * </code></pre>
+ * <h4>COMPLETION</h4>
+ * <p>
+ * A COMPLETION response is issued to convey that a task has successfully
+ * completed execution, as well as report the values of any task outputs.
+ * </p>
+ * <pre><code>
+ * {
+ *    "task" : "87427f91-d193-4b25-8d35-e1292a34b5c4",
+ *    "responseType" : "COMPLETION",
+ *    "outputs" : {"result" : 91}
+ * }
+ * </code></pre>
+ * <h4>CANCELATION</h4>
+ * <p>
+ * A CANCELATION response is issued to confirm the success of a CANCEL request.
+ * </p>
+ * <pre><code>
+ * {
+ *    "task" : "87427f91-d193-4b25-8d35-e1292a34b5c4",
+ *    "responseType" : "CANCELATION"
+ * }
+ * </code></pre>
+ * <h4>FAILURE</h4>
+ * <p>
+ * A FAILURE response is issued to convey that a task did not completely
+ * and successfully execute, such as an exception being raised.
+ * </p>
+ * <pre><code>
+ * {
+ *    "task" : "87427f91-d193-4b25-8d35-e1292a34b5c4",
+ *    "responseType" : "FAILURE",
+ *    "error", "Invalid gamma value"
+ * }
+ * </code></pre>
+ *
  * @author Curtis Rueden
  */
 public class Appose {
