@@ -105,10 +105,15 @@ public class MambaHandler implements BuildHandler {
 		}
 
 		Mamba conda = new Mamba(Mamba.BASE_PATH);
+		boolean isCondaDir = new File(envDir, "conda-meta").isDirectory();
 
 		if (yamlIncludes.isEmpty()) {
 			// Nothing for this handler to do.
-			fillConfig(conda, envDir, builder.config);
+			if (isCondaDir) {
+				// If directory already exists and is a conda environment prefix,
+				// inject needed micromamba stuff into the configuration.
+				fillConfig(conda, envDir, builder.config);
+			}
 			return;
 		}
 		if (yamlIncludes.size() > 1) {
@@ -119,7 +124,7 @@ public class MambaHandler implements BuildHandler {
 
 		// Is this envDir an already-existing conda directory?
 		// If so, we can update it.
-		if (new File(envDir, "conda-meta").isDirectory()) {
+		if (isCondaDir) {
 			// This environment has already been populated.
 			// TODO: Should we update it? For now, we just use it.
 			fillConfig(conda, envDir, builder.config);

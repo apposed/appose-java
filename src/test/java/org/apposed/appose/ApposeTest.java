@@ -119,7 +119,9 @@ public class ApposeTest {
 
 	@Test
 	public void testServiceStartupFailure() throws IOException, InterruptedException {
-		Environment env = Appose.build("no-pythons-to-be-found-here");
+		String tempNonExistingDir = "no-pythons-to-be-found-here";
+		new File(tempNonExistingDir).deleteOnExit();
+		Environment env = Appose.build(tempNonExistingDir);
 		try (Service service = env.python()) {
 			String info = "";
 			try {
