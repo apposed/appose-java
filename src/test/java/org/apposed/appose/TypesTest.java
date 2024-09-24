@@ -70,7 +70,7 @@ public class TypesTest {
 			"\"shm\":{" +
 				"\"appose_type\":\"shm\"," +
 				"\"name\":\"SHM_NAME\"," +
-				"\"size\":4000" +
+				"\"size\":SHM_SIZE" +
 			"}" +
 		"}" +
 	"}";
@@ -110,7 +110,9 @@ public class TypesTest {
 			data.put("ndArray", ndArray);
 			String json = Types.encode(data);
 			assertNotNull(json);
-			String expected = JSON.replaceAll("SHM_NAME", ndArray.shm().name());
+			String expected = JSON
+				.replaceAll("SHM_NAME", ndArray.shm().name())
+				.replaceAll("SHM_SIZE", "" + ndArray.shm().size());
 			assertEquals(expected, json);
 		}
 	}
@@ -119,11 +121,16 @@ public class TypesTest {
 	public void testDecode() {
 		Map<String, Object> data;
 		String shmName;
+		int shmSize;
 
 		// Create name shared memory segment and decode JSON block.
 		try (SharedMemory shm = SharedMemory.create(null, 4000)) {
 			shmName = shm.name();
-			data = Types.decode(JSON.replaceAll("SHM_NAME", shmName));
+			shmSize = shm.size();
+			String json = JSON
+				.replaceAll("SHM_NAME", shmName)
+				.replaceAll("SHM_SIZE", "" + shmSize);
+			data = Types.decode(json);
 		}
 
 		// Validate results.
@@ -158,7 +165,7 @@ public class TypesTest {
 			assertEquals(20, ndArray.shape().get(1));
 			assertEquals(25, ndArray.shape().get(2));
 			assertEquals(shmName, ndArray.shm().name());
-			assertEquals(4000, ndArray.shm().size());
+			assertEquals(shmSize, ndArray.shm().size());
 		}
 	}
 
