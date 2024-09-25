@@ -32,6 +32,7 @@ package org.apposed.appose;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
 
 import java.io.File;
@@ -144,6 +145,26 @@ public class ApposeTest {
 				"[python, python3, python.exe]",
 				exc.getMessage()
 			);
+		}
+	}
+
+	@Test
+	public void testTaskFailurePython() throws InterruptedException, IOException {
+		Environment env = Appose.system();
+		try (Service service = env.python()) {
+			service.debug(System.out::println);
+			String script = "whee\n";
+			Task task = service.task(script);
+			task.waitFor();
+			assertSame(TaskStatus.FAILED, task.status);
+			String nl = "(\r\n|\n|\r)";
+			String expectedError =
+				"Traceback \\(most recent call last\\):" + nl +
+				"  File \"[^ ]*python_worker.py\", line \\d+, in execute_script" + nl +
+				"    result = eval\\(" + nl +
+				"  File \"<string>\", line 1, in <module>" + nl +
+				"NameError: name 'whee' is not defined" + nl;
+			assertTrue(task.error.matches(expectedError));
 		}
 	}
 
