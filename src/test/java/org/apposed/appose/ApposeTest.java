@@ -219,11 +219,11 @@ public class ApposeTest {
 	private boolean falsy(String value) {
 		if (value == null) return true;
 		String tValue = value.trim();
-		if (tValue.isEmpty()) return true;
-		if (tValue.equalsIgnoreCase("false")) return true;
-		if (tValue.equals("0")) return true;
-		return false;
+		return tValue.isEmpty() ||
+			tValue.equalsIgnoreCase("false") ||
+			tValue.equals("0");
 	}
+
 	private void assertComplete(Task task) {
 		String errorMessage = "";
 		if (task.status != TaskStatus.COMPLETE) {
