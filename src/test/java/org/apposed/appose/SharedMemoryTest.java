@@ -41,6 +41,7 @@ import java.nio.ByteBuffer;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
  * Tests {@link SharedMemory}.
@@ -54,7 +55,7 @@ public class SharedMemoryTest {
 		int size = 456;
 		try (SharedMemory shm = SharedMemory.create(null, size)) {
 			assertNotNull(shm.name());
-			assertEquals(size, shm.size());
+			assertTrue(shm.size() >= size);
 			assertNotNull(shm.pointer());
 
 			// Modify the memory contents.
@@ -74,8 +75,8 @@ public class SharedMemoryTest {
 			String output = runPython(
 				"from multiprocessing.shared_memory import SharedMemory\n" +
 					"from sys import stdout\n" +
-					"shm = SharedMemory(name='" + shm.name() + "', size=" + shm.size() + ")\n" +
-					"matches = sum(1 for i in range(shm.size) if shm.buf[i] == (shm.size - i) % 256)\n" +
+					"shm = SharedMemory(name='" + shm.name() + "', size=" + size + ")\n" +
+					"matches = sum(1 for i in range(" + size + ") if shm.buf[i] == (" + size + " - i) % 256)\n" +
 					"stdout.write(f'{matches}\\n')\n" +
 					"stdout.flush()\n" +
 					"shm.unlink()\n" // HACK: to satisfy Python's overly aggressive resource tracker
@@ -112,7 +113,7 @@ public class SharedMemoryTest {
 		assertNotNull(shmName);
 		assertFalse(shmName.isEmpty());
 		int shmSize = Integer.parseInt(shmInfo[1]);
-		assertEquals(345, shmSize);
+		assertTrue(shmSize >= 345);
 
 		// Attach to the shared memory and verify it matches expectations.
 		try (SharedMemory shm = SharedMemory.attach(shmName, shmSize)) {

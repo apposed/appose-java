@@ -11,7 +11,7 @@
 
 	<groupId>org.apposed</groupId>
 	<artifactId>appose</artifactId>
-	<version>0.2.1-SNAPSHOT</version>
+	<version>0.3.0-SNAPSHOT</version>
 
 	<name>Appose</name>
 	<description>Appose: multi-language interprocess cooperation with shared memory.</description>
@@ -93,7 +93,7 @@
 	<dependencies>
 		<!--
 		NB: This list of dependencies must be kept in sync with
-		the org.apposed.appose.Environment#javaService method!
+		the org.apposed.appose.Environment#java method!
 		-->
 
 		<!-- Groovy service executor -->
@@ -108,7 +108,6 @@
 		<dependency>
 			<groupId>org.apache.ivy</groupId>
 			<artifactId>ivy</artifactId>
-			<version>${ivy.version}</version>
 		</dependency>
 
 		<!-- Native shared memory APIs -->
@@ -119,6 +118,12 @@
 		<dependency>
 			<groupId>net.java.dev.jna</groupId>
 			<artifactId>jna-platform</artifactId>
+		</dependency>
+
+		<!-- For decompressing micromamba -->
+		<dependency>
+			<groupId>org.apache.commons</groupId>
+			<artifactId>commons-compress</artifactId>
 		</dependency>
 
 		<!-- Test dependencies -->
@@ -132,5 +137,11 @@
 			<artifactId>junit-jupiter-engine</artifactId>
 			<scope>test</scope>
 		</dependency>
+		<dependency>
+			<groupId>commons-io</groupId>
+			<artifactId>commons-io</artifactId>
+			<scope>test</scope>
+		</dependency>
+
 	</dependencies>
 </project>

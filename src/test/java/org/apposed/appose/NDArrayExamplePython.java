@@ -52,7 +52,7 @@ public class NDArrayExamplePython {
 		}
 
 		// pass to python (will be wrapped as numpy ndarray
-		final Environment env = Appose.base( "/opt/homebrew/Caskroom/miniforge/base/envs/appose/" ).build();
+		final Environment env = Appose.build("/opt/homebrew/Caskroom/miniforge/base/envs/appose/");
 		try ( Service service = env.python() ) {
 			final Map< String, Object > inputs = new HashMap<>();
 			inputs.put( "img", ndArray);

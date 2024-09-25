@@ -42,9 +42,6 @@ import static org.apposed.appose.shm.ShmUtils.SHM_SAFE_NAME_LENGTH;
 
 /**
  * Windows-specific shared memory implementation.
- * <p>
- * TODO separate unlink and close
- * </p>
  *
  * @author Carlos Garcia Lopez de Haro
  * @author Tobias Pietzsch
@@ -85,7 +82,7 @@ public class ShmWindows implements ShmFactory {
 					prevSize = getSHMSize(shm_name);
 				} while (prevSize >= 0);
 			} else {
-				shm_name = nameMangle_TODO(name);
+				shm_name = name;
 				prevSize = getSHMSize(shm_name);
 			}
 			ShmUtils.checkSize(shm_name, prevSize, size);
@@ -126,25 +123,12 @@ public class ShmWindows implements ShmFactory {
 
 			ShmInfo<WinNT.HANDLE> info = new ShmInfo<>();
 			info.size = shm_size;
-			info.name = nameUnmangle_TODO(shm_name);
+			info.name = shm_name;
 			info.pointer = pointer;
 			info.writePointer = writePointer;
 			info.handle = hMapFile;
 			info.unlinkOnClose = create;
 			return info;
-		}
-
-		// TODO equivalent of removing slash
-		private static String nameUnmangle_TODO (String memoryName){
-			return memoryName;
-		}
-
-		// TODO equivalent of adding slash
-		//      Do we need the "Local\" prefix?
-		private static String nameMangle_TODO (String memoryName){
-			//		if (!memoryName.startsWith("Local" + File.separator) && !memoryName.startsWith("Global" + File.separator))
-			//			memoryName = "Local" + File.separator + memoryName;
-			return memoryName;
 		}
 
 		// name is WITH prefix etc

@@ -155,7 +155,6 @@ public class ShmLinux implements ShmFactory {
 
 			final long size = LibRtOrC.lseek(shmFd, 0, LibRtOrC.SEEK_END);
 			if (size == -1) {
-				// TODO remove LibRtOrC.close(shmFd);
 				throw new RuntimeException("Failed to get shared memory segment size. Errno: " + Native.getLastError());
 			}
 			return size;

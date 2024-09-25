@@ -143,7 +143,8 @@ public class NDArray implements AutoCloseable {
 	/**
 	 * Enumerates possible data type of {@link NDArray} elements.
 	 */
-	public static enum DType {
+	@SuppressWarnings("unused")
+	public enum DType {
 		INT8("int8", Byte.BYTES), //
 		INT16("int16", Short.BYTES), //
 		INT32("int32", Integer.BYTES), //
@@ -179,8 +180,8 @@ public class NDArray implements AutoCloseable {
 		/**
 		 * Get the label of this {@code DType}.
 		 * <p>
-		 * The label can used as a {@code dtype} in Python. It is also used for JSON
-		 * serialization.
+		 * The label can be used as a {@code dtype} in Python.
+		 * It is also used for JSON serialization.
 		 *
 		 * @return the label.
 		 */
@@ -203,7 +204,7 @@ public class NDArray implements AutoCloseable {
 	}
 
 	/**
-	 * The shape of a multi-dimensional array.
+	 * The shape of a multidimensional array.
 	 */
 	public static class Shape {
 
@@ -282,6 +283,7 @@ public class NDArray implements AutoCloseable {
 		 *
 		 * @return dimensions array
 		 */
+		@SuppressWarnings("unused")
 		public int[] toIntArray() {
 			return shape;
 		}
@@ -296,9 +298,9 @@ public class NDArray implements AutoCloseable {
 				return shape;
 			}
 			else {
-				final int[] ishape = new int[shape.length];
-				Arrays.setAll(ishape, i -> shape[shape.length - i - 1]);
-				return ishape;
+				final int[] iShape = new int[shape.length];
+				Arrays.setAll(iShape, i -> shape[shape.length - i - 1]);
+				return iShape;
 			}
 		}
 
@@ -308,6 +310,7 @@ public class NDArray implements AutoCloseable {
 		 *
 		 * @return dimensions array
 		 */
+		@SuppressWarnings("unused")
 		public long[] toLongArray() {
 			return toLongArray(order);
 		}
@@ -318,14 +321,14 @@ public class NDArray implements AutoCloseable {
 		 * @return dimensions array
 		 */
 		public long[] toLongArray(final Order order) {
-			final long[] lshape = new long[shape.length];
+			final long[] lShape = new long[shape.length];
 			if (order.equals(this.order)) {
-				Arrays.setAll(lshape, i -> shape[i]);
+				Arrays.setAll(lShape, i -> shape[i]);
 			}
 			else {
-				Arrays.setAll(lshape, i -> shape[shape.length - i - 1]);
+				Arrays.setAll(lShape, i -> shape[shape.length - i - 1]);
 			}
-			return lshape;
+			return lShape;
 		}
 
 		/**

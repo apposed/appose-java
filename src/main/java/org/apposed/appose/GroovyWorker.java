@@ -118,6 +118,7 @@ public class GroovyWorker {
 			this.uuid = uuid;
 		}
 
+		@SuppressWarnings("unused")
 		public void update(String message, Long current, Long maximum) {
 			Map<String, Object> args = new HashMap<>();
 			if (message != null) args.put("message", message);
@@ -126,6 +127,7 @@ public class GroovyWorker {
 			respond(ResponseType.UPDATE, args);
 		}
 
+		@SuppressWarnings("unused")
 		public void cancel() {
 			respond(ResponseType.CANCELATION, null);
 		}

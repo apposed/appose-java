@@ -40,8 +40,10 @@ import java.util.Set;
 
 public interface Environment {
 
-	default String base() { return "."; }
-	default boolean useSystemPath() { return false; }
+	String base();
+	List<String> binPaths();
+	List<String> classpath();
+	List<String> launchArgs();
 
 	/**
 	 * Creates a Python script service.
@@ -56,10 +58,7 @@ public interface Environment {
 	 * @throws IOException If something goes wrong starting the worker process.
 	 */
 	default Service python() throws IOException {
-		List<String> pythonExes = Arrays.asList(
-			"python", "python3", "python.exe",
-			"bin/python", "bin/python.exe"
-		);
+		List<String> pythonExes = Arrays.asList("python", "python3", "python.exe");
 		return service(pythonExes, "-c",
 			"import appose.python_worker; appose.python_worker.main()");
 	}
@@ -128,14 +127,15 @@ public interface Environment {
 
 		// Ensure that the classpath includes Appose and its dependencies.
 		// NB: This list must match Appose's dependencies in pom.xml!
-		List<Class<?>> apposeDeps = Arrays.asList(//
-			org.apposed.appose.GroovyWorker.class, // ------> org.apposed:appose
-			org.apache.groovy.util.ScriptRunner.class, // --> org.codehaus.groovy:groovy
-			groovy.json.JsonOutput.class, // ---------------> org.codehaus.groovy:groovy-json
-			org.apache.ivy.Ivy.class, // -------------------> org.apache.ivy:ivy
-			com.sun.jna.Pointer.class, // ------------------> com.sun.jna:jna
-			com.sun.jna.platform.linux.LibRT.class, // -----> com.sun.jna:jna-platform
-			com.sun.jna.platform.win32.Kernel32.class // ---> com.sun.jna:jna-platform
+		List<Class<?>> apposeDeps = Arrays.asList(
+			org.apposed.appose.GroovyWorker.class, // ------------------------> org.apposed:appose
+			org.apache.groovy.util.ScriptRunner.class, // --------------------> org.codehaus.groovy:groovy
+			groovy.json.JsonOutput.class, // ---------------------------------> org.codehaus.groovy:groovy-json
+			org.apache.ivy.Ivy.class, // -------------------------------------> org.apache.ivy:ivy
+			com.sun.jna.Pointer.class, // ------------------------------------> com.sun.jna:jna
+			com.sun.jna.platform.linux.LibRT.class, // -----------------------> com.sun.jna:jna-platform
+			com.sun.jna.platform.win32.Kernel32.class, // --------------------> com.sun.jna:jna-platform
+			org.apache.commons.compress.archivers.ArchiveException.class // --> org.apache.commons:commons-compress
 		);
 		for (Class<?> depClass : apposeDeps) {
 			File location = FilePaths.location(depClass);
@@ -172,26 +172,38 @@ public interface Environment {
 	 *
 	 * @param exes List of executables to try for launching the worker process.
 	 * @param args Command line arguments to pass to the worker process
-	 *          (e.g. <code>{"-v", "--enable-everything"}</code>.
+	 *          (e.g. <code>{"-v", "--enable-everything"}</code>).
 	 * @return The newly created service.
 	 * @see #groovy To create a service for Groovy script execution.
 	 * @see #python() To create a service for Python script execution.
 	 * @throws IOException If something goes wrong starting the worker process.
 	 */
 	default Service service(List<String> exes, String... args) throws IOException {
-		if (args.length == 0) throw new IllegalArgumentException("No executable given");
+		if (exes == null || exes.isEmpty()) throw new IllegalArgumentException("No executable given");
 
-		List<String> dirs = useSystemPath() //
-			? Arrays.asList(System.getenv("PATH").split(File.pathSeparator)) //
-			: Arrays.asList(base());
+		// Discern path to executable by searching the environment's binPaths.
+		File exeFile = FilePaths.findExe(binPaths(), exes);
 
-		File exeFile = FilePaths.findExe(dirs, exes);
-		if (exeFile == null) throw new IllegalArgumentException("No executables found amongst candidates: " + exes);
+		// Calculate exe string.
+		List<String> launchArgs = launchArgs();
+		final String exe;
+		if (exeFile == null) {
+			if (launchArgs.isEmpty()) {
+				throw new IllegalArgumentException("No executables found amongst candidates: " + exes);
+			}
+			// No exeFile was found in the binPaths, but there are prefixed launchArgs.
+			// So we now try to use the first executable bare, because in this scenario
+			// we may have a situation like `pixi run python` where the intended executable
+			// become available on the system path while the environment is activated.
+			exe = exes.get(0);
+		}
+		else exe = exeFile.getCanonicalPath();
 
-		String[] allArgs = new String[args.length + 1];
-		System.arraycopy(args, 0, allArgs, 1, args.length);
-		allArgs[0] = exeFile.getCanonicalPath();
+		// Construct final args list: launchArgs + exe + args
+		List<String> allArgs = new ArrayList<>(launchArgs);
+		allArgs.add(exe);
+		allArgs.addAll(Arrays.asList(args));
 
-		return new Service(new File(base()), allArgs);
+		return new Service(new File(base()), allArgs.toArray(new String[0]));
 	}
 }

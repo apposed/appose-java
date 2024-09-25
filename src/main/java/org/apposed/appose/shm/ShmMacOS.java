@@ -146,7 +146,6 @@ public class ShmMacOS implements ShmFactory {
 
 			final long size = MacosHelpers.INSTANCE.get_shared_memory_size(shmFd);
 			if (size == -1) {
-				// TODO remove macosInstance.unlink_shared_memory(null);;
 				throw new RuntimeException("Failed to get shared memory segment size. Errno: " + Native.getLastError());
 			}
 			return size;

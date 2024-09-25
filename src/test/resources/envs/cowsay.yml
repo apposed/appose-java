@@ -1,0 +1,9 @@
+name: appose-cowsay
+channels:
+  - conda-forge
+dependencies:
+  - python >= 3.8
+  - pip
+  - appose
+  - pip:
+    - cowsay==6.1
