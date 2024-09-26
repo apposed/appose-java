@@ -1,3 +1,17 @@
+## Next steps
+
+1. Release appose-java 0.3.0.
+2. Port recent appose-java improvements to appose-python.
+3. Release appose-python 0.3.0.
+4. Update https://github.com/imglib/imglib2-appose to work with appose 0.2.0+.
+
+## Later
+
+1. Implement build handlers for maven and openjdk.
+2. Implement a build handler built on pixi, to replace the micromamba one.
+3. Implement pixi, maven, and openjdk build handlers in appose-python, too.
+4. Once it all works: release 1.0.0.
+
 ## Builder API
 
 * Want an API to create an environment from an envFile: i.e. `pixi.toml` or `environment.yml`.
@@ -277,15 +291,3 @@ With separate Pixi projects we can also let Appose users specify their own
 `pixi.toml` (maybe a partial one?), directly. Or an `environment.yml` that gets
 used via `pixi init --import`. Maybe someday even a `requirements.txt`, if the
 request (https://github.com/prefix-dev/pixi/issues/1410) gets implemented.
-
-## Next steps
-
-1. Add tests for the current Mamba builder.
-2. Make the tests pass.
-3. Introduce `BuildHandler` design and migrate Mamba logic to a build handler.
-4. Implement a build handler built on pixi, to replace the micromamba one.
-5. Implement build handlers for maven and openjdk.
-6. Implement pixi, maven, and openjdk build handlers in appose-python, too.
-7. Once it all works: release 0.3.0.
-
-And: update https://github.com/imglib/imglib2-appose to work with appose 0.2.0+.
