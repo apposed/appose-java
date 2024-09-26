@@ -73,7 +73,7 @@ public class SharedMemoryTest {
 
 			// Assert that another process is able to read the values.
 			String output = runPython(
-				"from multiprocessing.shared_memory import SharedMemory\n" +
+				"from appose import SharedMemory\n" +
 					"from sys import stdout\n" +
 					"shm = SharedMemory(name='" + shm.name() + "', size=" + size + ")\n" +
 					"matches = sum(1 for i in range(" + size + ") if shm.buf[i] == (" + size + " - i) % 256)\n" +
@@ -94,7 +94,7 @@ public class SharedMemoryTest {
 		// program itself cannot read from stdin as a means of waiting for Java to
 		// signal its completion of the test asserts; we use a hacky sleep instead.
 		String output = runPython(
-			"from multiprocessing.shared_memory import SharedMemory\n" +
+			"from appose import SharedMemory\n" +
 			"from sys import stdout\n" +
 			"shm = SharedMemory(create=True, size=345)\n" +
 			"shm.buf[0] = 12\n" +
