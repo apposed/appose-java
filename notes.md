@@ -1,9 +1,8 @@
 ## Next steps
 
-1. Release appose-java 0.3.0.
-2. Port recent appose-java improvements to appose-python.
-3. Release appose-python 0.3.0.
-4. Update https://github.com/imglib/imglib2-appose to work with appose 0.2.0+.
+1. Port recent appose-java improvements to appose-python.
+2. Release appose-python 0.3.0.
+3. Update https://github.com/imglib/imglib2-appose to work with appose 0.2.0+.
 
 ## Later
 
