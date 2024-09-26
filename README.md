@@ -1,9 +1,5 @@
 # Appose Java
 
-***WARNING: Appose is currently in incubation.
-Not all features described below are functional.
-This document has some aspirational aspects!***
-
 ## What is Appose?
 
 Appose is a library for interprocess cooperation with shared memory.
@@ -137,9 +133,6 @@ try (Service python = env.python()) {
     task.waitFor();
 }
 ```
-
-*Note: The `Appose.conda` builder is planned, but not yet implemented.
-Other features demonstrated above work, though.*
 
 Of course, the above examples could have been done all in one language. But
 hopefully they hint at the possibilities of easy cross-language integration.
