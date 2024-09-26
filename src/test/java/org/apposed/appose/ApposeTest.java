@@ -193,6 +193,28 @@ public class ApposeTest {
 	}
 
 	@Test
+	public void testPythonSysExit() throws InterruptedException, IOException {
+		Environment env = Appose.system();
+		try (Service service = env.python()) {
+			maybeDebug(service);
+
+			// Create a task that calls sys.exit. This is a nasty thing to do
+			// because Python does not exit the worker process when sys.exit is
+			// called within a dedicated threading.Thread; the thread just dies.
+			// So in addition to testing the Java code here, we are also testing
+			// that Appose's python_worker handles this situation well.
+			Task task = service.task("import sys\nsys.exit(123)");
+
+			// Launch the task and wait for it to finish.
+			task.waitFor();
+
+			// Is the tag flagged as failed due to thread death?
+			assertSame(TaskStatus.FAILED, task.status);
+			assertEquals("thread death", task.error);
+		}
+	}
+
+	@Test
 	public void testCrashWithActiveTask() throws InterruptedException, IOException {
 		Environment env = Appose.system();
 		try (Service service = env.python()) {
