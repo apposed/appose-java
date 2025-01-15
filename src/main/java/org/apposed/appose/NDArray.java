@@ -36,23 +36,17 @@ import java.util.Arrays;
  * Represents a multidimensional array similar to a NumPy ndarray.
  * <p>
  * The array contains elements of a {@link DType data type}, arranged in a
- * particular {@link Shape}, and flattened into {@link SharedMemory},
+ * particular {@link Shape}, and flattened into {@link SharedMemory}.
  */
 public class NDArray implements AutoCloseable {
 
-	/**
-	 * shared memory containing the flattened array data.
-	 */
+	/** Shared memory containing the flattened array data. */
 	private final SharedMemory shm;
 
-	/**
-	 * data type of the array elements.
-	 */
+	/** Data type of the array elements. */
 	private final DType dType;
 
-	/**
-	 * shape of the array.
-	 */
+	/** Shape of the array. */
 	private final Shape shape;
 
 	/**
@@ -163,30 +157,29 @@ public class NDArray implements AutoCloseable {
 
 		private final int bytesPerElement;
 
-		DType(final String label, final int bytesPerElement)
-		{
+		DType(final String label, final int bytesPerElement) {
 			this.label = label;
 			this.bytesPerElement = bytesPerElement;
 		}
 
 		/**
-		 * Get the number of bytes per element for this data type.
+		 * Gets the number of bytes per element for this data type.
+		 *
+		 * @return The byte count of a single element.
 		 */
-		public int bytesPerElement()
-		{
+		public int bytesPerElement() {
 			return bytesPerElement;
 		}
 
 		/**
-		 * Get the label of this {@code DType}.
+		 * Gets the label of this {@code DType}.
 		 * <p>
 		 * The label can be used as a {@code dtype} in Python.
 		 * It is also used for JSON serialization.
 		 *
 		 * @return the label.
 		 */
-		public String label()
-		{
+		public String label() {
 			return label;
 		}
 
@@ -203,9 +196,7 @@ public class NDArray implements AutoCloseable {
 		}
 	}
 
-	/**
-	 * The shape of a multidimensional array.
-	 */
+	/** The shape of a multidimensional array. */
 	public static class Shape {
 
 		/**
@@ -218,18 +209,14 @@ public class NDArray implements AutoCloseable {
 		 */
 		public enum Order {C_ORDER, F_ORDER}
 
-		/**
-		 * native order
-		 */
+		/** Native order. */
 		private final Order order;
 
-		/**
-		 * dimensions along each axis, arranged in the native order.
-		 */
+		/** Dimensions along each axis, arranged in the native order. */
 		private final int[] shape;
 
 		/**
-		 * Construct a {@code Shape} with the specified order and dimensions.
+		 * Constructs a {@code Shape} with the specified order and dimensions.
 		 *
 		 * @param order order of the axes.
 		 * @param shape size along each axis.
@@ -240,8 +227,8 @@ public class NDArray implements AutoCloseable {
 		}
 
 		/**
-		 * Get the size along at the specified dimension (in the native {@link
-		 * #order()} of this {@code Shape})
+		 * Gets the size along at the specified dimension (in the native
+		 * {@link #order()} of this {@code Shape}).
 		 *
 		 * @param d axis index
 		 * @return size along dimension {@code d}.
@@ -251,14 +238,16 @@ public class NDArray implements AutoCloseable {
 		}
 
 		/**
-		 * Get the number of dimensions.
+		 * Gets the number of dimensions.
+		 *
+		 * @return the dimension count.
 		 */
 		public int length() {
 			return shape.length;
 		}
 
 		/**
-		 * Get the native order of this {@code Shape}, that is the order in
+		 * Gets the native order of this {@code Shape}, that is the order in
 		 * which axes are arranged when accessed through {@link #get(int)},
 		 * {@link #toIntArray()}, {@link #toLongArray()}.
 		 */
@@ -267,7 +256,8 @@ public class NDArray implements AutoCloseable {
 		}
 
 		/**
-		 * Get the total number of elements in the shape.
+		 * Gets the total number of elements in the shape&mdash;i.e. the product of
+		 * the dimensions.
 		 */
 		public long numElements() {
 			long n = 1;
@@ -278,8 +268,8 @@ public class NDArray implements AutoCloseable {
 		}
 
 		/**
-		 * Get the shape dimensions as an array in the native {@link #order()}
-		 * of this {@code Shape}.
+		 * Gets the shape dimensions as an array of {@code int}s in the native
+		 * {@link #order()} of this {@code Shape}.
 		 *
 		 * @return dimensions array
 		 */
@@ -289,24 +279,22 @@ public class NDArray implements AutoCloseable {
 		}
 
 		/**
-		 * Get the shape dimensions as an array in the specified order.
+		 * Gets the shape dimensions as an array of {@code int}s in the specified
+		 * order.
 		 *
 		 * @return dimensions array
 		 */
 		public int[] toIntArray(final Order order) {
-			if (order.equals(this.order)) {
-				return shape;
-			}
-			else {
-				final int[] iShape = new int[shape.length];
-				Arrays.setAll(iShape, i -> shape[shape.length - i - 1]);
-				return iShape;
-			}
+			if (order.equals(this.order)) return shape;
+
+			final int[] iShape = new int[shape.length];
+			Arrays.setAll(iShape, i -> shape[shape.length - i - 1]);
+			return iShape;
 		}
 
 		/**
-		 * Get the shape dimensions as an array in the native {@link #order()}
-		 * of this {@code Shape}.
+		 * Gets the shape dimensions as an array of {@code long}s in the native
+		 * {@link #order()} of this {@code Shape}.
 		 *
 		 * @return dimensions array
 		 */
@@ -316,7 +304,8 @@ public class NDArray implements AutoCloseable {
 		}
 
 		/**
-		 * Get the shape dimensions as an array in the specified order.
+		 * Gets the shape dimensions as an array of {@code long}s in the specified
+		 * order.
 		 *
 		 * @return dimensions array
 		 */
@@ -335,12 +324,7 @@ public class NDArray implements AutoCloseable {
 		 * Returns representation of this {@code Shape} with the given native {@code order}.
 		 */
 		public Shape to(final Order order) {
-			if (order.equals(this.order)) {
-				return this;
-			}
-			else {
-				return new Shape(order, toIntArray(order));
-			}
+			return order.equals(this.order) ? this : new Shape(order, toIntArray(order));
 		}
 
 		/**
