@@ -61,7 +61,7 @@ public class NDArray implements AutoCloseable {
 		this.dType = dType;
 		this.shape = shape;
 		this.shm = shm == null
-			? SharedMemory.create(null, safeInt(shape.numElements() * dType.bytesPerElement()))
+			? SharedMemory.create(safeInt(shape.numElements() * dType.bytesPerElement()))
 			: shm;
 	}
 

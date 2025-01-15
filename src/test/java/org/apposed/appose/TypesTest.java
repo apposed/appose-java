@@ -124,7 +124,7 @@ public class TypesTest {
 		int shmSize;
 
 		// Create name shared memory segment and decode JSON block.
-		try (SharedMemory shm = SharedMemory.create(null, 4000)) {
+		try (SharedMemory shm = SharedMemory.create(4000)) {
 			shmName = shm.name();
 			shmSize = shm.size();
 			String json = JSON

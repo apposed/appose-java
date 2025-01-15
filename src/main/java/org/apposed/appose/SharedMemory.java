@@ -39,8 +39,18 @@ import java.util.ServiceLoader;
  * Each shared memory block is assigned a unique name. In this way, one process
  * can create a shared memory block with a particular name and a different
  * process can attach to that same shared memory block using that same name.
+ * </p>
  */
 public interface SharedMemory extends AutoCloseable {
+
+	/**
+	 * Creates a new shared memory block with an automatically generated name.
+	 *
+	 * @param size size in bytes.
+	 */
+	static SharedMemory create(int size) {
+		return createOrAttach(null, true, size);
+	}
 
 	/**
 	 * Creates a new shared memory block.

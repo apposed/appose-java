@@ -53,7 +53,7 @@ public class SharedMemoryTest {
 	@Test
 	public void testShmCreate() throws IOException {
 		int rsize = 456;
-		try (SharedMemory shm = SharedMemory.create(null, rsize)) {
+		try (SharedMemory shm = SharedMemory.create(rsize)) {
 			assertNotNull(shm.name());
 			assertEquals(rsize, shm.rsize()); // REQUESTED size
 			assertTrue(rsize <= shm.size()); // ALLOCATED size
