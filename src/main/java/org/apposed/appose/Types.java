@@ -115,11 +115,12 @@ public final class Types {
 	/**
 	 * Helper to create a {@link JsonGenerator.Converter}.
 	 * <p>
-	 * The converter objects of a specified class {@code clz} into a {@code
-	 * Map<String, Object>}. The given {@code appose_type} string is put into
-	 * the map with key {@code "appose_type"}. The map and value to be converted
-	 * are passed to the given {@code BiConsumer} which should serialize the
-	 * value into the map somehow.
+	 * The converter encodes objects of a specified class {@code clz} into a
+	 * {@code Map<String, Object>}. The given {@code appose_type} string is put
+	 * into the map with key {@code "appose_type"}. The map and value to be
+	 * converted are passed to the given {@code BiConsumer} which should
+	 * serialize the value into the map somehow.
+	 * </p>
 	 *
 	 * @param clz the converter will handle objects of this class (or sub-classes)
 	 * @param appose_type the value for key "appose_type" in the returned Map
