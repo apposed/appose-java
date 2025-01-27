@@ -70,13 +70,13 @@ public final class FilePaths {
 			File exeFile = new File(exe);
 			if (exeFile.isAbsolute()) {
 				// Candidate is an absolute path; check it directly.
-				if (exeFile.canExecute()) return exeFile;
+				if (Platforms.isExecutable(exeFile)) return exeFile;
 			}
 			else {
 				// Candidate is a relative path; check beneath each given directory.
 				for (String dir : dirs) {
 					File f = Paths.get(dir, exe).toFile();
-					if (f.canExecute() && !f.isDirectory()) return f;
+					if (Platforms.isExecutable(f) && !f.isDirectory()) return f;
 				}
 			}
 		}

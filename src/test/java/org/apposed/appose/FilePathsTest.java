@@ -41,6 +41,7 @@ import java.nio.file.Paths;
 import java.util.Arrays;
 import java.util.List;
 
+import static org.apposed.appose.Platforms.OperatingSystem.WINDOWS;
 import static org.junit.jupiter.api.Assertions.*;
 
 /**
@@ -49,6 +50,9 @@ import static org.junit.jupiter.api.Assertions.*;
  * @author Curtis Rueden
  */
 public class FilePathsTest {
+
+	private static final String EXT = Platforms.OS == WINDOWS ? ".exe" : "";
+	private static final boolean SET_EXEC_BIT = Platforms.OS != WINDOWS;
 
 	/** Tests {@link FilePaths#findExe}. */
 	@Test
@@ -59,14 +63,16 @@ public class FilePathsTest {
 			createStubFile(tmpDir, "walk");
 			createStubFile(tmpDir, "fly");
 			File binDir = createDirectory(tmpDir, "bin");
-			File binFly = createStubFile(binDir, "fly");
-			// Mark the desired match as executable.
-			assertTrue(binFly.setExecutable(true));
-			assertTrue(binFly.canExecute());
+			File binFly = createStubFile(binDir, "fly" + EXT);
+			if (SET_EXEC_BIT) {
+				// Mark the desired match as executable.
+				assertTrue(binFly.setExecutable(true));
+				assertTrue(binFly.canExecute());
+			}
 
 			// Search for the desired match.
 			List<String> dirs = Arrays.asList(tmpDir.getAbsolutePath(), binDir.getAbsolutePath());
-			List<String> exes = Arrays.asList("walk", "fly", "swim");
+			List<String> exes = Arrays.asList("walk" + EXT, "fly" + EXT, "swim" + EXT);
 			File exe = FilePaths.findExe(dirs, exes);
 
 			// Check that we found the right file.
