@@ -35,9 +35,11 @@ import com.sun.jna.platform.win32.Kernel32;
 import com.sun.jna.platform.win32.Win32Exception;
 import com.sun.jna.platform.win32.WinBase;
 import com.sun.jna.platform.win32.WinNT;
+import org.apposed.appose.Platforms;
 import org.apposed.appose.SharedMemory;
 import org.apposed.appose.ShmFactory;
 
+import static org.apposed.appose.Platforms.OperatingSystem.WINDOWS;
 import static org.apposed.appose.shm.ShmUtils.SHM_NAME_PREFIX_WIN;
 import static org.apposed.appose.shm.ShmUtils.SHM_SAFE_NAME_LENGTH;
 
@@ -52,12 +54,11 @@ public class ShmWindows implements ShmFactory {
 	// name is WITHOUT prefix etc
 	@Override
 	public SharedMemory create(final String name, final boolean create, final int size) {
-		if (ShmUtils.os != ShmUtils.OS.WINDOWS) return null; // wrong platform
+		if (Platforms.OS != WINDOWS) return null; // wrong platform
 		return new SharedMemoryWindows(name, create, size);
 	}
 
 	private static class SharedMemoryWindows extends ShmBase<WinNT.HANDLE> {
-
 		private SharedMemoryWindows(final String name, final boolean create, final int size) {
 			super(prepareShm(name, create, size));
 		}

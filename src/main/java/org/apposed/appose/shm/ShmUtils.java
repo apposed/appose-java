@@ -30,12 +30,8 @@ package org.apposed.appose.shm;
 
 import java.util.Random;
 
-import static org.apposed.appose.shm.ShmUtils.OS.LINUX;
-import static org.apposed.appose.shm.ShmUtils.OS.OSX;
-import static org.apposed.appose.shm.ShmUtils.OS.WINDOWS;
-
 /**
- * Utilities used in all platform-specific {@code SharedMemory} implementations.
+ * Utilities used in platform-specific {@code ShmBase} implementations.
  */
 class ShmUtils {
 
@@ -73,25 +69,6 @@ class ShmUtils {
 	 * with other processes
 	 */
 	static int MAP_SHARED = 0x01;
-
-	/**
-	 * The detected OS.
-	 */
-	public static final OS os = detect_os();
-
-	enum OS {WINDOWS, OSX, LINUX}
-
-	private static OS detect_os() {
-		final String os_name = System.getProperty("os.name").toLowerCase();
-		if (os_name.startsWith("windows")) {
-			return WINDOWS;
-		} else if (os_name.startsWith("mac")) {
-			return OSX;
-		} else if (os_name.contains("linux") || os_name.endsWith("ix")) {
-			return LINUX;
-		}
-		throw new RuntimeException("OS detection failed. System.getProperty(\"os.name\") = " + System.getProperty("os.name"));
-	}
 
 	/**
 	 * Add leading slash if {@code name} doesn't have one.

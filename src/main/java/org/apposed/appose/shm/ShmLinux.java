@@ -31,9 +31,11 @@ package org.apposed.appose.shm;
 
 import com.sun.jna.Native;
 import com.sun.jna.Pointer;
+import org.apposed.appose.Platforms;
 import org.apposed.appose.SharedMemory;
 import org.apposed.appose.ShmFactory;
 
+import static org.apposed.appose.Platforms.OperatingSystem.LINUX;
 import static org.apposed.appose.shm.ShmUtils.MAP_SHARED;
 import static org.apposed.appose.shm.ShmUtils.O_CREAT;
 import static org.apposed.appose.shm.ShmUtils.O_RDONLY;
@@ -56,7 +58,7 @@ public class ShmLinux implements ShmFactory {
 
 	@Override
 	public SharedMemory create(final String name, final boolean create, final int size) {
-		if (ShmUtils.os != ShmUtils.OS.LINUX) return null; // wrong platform
+		if (Platforms.OS != LINUX) return null; // wrong platform
 		return new SharedMemoryLinux(name, create, size);
 	}
 
