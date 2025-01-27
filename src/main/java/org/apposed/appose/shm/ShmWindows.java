@@ -32,6 +32,7 @@ package org.apposed.appose.shm;
 import com.sun.jna.Pointer;
 import com.sun.jna.platform.win32.BaseTSD;
 import com.sun.jna.platform.win32.Kernel32;
+import com.sun.jna.platform.win32.Win32Exception;
 import com.sun.jna.platform.win32.WinBase;
 import com.sun.jna.platform.win32.WinNT;
 import org.apposed.appose.SharedMemory;
@@ -91,12 +92,12 @@ public class ShmWindows implements ShmFactory {
 				WinBase.INVALID_HANDLE_VALUE,
 				null,
 				WinNT.PAGE_READWRITE,
-				0,
+				0, // high 32 bits of size
 				size,
-				shm_name
+				"Local\\" + shm_name
 			);
 			if (hMapFile == null) {
-				throw new RuntimeException("Error creating shared memory array. CreateFileMapping failed: " + Kernel32.INSTANCE.GetLastError());
+				throw new RuntimeException("Error creating shared memory: " + lastError());
 			}
 
 			final int shm_size = (int) getSHMSize(hMapFile);
@@ -104,25 +105,26 @@ public class ShmWindows implements ShmFactory {
 			// Map the shared memory
 			Pointer pointer = Kernel32.INSTANCE.MapViewOfFile(
 				hMapFile,
-				WinNT.FILE_MAP_WRITE,
+				WinNT.FILE_MAP_READ | WinNT.FILE_MAP_WRITE,
 				0,
 				0,
 				size
 			);
 			if (isNull(pointer)) {
 				Kernel32.INSTANCE.CloseHandle(hMapFile);
-				throw new RuntimeException("Error creating shared memory array. " + Kernel32.INSTANCE.GetLastError());
+				throw new RuntimeException("Error mapping shared memory: " + lastError());
 			}
 
 			Pointer writePointer = Kernel32.INSTANCE.VirtualAllocEx(Kernel32.INSTANCE.GetCurrentProcess(),
 				pointer, new BaseTSD.SIZE_T(size), WinNT.MEM_COMMIT, WinNT.PAGE_READWRITE);
 			if (isNull(writePointer)) {
 				cleanup(pointer, writePointer, hMapFile);
-				throw new RuntimeException("Error committing to the shared memory pages. Errno: " + Kernel32.INSTANCE.GetLastError());
+				throw new RuntimeException("Error committing to the shared memory pages: " + lastError());
 			}
 
 			ShmInfo<WinNT.HANDLE> info = new ShmInfo<>();
-			info.size = shm_size;
+			info.size = size;
+			info.trueSize = shm_size;
 			info.name = shm_name;
 			info.pointer = pointer;
 			info.writePointer = writePointer;
@@ -132,7 +134,7 @@ public class ShmWindows implements ShmFactory {
 		}
 
 		// name is WITH prefix etc
-		private static boolean checkSHMExists ( final String name){
+		private static boolean checkSHMExists(final String name) {
 			final WinNT.HANDLE hMapFile = Kernel32.INSTANCE.OpenFileMapping(WinNT.FILE_MAP_READ, false, name);
 			if (hMapFile == null) {
 				return false;
@@ -150,7 +152,7 @@ public class ShmWindows implements ShmFactory {
 		 */
 		// name is WITH prefix etc
 		private static long getSHMSize(final String name) {
-			WinNT.HANDLE hMapFile = Kernel32.INSTANCE.OpenFileMapping(WinNT.FILE_MAP_READ, false, name);
+			WinNT.HANDLE hMapFile = Kernel32.INSTANCE.OpenFileMapping(WinNT.FILE_MAP_READ, false, "Local\\" + name);
 			if (hMapFile == null) {
 				return -1;
 			} else {
@@ -175,7 +177,7 @@ public class ShmWindows implements ShmFactory {
 			final Pointer pSharedMemory = Kernel32.INSTANCE.MapViewOfFile(hMapFile, WinNT.FILE_MAP_READ, 0, 0, 0);
 			if (pSharedMemory == null) {
 				Kernel32.INSTANCE.CloseHandle(hMapFile);
-				throw new RuntimeException("MapViewOfFile failed with error: " + Kernel32.INSTANCE.GetLastError());
+				throw new RuntimeException("MapViewOfFile failed with error: " + lastError());
 			}
 			final Kernel32.MEMORY_BASIC_INFORMATION mbi = new Kernel32.MEMORY_BASIC_INFORMATION();
 
@@ -184,12 +186,11 @@ public class ShmWindows implements ShmFactory {
 											Kernel32.INSTANCE.GetCurrentProcess(), pSharedMemory,
 											mbi, new BaseTSD.SIZE_T((long) mbi.size())
 							).intValue() == 0) {
-				throw new RuntimeException("Failed to get shared memory segment size. Errno: " + Kernel32.INSTANCE.GetLastError());
+				throw new RuntimeException("Failed to get shared memory segment size. Errno: " + lastError());
 			}
 			final int size = mbi.regionSize.intValue();
 
 			Kernel32.INSTANCE.UnmapViewOfFile(pSharedMemory);
-			Kernel32.INSTANCE.CloseHandle(hMapFile);
 
 			return size;
 		}
@@ -202,4 +203,9 @@ public class ShmWindows implements ShmFactory {
 	}
 
 	private static boolean isNull(Pointer p) { return p == null || p == Pointer.NULL; }
+
+	private static String lastError() {
+		int code = Kernel32.INSTANCE.GetLastError();
+		return new Win32Exception(code).getMessage() + " (" + code + ")";
+	}
 }

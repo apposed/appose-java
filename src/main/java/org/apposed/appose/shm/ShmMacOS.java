@@ -110,7 +110,8 @@ public class ShmMacOS implements ShmFactory {
 			}
 
 			ShmInfo<Integer> info = new ShmInfo<>();
-			info.size = shm_size;
+			info.size = size;
+			info.trueSize = shm_size;
 			info.name = withoutLeadingSlash(shm_name);
 			info.pointer = pointer;
 			info.handle = shmFd;

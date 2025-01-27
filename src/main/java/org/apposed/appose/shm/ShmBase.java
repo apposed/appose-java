@@ -113,8 +113,11 @@ abstract class ShmBase<HANDLE> implements SharedMemory {
 		/** Unique name that identifies the shared memory segment. */
 		String name;
 
-		/** Size in bytes. */
+		/** Nominal/requested size in bytes. */
 		int size;
+
+		/** Actual size in bytes after "rounding up" for OS requirements. */
+		public int trueSize;
 
 		/** Pointer referencing the shared memory. */
 		Pointer pointer;

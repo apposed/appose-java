@@ -194,7 +194,7 @@ public interface Environment {
 			// No exeFile was found in the binPaths, but there are prefixed launchArgs.
 			// So we now try to use the first executable bare, because in this scenario
 			// we may have a situation like `pixi run python` where the intended executable
-			// become available on the system path while the environment is activated.
+			// becomes available on the system path while the environment is activated.
 			exe = exes.get(0);
 		}
 		else exe = exeFile.getCanonicalPath();
