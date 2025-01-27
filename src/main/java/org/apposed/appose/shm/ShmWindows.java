@@ -134,22 +134,11 @@ public class ShmWindows implements ShmFactory {
 			return info;
 		}
 
-		// name is WITH prefix etc
-		private static boolean checkSHMExists(final String name) {
-			final WinNT.HANDLE hMapFile = Kernel32.INSTANCE.OpenFileMapping(WinNT.FILE_MAP_READ, false, name);
-			if (hMapFile == null) {
-				return false;
-			} else {
-				Kernel32.INSTANCE.CloseHandle(hMapFile);
-				return true;
-			}
-		}
-
 		/**
 		 * Try to open {@code name} and get its size in bytes.
 		 *
 		 * @param name name with leading slash
-		 * @return size in bytes, or -1 if the shared memory segment couuld not be opened
+		 * @return size in bytes, or -1 if the shared memory segment could not be opened
 		 */
 		// name is WITH prefix etc
 		private static long getSHMSize(final String name) {
@@ -182,12 +171,14 @@ public class ShmWindows implements ShmFactory {
 			}
 			final Kernel32.MEMORY_BASIC_INFORMATION mbi = new Kernel32.MEMORY_BASIC_INFORMATION();
 
-			if (
-							Kernel32.INSTANCE.VirtualQueryEx(
-											Kernel32.INSTANCE.GetCurrentProcess(), pSharedMemory,
-											mbi, new BaseTSD.SIZE_T((long) mbi.size())
-							).intValue() == 0) {
-				throw new RuntimeException("Failed to get shared memory segment size. Errno: " + lastError());
+			if (Kernel32.INSTANCE.VirtualQueryEx(
+					Kernel32.INSTANCE.GetCurrentProcess(),
+					pSharedMemory,
+					mbi,
+					new BaseTSD.SIZE_T(mbi.size())
+				).intValue() == 0)
+			{
+				throw new RuntimeException("Failed to get shared memory segment size: " + lastError());
 			}
 			final int size = mbi.regionSize.intValue();
 
