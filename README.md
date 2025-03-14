@@ -90,6 +90,7 @@ String goldenRatioInPython = """
 # Approximate the golden ratio using the Fibonacci sequence.
 previous = 0
 current = 1
+iterations = 10
 for i in range(iterations):
     if task.cancel_requested:
         task.cancel()
@@ -111,8 +112,8 @@ try (Service python = env.python()) {
                 System.out.println("Progress: " + task.current + "/" + task.maximum);
                 break;
             case COMPLETION:
-                long numer = (Long) task.outputs.get("numer");
-                long denom = (Long) task.outputs.get("denom");
+                int numer = (Integer) task.outputs.get("numer");
+                int denom = (Integer) task.outputs.get("denom");
                 double ratio = (double) numer / denom;
                 System.out.println("Task complete. Result: " + numer + "/" + denom + " =~ " + ratio);
                 break;
