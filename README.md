@@ -112,8 +112,9 @@ try (Service python = env.python()) {
                 System.out.println("Progress: " + task.current + "/" + task.maximum);
                 break;
             case COMPLETION:
-                int numer = (Integer) task.outputs.get("numer");
-                int denom = (Integer) task.outputs.get("denom");
+                int numer = (Integer) task.outputs.get("numer"); // If iterations < ~45 
+                int denom = (Integer) task.outputs.get("denom"); // If iterations < ~45
+
                 double ratio = (double) numer / denom;
                 System.out.println("Task complete. Result: " + numer + "/" + denom + " =~ " + ratio);
                 break;
