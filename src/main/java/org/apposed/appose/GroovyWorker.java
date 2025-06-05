@@ -119,11 +119,32 @@ public class GroovyWorker {
 		}
 
 		@SuppressWarnings("unused")
+		public void update(String message) {
+			update(message, null, null, null);
+		}
+
+		@SuppressWarnings("unused")
+		public void update(Long current, Long maximum) {
+			update(null, current, maximum, null);
+		}
+
+		@SuppressWarnings("unused")
+		public void update(Map<String, Object> info) {
+			update(null, null, null, info);
+		}
+
+		@SuppressWarnings("unused")
 		public void update(String message, Long current, Long maximum) {
+			update(message, current, maximum, null);
+		}
+
+		@SuppressWarnings("unused")
+		public void update(String message, Long current, Long maximum, Map<String, Object> info) {
 			Map<String, Object> args = new HashMap<>();
 			if (message != null) args.put("message", message);
 			if (current != null) args.put("current", current);
 			if (maximum != null) args.put("maximum", maximum);
+			if (info != null) args.put("info", info);
 			respond(ResponseType.UPDATE, args);
 		}
 
