@@ -474,7 +474,8 @@ public class Service implements AutoCloseable {
 					return;
 			}
 
-			TaskEvent event = new TaskEvent(this, responseType);
+			Map<String, Object> info = (Map<String, Object>) response.get("info");
+			TaskEvent event = new TaskEvent(this, responseType, info);
 			listeners.forEach(l -> l.accept(event));
 
 			if (status.isFinished()) {

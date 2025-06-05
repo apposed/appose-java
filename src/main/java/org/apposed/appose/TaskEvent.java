@@ -29,16 +29,23 @@
 
 package org.apposed.appose;
 
+import java.util.Map;
 import org.apposed.appose.Service.ResponseType;
 
 public class TaskEvent {
 
 	public final Service.Task task;
 	public final ResponseType responseType;
+	public final Map<String, Object> info;
 
 	public TaskEvent(Service.Task task, ResponseType responseType) {
+		this(task, responseType, null);
+	}
+
+	public TaskEvent(Service.Task task, ResponseType responseType, Map<String, Object> info) {
 		this.task = task;
 		this.responseType = responseType;
+		this.info = info;
 	}
 
 	@Override
