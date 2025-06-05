@@ -185,10 +185,9 @@ public class GroovyWorker {
 		}
 
 		private void respond(ResponseType responseType, Map<String, Object> args) {
-			Map<String, Object> response = new HashMap<>();
+			Map<String, Object> response = args == null ? new HashMap<>() : new HashMap<>(args);
 			response.put("task", uuid);
 			response.put("responseType", responseType.toString());
-			if (args != null) response.putAll(args);
 			try {
 				System.out.println(Types.encode(response));
 			}
