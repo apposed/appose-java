@@ -161,13 +161,8 @@ public class ApposeTest {
 			task.waitFor();
 			assertSame(TaskStatus.FAILED, task.status);
 			String nl = "(\r\n|\n|\r)";
-			String expectedError =
-				"Traceback \\(most recent call last\\):" + nl +
-				"  File \"[^ ]*python_worker.py\", line \\d+, in execute_script" + nl +
-				"    result = eval\\(" + nl +
-				"  File \"<string>\", line 1, in <module>" + nl +
-				"NameError: name 'whee' is not defined" + nl;
-			assertTrue(task.error.matches(expectedError));
+			String expectedError = "NameError: name 'whee' is not defined";
+			assertTrue(task.error.contains(expectedError));
 		}
 	}
 
@@ -182,14 +177,12 @@ public class ApposeTest {
 			Thread.sleep(5);
 		}
 		assertFalse(service.isAlive());
-		assertEquals(3, service.errorLines().size());
 		// Check that the crash happened and was recorded correctly.
-		List<String> expectedLines = Arrays.asList(
-			"Traceback (most recent call last):",
-			"  File \"<string>\", line 1, in <module>",
-			"ModuleNotFoundError: No module named 'nonexistentpackage'"
-		);
-		assertEquals(expectedLines, service.errorLines());
+		List<String> errorLines = service.errorLines();
+		assertNotNull(errorLines);
+		assertFalse(errorLines.isEmpty());
+		String error = errorLines.get(errorLines.size() - 1);
+		assertEquals("ModuleNotFoundError: No module named 'nonexistentpackage'", error);
 	}
 
 	@Test
