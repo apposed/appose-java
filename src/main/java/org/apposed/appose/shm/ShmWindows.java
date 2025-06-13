@@ -53,14 +53,14 @@ public class ShmWindows implements ShmFactory {
 
 	// name is WITHOUT prefix etc
 	@Override
-	public SharedMemory create(final String name, final boolean create, final int size) {
+	public SharedMemory create(final String name, final boolean create, final int rsize) {
 		if (Platforms.OS != WINDOWS) return null; // wrong platform
-		return new SharedMemoryWindows(name, create, size);
+		return new SharedMemoryWindows(name, create, rsize);
 	}
 
 	private static class SharedMemoryWindows extends ShmBase<WinNT.HANDLE> {
-		private SharedMemoryWindows(final String name, final boolean create, final int size) {
-			super(prepareShm(name, create, size));
+		private SharedMemoryWindows(final String name, final boolean create, final int rsize) {
+			super(prepareShm(name, create, rsize));
 		}
 
 		@Override
@@ -75,7 +75,7 @@ public class ShmWindows implements ShmFactory {
 			// equivalent in Windows like there is in POSIX systems.
 		}
 
-		private static ShmInfo<WinNT.HANDLE> prepareShm(String name, boolean create, int size) {
+		private static ShmInfo<WinNT.HANDLE> prepareShm(String name, boolean create, int rsize) {
 			String shm_name;
 			long prevSize;
 			if (name == null) {
@@ -87,14 +87,14 @@ public class ShmWindows implements ShmFactory {
 				shm_name = name;
 				prevSize = getSHMSize(shm_name);
 			}
-			ShmUtils.checkSize(shm_name, prevSize, size);
+			ShmUtils.checkSize(shm_name, prevSize, rsize);
 
 			final WinNT.HANDLE hMapFile = Kernel32.INSTANCE.CreateFileMapping(
 				WinBase.INVALID_HANDLE_VALUE,
 				null,
 				WinNT.PAGE_READWRITE,
 				0, // high 32 bits of size
-				size,
+				rsize,
 				"Local\\" + shm_name
 			);
 			if (hMapFile == null) {
@@ -109,7 +109,7 @@ public class ShmWindows implements ShmFactory {
 				WinNT.FILE_MAP_READ | WinNT.FILE_MAP_WRITE,
 				0,
 				0,
-				size
+				rsize
 			);
 			if (isNull(pointer)) {
 				Kernel32.INSTANCE.CloseHandle(hMapFile);
@@ -117,16 +117,16 @@ public class ShmWindows implements ShmFactory {
 			}
 
 			Pointer writePointer = Kernel32.INSTANCE.VirtualAllocEx(Kernel32.INSTANCE.GetCurrentProcess(),
-				pointer, new BaseTSD.SIZE_T(size), WinNT.MEM_COMMIT, WinNT.PAGE_READWRITE);
+				pointer, new BaseTSD.SIZE_T(rsize), WinNT.MEM_COMMIT, WinNT.PAGE_READWRITE);
 			if (isNull(writePointer)) {
 				cleanup(pointer, writePointer, hMapFile);
 				throw new RuntimeException("Error committing to the shared memory pages: " + lastError());
 			}
 
 			ShmInfo<WinNT.HANDLE> info = new ShmInfo<>();
-			info.size = size;
-			info.trueSize = shm_size;
 			info.name = shm_name;
+			info.rsize = rsize; // REQUESTED size
+			info.size = shm_size; // ALLOCATED size
 			info.pointer = pointer;
 			info.writePointer = writePointer;
 			info.handle = hMapFile;

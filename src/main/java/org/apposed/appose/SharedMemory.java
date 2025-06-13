@@ -45,50 +45,57 @@ public interface SharedMemory extends AutoCloseable {
 	/**
 	 * Creates a new shared memory block.
 	 *
-	 * @param name   the unique name for the requested shared memory, specified
+	 * @param name   The unique name for the requested shared memory, specified
 	 *               as a string. If {@code null} is supplied for the name, a novel
 	 *               name will be generated.
-	 * @param size   size in bytes.
+	 * @param rsize  Requested size in bytes. The true allocated size will be at least
+	 *               this much, but may be rounded up to the next block size multiple,
+	 *               depending on the running platform.
 	 */
-	static SharedMemory create(String name, int size) {
-		return createOrAttach(name, true, size);
+	static SharedMemory create(String name, int rsize) {
+		return createOrAttach(name, true, rsize);
 	}
 
 	/**
 	 * Attaches to an existing shared memory block.
 	 *
-	 * @param name   the unique name for the requested shared memory, specified
+	 * @param name   The unique name for the requested shared memory, specified
 	 *               as a string.
+	 * @param rsize  Requested size in bytes. The true allocated size will be at least
+	 *               this much, but may be rounded up to the next block size multiple,
+	 *               depending on the running platform.
 	 */
-	static SharedMemory attach(String name, int size) {
-		return createOrAttach(name, false, size);
+	static SharedMemory attach(String name, int rsize) {
+		return createOrAttach(name, false, rsize);
 	}
 
 	/**
 	 * Creates a new shared memory block or attaches to an existing shared
 	 * memory block.
 	 *
-	 * @param name   the unique name for the requested shared memory, specified
-	 *               as a string. If {@code create==true} a new shared memory
-	 *               block, if {@code null} is supplied for the name, a novel
+	 * @param name   The unique name for the requested shared memory, specified
+	 *               as a string. If {@code create==true} (i.e. a new shared memory
+	 *               block) and {@code null} is supplied for the name, a novel
 	 *               name will be generated.
-	 * @param create whether a new shared memory block is created ({@code true})
+	 * @param create Whether a new shared memory block is created ({@code true})
 	 *               or an existing one is attached to ({@code false}).
-	 * @param size   size in bytes, or 0 if create==false
+	 * @param rsize  requested size in bytes. The true allocated size will be at least
+	 *               this much, but may be rounded up to the next block size multiple,
+	 *               depending on the running platform.
 	 */
-	static SharedMemory createOrAttach(String name, boolean create, int size) {
-		if (size < 0) {
-			throw new IllegalArgumentException("'size' must be a positive integer");
+	static SharedMemory createOrAttach(String name, boolean create, int rsize) {
+		if (rsize < 0) {
+			throw new IllegalArgumentException("'rsize' must be a positive integer");
 		}
-		if (create && size == 0) {
-			throw new IllegalArgumentException("'size' must be a positive number different from zero");
+		if (create && rsize == 0) {
+			throw new IllegalArgumentException("'rsize' must be a positive number different from zero");
 		}
 		if (!create && name == null) {
 			throw new IllegalArgumentException("'name' can only be null if create=true");
 		}
 		ServiceLoader<ShmFactory> loader = ServiceLoader.load(ShmFactory.class);
 		for (ShmFactory factory : loader) {
-			SharedMemory shm = factory.create(name, create, size);
+			SharedMemory shm = factory.create(name, create, rsize);
 			if (shm != null) return shm;
 		}
 		throw new UnsupportedOperationException("No SharedMemory support for this platform");
@@ -102,9 +109,21 @@ public interface SharedMemory extends AutoCloseable {
 	String name();
 
 	/**
-	 * Size in bytes.
+	 * The size in bytes as originally requested. The actual allocated size
+	 * ({@link #size()}) will be at least this much, but may be rounded up
+	 * to the next block size multiple, depending on the running platform.
 	 *
-	 * @return The length in bytes of the shared memory.
+	 *
+	 * @return The length in bytes of the shared memory, as <em>requested</em>.
+	 */
+	int rsize();
+
+	/**
+	 * Actual allocated size in bytes. This value may be rounded up from the
+	 * originally requested size ({@link #rsize()}), or it might match exactly,
+	 * depending on the platform.
+	 *
+	 * @return The length in bytes of the shared memory, as <em>allocated</em>.
 	 */
 	int size();
 

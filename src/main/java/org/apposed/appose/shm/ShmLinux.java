@@ -57,16 +57,16 @@ import static org.apposed.appose.shm.ShmUtils.withoutLeadingSlash;
 public class ShmLinux implements ShmFactory {
 
 	@Override
-	public SharedMemory create(final String name, final boolean create, final int size) {
+	public SharedMemory create(final String name, final boolean create, final int rsize) {
 		if (Platforms.OS != LINUX) return null; // wrong platform
-		return new SharedMemoryLinux(name, create, size);
+		return new SharedMemoryLinux(name, create, rsize);
 	}
 
 	private static class SharedMemoryLinux extends ShmBase<Integer> {
 
 		// name without leading slash
-		private SharedMemoryLinux(final String name, final boolean create, final int size) {
-			super(prepareShm(name, create, size));
+		private SharedMemoryLinux(final String name, final boolean create, final int rsize) {
+			super(prepareShm(name, create, rsize));
 		}
 
 		@Override
@@ -87,7 +87,7 @@ public class ShmLinux implements ShmFactory {
 			}
 		}
 
-		private static ShmInfo<Integer> prepareShm(String name, boolean create, int size) {
+		private static ShmInfo<Integer> prepareShm(String name, boolean create, int rsize) {
 			String shm_name;
 			long prevSize;
 			if (name == null) {
@@ -99,14 +99,14 @@ public class ShmLinux implements ShmFactory {
 				shm_name = withLeadingSlash(name);
 				prevSize = getSHMSize(shm_name);
 			}
-			ShmUtils.checkSize(shm_name, prevSize, size);
+			ShmUtils.checkSize(shm_name, prevSize, rsize);
 
 			final int shmFd = LibRtOrC.shm_open(shm_name, O_CREAT | O_RDWR, 0666);
 			if (shmFd < 0) {
 				throw new RuntimeException("shm_open failed, errno: " + Native.getLastError());
 			}
 			if (create) {
-				if (LibRtOrC.ftruncate(shmFd, (int) size) == -1) {
+				if (LibRtOrC.ftruncate(shmFd, (int) rsize) == -1) {
 					LibRtOrC.close(shmFd);
 					throw new RuntimeException("ftruncate failed, errno: " + Native.getLastError());
 				}
@@ -121,9 +121,9 @@ public class ShmLinux implements ShmFactory {
 			}
 
 			ShmInfo<Integer> info = new ShmInfo<>();
-			info.size = size;
-			info.trueSize = shm_size;
 			info.name = withoutLeadingSlash(shm_name);
+			info.rsize = rsize; // REQUESTED size
+			info.size = shm_size; // ALLOCATED size
 			info.pointer = pointer;
 			info.handle = shmFd;
 			info.unlinkOnClose = create;

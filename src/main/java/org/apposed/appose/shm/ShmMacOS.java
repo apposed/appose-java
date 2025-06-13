@@ -55,14 +55,14 @@ import static org.apposed.appose.shm.ShmUtils.withoutLeadingSlash;
 public class ShmMacOS implements ShmFactory {
 
 	@Override
-	public SharedMemory create(final String name, final boolean create, final int size) {
+	public SharedMemory create(final String name, final boolean create, final int rsize) {
 		if (Platforms.OS != MACOS) return null; // wrong platform
-		return new SharedMemoryMacOS(name, create, size);
+		return new SharedMemoryMacOS(name, create, rsize);
 	}
 
 	private static class SharedMemoryMacOS extends ShmBase<Integer> {
-		private SharedMemoryMacOS(final String name, final boolean create, final int size) {
-			super(prepareShm(name, create, size));
+		private SharedMemoryMacOS(final String name, final boolean create, final int rsize) {
+			super(prepareShm(name, create, rsize));
 		}
 
 		@Override
@@ -83,7 +83,7 @@ public class ShmMacOS implements ShmFactory {
 			}
 		}
 
-		private static ShmInfo<Integer> prepareShm(String name, boolean create, int size) {
+		private static ShmInfo<Integer> prepareShm(String name, boolean create, int rsize) {
 			String shm_name;
 			long prevSize;
 			if (name == null) {
@@ -95,10 +95,10 @@ public class ShmMacOS implements ShmFactory {
 				shm_name = withLeadingSlash(name);
 				prevSize = getSHMSize(shm_name);
 			}
-			ShmUtils.checkSize(shm_name, prevSize, size);
+			ShmUtils.checkSize(shm_name, prevSize, rsize);
 
 			// shmFd = INSTANCE.shm_open(this.memoryName, O_RDWR, 0666);
-			final int shmFd = MacosHelpers.INSTANCE.create_shared_memory(shm_name, size);
+			final int shmFd = MacosHelpers.INSTANCE.create_shared_memory(shm_name, rsize);
 			if (shmFd < 0) {
 				throw new RuntimeException("shm_open failed, errno: " + Native.getLastError());
 			}
@@ -112,9 +112,9 @@ public class ShmMacOS implements ShmFactory {
 			}
 
 			ShmInfo<Integer> info = new ShmInfo<>();
-			info.size = size;
-			info.trueSize = shm_size;
 			info.name = withoutLeadingSlash(shm_name);
+			info.rsize = rsize; // REQUESTED size
+			info.size = shm_size; // ALLOCATED size
 			info.pointer = pointer;
 			info.handle = shmFd;
 			info.unlinkOnClose = create;

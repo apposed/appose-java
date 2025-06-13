@@ -63,6 +63,11 @@ abstract class ShmBase<HANDLE> implements SharedMemory {
 	}
 
 	@Override
+	public int rsize() {
+		return info.rsize;
+	}
+
+	@Override
 	public int size() {
 		return info.size;
 	}
@@ -114,10 +119,10 @@ abstract class ShmBase<HANDLE> implements SharedMemory {
 		String name;
 
 		/** Nominal/requested size in bytes. */
-		int size;
+		int rsize;
 
 		/** Actual size in bytes after "rounding up" for OS requirements. */
-		public int trueSize;
+		int size;
 
 		/** Pointer referencing the shared memory. */
 		Pointer pointer;

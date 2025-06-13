@@ -52,36 +52,37 @@ public class SharedMemoryTest {
 
 	@Test
 	public void testShmCreate() throws IOException {
-		int size = 456;
-		try (SharedMemory shm = SharedMemory.create(null, size)) {
+		int rsize = 456;
+		try (SharedMemory shm = SharedMemory.create(null, rsize)) {
 			assertNotNull(shm.name());
-			assertTrue(shm.size() >= size);
+			assertEquals(rsize, shm.rsize()); // REQUESTED size
+			assertTrue(rsize <= shm.size()); // ALLOCATED size
 			assertNotNull(shm.pointer());
 
 			// Modify the memory contents.
-			ByteBuffer buffer = shm.pointer().getByteBuffer(0, size);
-			for (int i = 0; i < size; i++) {
-				buffer.put(i, (byte) (size - i));
+			ByteBuffer buffer = shm.pointer().getByteBuffer(0, rsize);
+			for (int i = 0; i < rsize; i++) {
+				buffer.put(i, (byte) (rsize - i));
 			}
 
 			// Assert that values have been modified as expected.
-			byte[] b = new byte[size];
+			byte[] b = new byte[rsize];
 			buffer.get(b);
-			for (int i = 0; i < size; i++) {
-				assertEquals((byte) (size - i), b[i]);
+			for (int i = 0; i < rsize; i++) {
+				assertEquals((byte) (rsize - i), b[i]);
 			}
 
 			// Assert that another process is able to read the values.
 			String output = runPython(
 				"from appose import SharedMemory\n" +
 					"from sys import stdout\n" +
-					"shm = SharedMemory(name='" + shm.name() + "', size=" + size + ")\n" +
-					"matches = sum(1 for i in range(" + size + ") if shm.buf[i] == (" + size + " - i) % 256)\n" +
+					"shm = SharedMemory(name='" + shm.name() + "', rsize=" + rsize + ")\n" +
+					"matches = sum(1 for i in range(" + rsize + ") if shm.buf[i] == (" + rsize + " - i) % 256)\n" +
 					"stdout.write(f'{matches}\\n')\n" +
 					"stdout.flush()\n" +
 					"shm.unlink()\n" // HACK: to satisfy Python's overly aggressive resource tracker
 			);
-			assertEquals("" + size, output);
+			assertEquals("" + rsize, output);
 		}
 	}
 
@@ -96,31 +97,34 @@ public class SharedMemoryTest {
 		String output = runPython(
 			"from appose import SharedMemory\n" +
 			"from sys import stdout\n" +
-			"shm = SharedMemory(create=True, size=345)\n" +
+			"shm = SharedMemory(create=True, rsize=345)\n" +
 			"shm.buf[0] = 12\n" +
 			"shm.buf[100] = 234\n" +
 			"shm.buf[344] = 7\n" +
-			"stdout.write(f'{shm.name}|{shm.size}\\n')\n" +
+			"stdout.write(f'{shm.name}|{shm.rsize}|{shm.size}\\n')\n" +
 			"stdout.flush()\n" +
-			"import time; time.sleep(0.2)\n" + // HACK: horrible, but keeps things simple
+			"import time; time.sleep(0.5)\n" + // HACK: horrible, but keeps things simple
 			"shm.unlink()\n"
 		);
 
 		// Parse the output into the name and size of the shared memory block.
 		String[] shmInfo = output.split("\\|");
-		assertEquals(2, shmInfo.length);
+		assertEquals(3, shmInfo.length);
 		String shmName = shmInfo[0];
 		assertNotNull(shmName);
 		assertFalse(shmName.isEmpty());
-		int shmSize = Integer.parseInt(shmInfo[1]);
+		int shmRSize = Integer.parseInt(shmInfo[1]);
+        assertEquals(345, shmRSize);
+		int shmSize = Integer.parseInt(shmInfo[2]);
 		assertTrue(shmSize >= 345);
 
 		// Attach to the shared memory and verify it matches expectations.
-		try (SharedMemory shm = SharedMemory.attach(shmName, shmSize)) {
+		try (SharedMemory shm = SharedMemory.attach(shmName, shmRSize)) {
 			assertNotNull(shm);
 			assertEquals(shmName, shm.name());
+			assertEquals(shmRSize, shm.rsize());
 			assertEquals(shmSize, shm.size());
-			ByteBuffer buf = shm.pointer().getByteBuffer(0, shmSize);
+			ByteBuffer buf = shm.pointer().getByteBuffer(0, shmRSize);
 			assertEquals(12, buf.get(0));
 			assertEquals((byte) 234, buf.get(100));
 			assertEquals(7, buf.get(344));
