@@ -371,9 +371,6 @@ public class Service implements AutoCloseable {
 		public final Map<String, Object> outputs = Collections.unmodifiableMap(mOutputs);
 
 		public TaskStatus status = TaskStatus.INITIAL;
-		public String message;
-		public long current;
-		public long maximum = 1;
 		public String error;
 
 		private final List<Consumer<TaskEvent>> listeners = new ArrayList<>();
@@ -446,11 +443,7 @@ public class Service implements AutoCloseable {
 					status = TaskStatus.RUNNING;
 					break;
 				case UPDATE:
-					message = (String) response.get("message");
-					Number current = (Number) response.get("current");
-					Number maximum = (Number) response.get("maximum");
-					if (current != null) this.current = current.longValue();
-					if (maximum != null) this.maximum = maximum.longValue();
+					// No extra action needed.
 					break;
 				case COMPLETION:
 					tasks.remove(uuid);
@@ -474,8 +467,13 @@ public class Service implements AutoCloseable {
 					return;
 			}
 
+			String message = (String) response.get("message");
+			Number nCurrent = (Number) response.get("current");
+			Number nMaximum = (Number) response.get("maximum");
+			long current = nCurrent == null ? 0 : nCurrent.longValue();
+			long maximum = nMaximum == null ? 0 : nMaximum.longValue();
 			Map<String, Object> info = (Map<String, Object>) response.get("info");
-			TaskEvent event = new TaskEvent(this, responseType, info);
+			TaskEvent event = new TaskEvent(this, responseType, message, current, maximum, info);
 			listeners.forEach(l -> l.accept(event));
 
 			if (status.isFinished()) {
@@ -497,8 +495,7 @@ public class Service implements AutoCloseable {
 
 		@Override
 		public String toString() {
-			return String.format("uuid=%s, status=%s, message=%s, current=%d, maximum=%d, error=%s",
-				uuid, status, message, current, maximum, error);
+			return String.format("uuid=%s, status=%s, error=%s", uuid, status, error);
 		}
 	}
 }

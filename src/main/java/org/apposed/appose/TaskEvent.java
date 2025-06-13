@@ -36,15 +36,22 @@ public class TaskEvent {
 
 	public final Service.Task task;
 	public final ResponseType responseType;
+	public final String message;
+	public final long current, maximum;
 	public final Map<String, Object> info;
 
 	public TaskEvent(Service.Task task, ResponseType responseType) {
-		this(task, responseType, null);
+		this(task, responseType, null, 0, 0, null);
 	}
 
-	public TaskEvent(Service.Task task, ResponseType responseType, Map<String, Object> info) {
+	public TaskEvent(Service.Task task, ResponseType responseType,
+		String message, long current, long maximum, Map<String, Object> info)
+	{
 		this.task = task;
 		this.responseType = responseType;
+		this.message = message;
+		this.current = current;
+		this.maximum = maximum;
 		this.info = info;
 	}
 

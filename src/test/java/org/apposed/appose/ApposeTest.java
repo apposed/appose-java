@@ -284,17 +284,17 @@ public class ApposeTest {
 		// Record the state of the task for each event that occurs.
 		class TaskState {
 			final ResponseType responseType;
-			final TaskStatus status;
 			final String message;
 			final Long current;
 			final Long maximum;
+			final TaskStatus status;
 			final String error;
 			TaskState(TaskEvent event) {
 				responseType = event.responseType;
+				message = event.message;
+				current = event.current;
+				maximum = event.maximum;
 				status = event.task.status;
-				message = event.task.message;
-				current = event.task.current;
-				maximum = event.task.maximum;
 				error = event.task.error;
 			}
 		}
@@ -315,9 +315,6 @@ public class ApposeTest {
 		TaskState launch = events.get(0);
 		assertSame(ResponseType.LAUNCH, launch.responseType);
 		assertSame(TaskStatus.RUNNING, launch.status);
-		assertNull(launch.message);
-		assertEquals(0, launch.current);
-		assertEquals(1, launch.maximum);
 		assertNull(launch.error);
 		int v = 9999;
 		for (int i=0; i<91; i++) {
@@ -327,14 +324,14 @@ public class ApposeTest {
 			assertSame(TaskStatus.RUNNING, update.status);
 			assertEquals("[" + i + "] -> " + v, update.message);
 			assertEquals(i, update.current);
-			assertEquals(1, update.maximum);
+			assertEquals(0, update.maximum);
 			assertNull(update.error);
 		}
 		TaskState completion = events.get(92);
 		assertSame(ResponseType.COMPLETION, completion.responseType);
-		assertEquals("[90] -> 1", completion.message);
-		assertEquals(90, completion.current);
-		assertEquals(1, completion.maximum);
+		assertNull(completion.message); // no message from non-UPDATE response
+		assertEquals(0, completion.current); // no current from non-UPDATE response
+		assertEquals(0, completion.maximum); // no maximum from non-UPDATE response
 		assertNull(completion.error);
 	}
 
