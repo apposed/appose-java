@@ -114,7 +114,7 @@ public class SharedMemoryTest {
 		assertNotNull(shmName);
 		assertFalse(shmName.isEmpty());
 		int shmRSize = Integer.parseInt(shmInfo[1]);
-        assertEquals(345, shmRSize);
+		assertEquals(345, shmRSize);
 		int shmSize = Integer.parseInt(shmInfo[2]);
 		assertTrue(shmSize >= 345);
 
