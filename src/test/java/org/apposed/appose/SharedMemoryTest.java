@@ -123,7 +123,12 @@ public class SharedMemoryTest {
 			assertNotNull(shm);
 			assertEquals(shmName, shm.name());
 			assertEquals(shmRSize, shm.rsize());
-			assertEquals(shmSize, shm.size());
+			// Note: We do not test that shmSize and shm.size() match exactly,
+			// because Python and appose-java's SharedMemory code will not
+			// necessarily behave identically when it comes to block rounding.
+			// Notably, on Windows, Python does not round, whereas ShmWindows
+			// rounds up to the next block size (4K on GitHub Actions CI).
+			assertTrue(shm.size() >= 345);
 			ByteBuffer buf = shm.pointer().getByteBuffer(0, shmRSize);
 			assertEquals(12, buf.get(0));
 			assertEquals((byte) 234, buf.get(100));
