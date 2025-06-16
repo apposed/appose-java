@@ -49,6 +49,8 @@ import static org.junit.jupiter.api.Assertions.assertSame;
  */
 public class TypesTest {
 
+	private static final long SHM_RSIZE = 4000;
+
 	private static final String JSON = "{" +
 		"\"posByte\":123,\"negByte\":-98," +
 		"\"posDouble\":9.876543210123456,\"negDouble\":-1.234567890987654E302," +
@@ -70,7 +72,7 @@ public class TypesTest {
 			"\"shm\":{" +
 				"\"appose_type\":\"shm\"," +
 				"\"name\":\"SHM_NAME\"," +
-				"\"rsize\":SHM_SIZE" +
+				"\"rsize\":" + SHM_RSIZE +
 			"}" +
 		"}" +
 	"}";
@@ -110,9 +112,7 @@ public class TypesTest {
 			data.put("ndArray", ndArray);
 			String json = Types.encode(data);
 			assertNotNull(json);
-			String expected = JSON
-				.replaceAll("SHM_NAME", ndArray.shm().name())
-				.replaceAll("SHM_SIZE", "" + ndArray.shm().size());
+			String expected = JSON.replaceAll("SHM_NAME", ndArray.shm().name());
 			assertEquals(expected, json);
 		}
 	}
@@ -121,15 +121,13 @@ public class TypesTest {
 	public void testDecode() {
 		Map<String, Object> data;
 		String shmName;
-		long shmSize;
+		long shmRSize;
 
 		// Create name shared memory segment and decode JSON block.
-		try (SharedMemory shm = SharedMemory.create(4000)) {
+		try (SharedMemory shm = SharedMemory.create(SHM_RSIZE)) {
 			shmName = shm.name();
-			shmSize = shm.size();
-			String json = JSON
-				.replaceAll("SHM_NAME", shmName)
-				.replaceAll("SHM_SIZE", "" + shmSize);
+			shmRSize = shm.rsize();
+			String json = JSON.replaceAll("SHM_NAME", shmName);
 			data = Types.decode(json);
 		}
 
@@ -165,7 +163,7 @@ public class TypesTest {
 			assertEquals(20, ndArray.shape().get(1));
 			assertEquals(25, ndArray.shape().get(2));
 			assertEquals(shmName, ndArray.shm().name());
-			assertEquals(shmSize, ndArray.shm().size());
+			assertEquals(SHM_RSIZE, ndArray.shm().rsize());
 		}
 	}
 
