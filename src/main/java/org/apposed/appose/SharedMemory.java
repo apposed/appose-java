@@ -46,10 +46,12 @@ public interface SharedMemory extends AutoCloseable {
 	/**
 	 * Creates a new shared memory block with an automatically generated name.
 	 *
-	 * @param size size in bytes.
+	 * @param rsize  Requested size in bytes. The true allocated size will be at least
+	 *               this much, but may be rounded up to the next block size multiple,
+	 *               depending on the running platform.
 	 */
-	static SharedMemory create(int size) {
-		return createOrAttach(null, true, size);
+	static SharedMemory create(int rsize) {
+		return createOrAttach(null, true, rsize);
 	}
 
 	/**
