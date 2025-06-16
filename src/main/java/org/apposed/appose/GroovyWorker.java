@@ -166,7 +166,6 @@ public class GroovyWorker {
 				// Populate script bindings.
 				Binding binding = new Binding();
 				binding.setVariable("task", Task.this);
-				// TODO: Magically convert shared memory image inputs.
 				inputs.forEach(binding::setVariable);
 
 				// Inform the calling process that the script is launching.
