@@ -163,35 +163,35 @@ public class GroovyWorker {
 			// TODO: Consider whether to retain a reference to this Thread, and
 			// expose a "force" option for cancelation that uses thread.stop().
 			new Thread(() -> {
-				// Populate script bindings.
-				Binding binding = new Binding();
-				binding.setVariable("task", Task.this);
-				inputs.forEach(binding::setVariable);
-
-				// Inform the calling process that the script is launching.
-				reportLaunch();
-
-				// Execute the script.
-				Object result;
 				try {
+					// Populate script bindings.
+					Binding binding = new Binding();
+					binding.setVariable("task", Task.this);
+					inputs.forEach(binding::setVariable);
+
+					// Inform the calling process that the script is launching.
+					reportLaunch();
+
+					// Execute the script.
+					Object result;
+
 					GroovyShell shell = new GroovyShell(binding);
 					result = shell.evaluate(script);
+
+					// Report the results to the Appose calling process.
+					if (result instanceof Map) {
+						// Script produced a map; add all entries to the outputs.
+						outputs.putAll((Map<?, ?>) result);
+					}
+					else if (result != null) {
+						// Script produced a non-map; add it alone to the outputs.
+						outputs.put("result", result);
+					}
+					reportCompletion();
 				}
 				catch (Exception exc) {
 					fail(Types.stackTrace(exc));
-					return;
 				}
-
-				// Report the results to the Appose calling process.
-				if (result instanceof Map) {
-					// Script produced a map; add all entries to the outputs.
-					outputs.putAll((Map<?, ?>) result);
-				}
-				else if (result != null) {
-					// Script produced a non-map; add it alone to the outputs.
-					outputs.put("result", result);
-				}
-				reportCompletion();
 			}, "Appose-" + uuid).start();
 		}
 
