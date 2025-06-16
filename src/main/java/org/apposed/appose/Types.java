@@ -180,7 +180,7 @@ public final class Types {
 				switch (appose_type) {
 					case "shm":
 						final String name = (String) map.get("name");
-						final int rsize = (int) map.get("rsize");
+						final long rsize = ((Number) map.get("rsize")).longValue();
 						return SharedMemory.attach(name, rsize);
 					case "ndarray":
 						final NDArray.DType dType = toDType((String) map.get("dtype"));

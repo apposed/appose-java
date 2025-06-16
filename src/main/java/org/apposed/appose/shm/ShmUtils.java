@@ -117,7 +117,7 @@ class ShmUtils {
 		return name;
 	}
 
-	static void checkSize(String shmName, long prevSize, int size) {
+	static void checkSize(String shmName, long prevSize, long size) {
 		final boolean alreadyExists = prevSize >= 0;
 		if (alreadyExists && prevSize < size) {
 			throw new RuntimeException("Shared memory segment '" + shmName + "' already exists with smaller size. "

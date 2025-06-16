@@ -61,7 +61,7 @@ public class NDArray implements AutoCloseable {
 		this.dType = dType;
 		this.shape = shape;
 		this.shm = shm == null
-			? SharedMemory.create(safeInt(shape.numElements() * dType.bytesPerElement()))
+			? SharedMemory.create(shape.numElements() * dType.bytesPerElement())
 			: shm;
 	}
 
@@ -122,16 +122,6 @@ public class NDArray implements AutoCloseable {
 			", shape=" + shape +
 			", shm=" + shm +
 			")";
-	}
-
-	/**
-	 * Cast {@code long} to {@code int}.
-	 *
-	 * @throws IllegalArgumentException if the value is too large to fit in an integer.
-	 */
-	private static int safeInt(final long value) {
-		if (value > Integer.MAX_VALUE) throw new IllegalArgumentException("value too large");
-		return (int) value;
 	}
 
 	/**

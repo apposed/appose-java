@@ -51,7 +51,7 @@ public interface SharedMemory extends AutoCloseable {
 	 * @throws UnsupportedOperationException If support for shared memory is not
 	 *                                        implemented for this platform.
 	 */
-	static SharedMemory create(int rsize) {
+	static SharedMemory create(long rsize) {
 		return createOrAttach(null, true, rsize);
 	}
 
@@ -67,7 +67,7 @@ public interface SharedMemory extends AutoCloseable {
 	 * @throws UnsupportedOperationException If support for shared memory is not
 	 *                                        implemented for this platform.
 	 */
-	static SharedMemory create(String name, int rsize) {
+	static SharedMemory create(String name, long rsize) {
 		return createOrAttach(name, true, rsize);
 	}
 
@@ -82,7 +82,7 @@ public interface SharedMemory extends AutoCloseable {
 	 * @throws UnsupportedOperationException If support for shared memory is not
 	 *                                        implemented for this platform.
 	 */
-	static SharedMemory attach(String name, int rsize) {
+	static SharedMemory attach(String name, long rsize) {
 		return createOrAttach(name, false, rsize);
 	}
 
@@ -102,7 +102,7 @@ public interface SharedMemory extends AutoCloseable {
 	 * @throws UnsupportedOperationException If support for shared memory is not
 	 *                                        implemented for this platform.
 	 */
-	static SharedMemory createOrAttach(String name, boolean create, int rsize) {
+	static SharedMemory createOrAttach(String name, boolean create, long rsize) {
 		if (rsize < 0) {
 			throw new IllegalArgumentException("'rsize' must be a positive integer");
 		}
@@ -134,7 +134,7 @@ public interface SharedMemory extends AutoCloseable {
 	 *
 	 * @return The length in bytes of the shared memory, as <em>requested</em>.
 	 */
-	int rsize();
+	long rsize();
 
 	/**
 	 * Actual allocated size in bytes. This value may be rounded up from the
@@ -143,12 +143,15 @@ public interface SharedMemory extends AutoCloseable {
 	 *
 	 * @return The length in bytes of the shared memory, as <em>allocated</em>.
 	 */
-	int size();
+	long size();
 
 	/**
 	 * Gets the contents of the shared memory block as a {@link ByteBuffer}.
 	 *
 	 * @return Mutable {@link ByteBuffer} of the entire memory contents.
+	 * @throws UnsupportedOperationException If the buffer is too large to fit
+	 *                                        into a single ByteBuffer view
+	 *                                        (i.e. more than 2^31 bytes).
 	 */
 	default ByteBuffer buf() {
 		return buf(0, rsize());
@@ -162,8 +165,11 @@ public interface SharedMemory extends AutoCloseable {
 	 * @param fromIndex Low endpoint (inclusive) of the {@link ByteBuffer} view.
 	 * @param toIndex High endpoint (exclusive) of the {@link ByteBuffer} view.
 	 * @return Mutable {@link ByteBuffer} of the memory contents in that range.
+	 * @throws UnsupportedOperationException If the given range is too large to
+	 *                                        fit into a single ByteBuffer view
+	 *                                        (i.e. more than 2^31 bytes).
 	 */
-	ByteBuffer buf(int fromIndex, int toIndex);
+	ByteBuffer buf(long fromIndex, long toIndex);
 
 	/**
 	 * Sets whether the {@link #unlink()} method should be invoked to destroy

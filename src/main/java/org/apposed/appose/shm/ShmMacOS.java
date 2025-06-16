@@ -55,13 +55,13 @@ import static org.apposed.appose.shm.ShmUtils.withoutLeadingSlash;
 public class ShmMacOS implements ShmFactory {
 
 	@Override
-	public SharedMemory create(final String name, final boolean create, final int rsize) {
+	public SharedMemory create(final String name, final boolean create, final long rsize) {
 		if (Platforms.OS != MACOS) return null; // wrong platform
 		return new SharedMemoryMacOS(name, create, rsize);
 	}
 
 	private static class SharedMemoryMacOS extends ShmBase<Integer> {
-		private SharedMemoryMacOS(final String name, final boolean create, final int rsize) {
+		private SharedMemoryMacOS(final String name, final boolean create, final long rsize) {
 			super(prepareShm(name, create, rsize));
 		}
 
@@ -83,7 +83,7 @@ public class ShmMacOS implements ShmFactory {
 			}
 		}
 
-		private static ShmInfo<Integer> prepareShm(String name, boolean create, int rsize) {
+		private static ShmInfo<Integer> prepareShm(String name, boolean create, long rsize) {
 			String shm_name;
 			long prevSize;
 			if (name == null) {
@@ -102,7 +102,7 @@ public class ShmMacOS implements ShmFactory {
 			if (shmFd < 0) {
 				throw new RuntimeException("shm_open failed, errno: " + Native.getLastError());
 			}
-			final int shm_size = (int) getSHMSize(shmFd);
+			final long shm_size = getSHMSize(shmFd);
 
 			Pointer pointer = CLibrary.INSTANCE.mmap(Pointer.NULL, shm_size, PROT_READ | PROT_WRITE, MAP_SHARED, shmFd, 0);
 			if (pointer == Pointer.NULL) {

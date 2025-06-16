@@ -53,13 +53,13 @@ public class ShmWindows implements ShmFactory {
 
 	// name is WITHOUT prefix etc
 	@Override
-	public SharedMemory create(final String name, final boolean create, final int rsize) {
+	public SharedMemory create(final String name, final boolean create, final long rsize) {
 		if (Platforms.OS != WINDOWS) return null; // wrong platform
 		return new SharedMemoryWindows(name, create, rsize);
 	}
 
 	private static class SharedMemoryWindows extends ShmBase<WinNT.HANDLE> {
-		private SharedMemoryWindows(final String name, final boolean create, final int rsize) {
+		private SharedMemoryWindows(final String name, final boolean create, final long rsize) {
 			super(prepareShm(name, create, rsize));
 		}
 
@@ -75,7 +75,7 @@ public class ShmWindows implements ShmFactory {
 			// equivalent in Windows like there is in POSIX systems.
 		}
 
-		private static ShmInfo<WinNT.HANDLE> prepareShm(String name, boolean create, int rsize) {
+		private static ShmInfo<WinNT.HANDLE> prepareShm(String name, boolean create, long rsize) {
 			String shm_name;
 			long prevSize;
 			if (name == null) {
@@ -93,31 +93,36 @@ public class ShmWindows implements ShmFactory {
 				WinBase.INVALID_HANDLE_VALUE,
 				null,
 				WinNT.PAGE_READWRITE,
-				0, // high 32 bits of size
-				rsize,
+				(int) (rsize >>> 32),        // hi 32 bits of size
+				(int) (rsize & 0xFFFFFFFFL), // lo 32 bits of size
 				"Local\\" + shm_name
 			);
 			if (hMapFile == null) {
 				throw new RuntimeException("Error creating shared memory: " + lastError());
 			}
 
-			final int shm_size = (int) getSHMSize(hMapFile);
+			final long shm_size = getSHMSize(hMapFile);
 
 			// Map the shared memory
 			Pointer pointer = Kernel32.INSTANCE.MapViewOfFile(
 				hMapFile,
 				WinNT.FILE_MAP_READ | WinNT.FILE_MAP_WRITE,
-				0,
-				0,
-				rsize
+				0, // hi 32 bits of offset
+				0, // lo 32 bits of offset
+				0  // map entire file
 			);
 			if (isNull(pointer)) {
 				Kernel32.INSTANCE.CloseHandle(hMapFile);
 				throw new RuntimeException("Error mapping shared memory: " + lastError());
 			}
 
-			Pointer writePointer = Kernel32.INSTANCE.VirtualAllocEx(Kernel32.INSTANCE.GetCurrentProcess(),
-				pointer, new BaseTSD.SIZE_T(rsize), WinNT.MEM_COMMIT, WinNT.PAGE_READWRITE);
+			Pointer writePointer = Kernel32.INSTANCE.VirtualAllocEx(
+				Kernel32.INSTANCE.GetCurrentProcess(),
+				pointer,
+				new BaseTSD.SIZE_T(rsize),
+				WinNT.MEM_COMMIT,
+				WinNT.PAGE_READWRITE
+			);
 			if (isNull(writePointer)) {
 				cleanup(pointer, writePointer, hMapFile);
 				throw new RuntimeException("Error committing to the shared memory pages: " + lastError());
@@ -180,7 +185,7 @@ public class ShmWindows implements ShmFactory {
 			{
 				throw new RuntimeException("Failed to get shared memory segment size: " + lastError());
 			}
-			final int size = mbi.regionSize.intValue();
+			final long size = mbi.regionSize.longValue();
 
 			Kernel32.INSTANCE.UnmapViewOfFile(pSharedMemory);
 

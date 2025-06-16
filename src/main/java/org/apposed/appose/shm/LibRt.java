@@ -36,9 +36,9 @@ interface LibRt extends Library {
 	LibRt INSTANCE = Native.load("rt", LibRt.class);
 
 	int shm_open(String name, int oflag, int mode);
-	int ftruncate(int fd, int length);
-	Pointer mmap(Pointer addr, int length, int prot, int flags, int fd, int offset);
-	int munmap(Pointer addr, int length);
+	int ftruncate(int fd, long length);
+	Pointer mmap(Pointer addr, long length, int prot, int flags, int fd, long offset);
+	int munmap(Pointer addr, long length);
 	int close(int fd);
 	int shm_unlink(String name);
 

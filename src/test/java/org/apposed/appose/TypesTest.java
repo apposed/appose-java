@@ -121,7 +121,7 @@ public class TypesTest {
 	public void testDecode() {
 		Map<String, Object> data;
 		String shmName;
-		int shmSize;
+		long shmSize;
 
 		// Create name shared memory segment and decode JSON block.
 		try (SharedMemory shm = SharedMemory.create(4000)) {

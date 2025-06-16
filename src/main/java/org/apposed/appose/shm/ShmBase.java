@@ -65,17 +65,17 @@ abstract class ShmBase<HANDLE> implements SharedMemory {
 	}
 
 	@Override
-	public int rsize() {
+	public long rsize() {
 		return info.rsize;
 	}
 
 	@Override
-	public int size() {
+	public long size() {
 		return info.size;
 	}
 
 	@Override
-	public ByteBuffer buf(int fromIndex, int toIndex) {
+	public ByteBuffer buf(long fromIndex, long toIndex) {
 		return info.pointer.getByteBuffer(fromIndex, toIndex);
 	}
 
@@ -121,10 +121,10 @@ abstract class ShmBase<HANDLE> implements SharedMemory {
 		String name;
 
 		/** Nominal/requested size in bytes. */
-		int rsize;
+		long rsize;
 
 		/** Actual size in bytes after "rounding up" for OS requirements. */
-		int size;
+		long size;
 
 		/** Pointer referencing the shared memory. */
 		Pointer pointer;

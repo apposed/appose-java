@@ -57,7 +57,7 @@ import static org.apposed.appose.shm.ShmUtils.withoutLeadingSlash;
 public class ShmLinux implements ShmFactory {
 
 	@Override
-	public SharedMemory create(final String name, final boolean create, final int rsize) {
+	public SharedMemory create(final String name, final boolean create, final long rsize) {
 		if (Platforms.OS != LINUX) return null; // wrong platform
 		return new SharedMemoryLinux(name, create, rsize);
 	}
@@ -65,7 +65,7 @@ public class ShmLinux implements ShmFactory {
 	private static class SharedMemoryLinux extends ShmBase<Integer> {
 
 		// name without leading slash
-		private SharedMemoryLinux(final String name, final boolean create, final int rsize) {
+		private SharedMemoryLinux(final String name, final boolean create, final long rsize) {
 			super(prepareShm(name, create, rsize));
 		}
 
@@ -87,7 +87,7 @@ public class ShmLinux implements ShmFactory {
 			}
 		}
 
-		private static ShmInfo<Integer> prepareShm(String name, boolean create, int rsize) {
+		private static ShmInfo<Integer> prepareShm(String name, boolean create, long rsize) {
 			String shm_name;
 			long prevSize;
 			if (name == null) {
@@ -106,12 +106,12 @@ public class ShmLinux implements ShmFactory {
 				throw new RuntimeException("shm_open failed, errno: " + Native.getLastError());
 			}
 			if (create) {
-				if (LibRtOrC.ftruncate(shmFd, (int) rsize) == -1) {
+				if (LibRtOrC.ftruncate(shmFd, rsize) == -1) {
 					LibRtOrC.close(shmFd);
 					throw new RuntimeException("ftruncate failed, errno: " + Native.getLastError());
 				}
 			}
-			final int shm_size = (int) getSHMSize(shmFd);
+			final long shm_size = getSHMSize(shmFd);
 
 			Pointer pointer = LibRtOrC.mmap(Pointer.NULL, shm_size, PROT_READ | PROT_WRITE, MAP_SHARED, shmFd, 0);
 			if (pointer == Pointer.NULL) {
@@ -197,7 +197,7 @@ public class ShmLinux implements ShmFactory {
 				return CLibrary.INSTANCE.lseek(fd, offset, whence);
 			}
 
-			static int ftruncate(int fd, int length) {
+			static int ftruncate(int fd, long length) {
 				if (useLibRT) {
 					try {
 						return LibRt.INSTANCE.ftruncate(fd, length);
@@ -208,8 +208,7 @@ public class ShmLinux implements ShmFactory {
 				return CLibrary.INSTANCE.ftruncate(fd, length);
 			}
 
-
-			static Pointer mmap(Pointer addr, int length, int prot, int flags, int fd, int offset) {
+			static Pointer mmap(Pointer addr, long length, int prot, int flags, int fd, long offset) {
 				if (useLibRT) {
 					try {
 						return LibRt.INSTANCE.mmap(addr, length, prot, flags, fd, offset);
@@ -220,7 +219,7 @@ public class ShmLinux implements ShmFactory {
 				return CLibrary.INSTANCE.mmap(addr, length, prot, flags, fd, offset);
 			}
 
-			static int munmap(Pointer addr, int length) {
+			static int munmap(Pointer addr, long length) {
 				if (useLibRT) {
 					try {
 						return LibRt.INSTANCE.munmap(addr, length);

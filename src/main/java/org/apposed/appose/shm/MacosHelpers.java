@@ -60,7 +60,7 @@ interface MacosHelpers extends Library {
 	}
 
 	// Declare methods corresponding to the native functions
-	int create_shared_memory(String name, int size);
+	int create_shared_memory(String name, long rsize);
 
 	void unlink_shared_memory(String name);
 

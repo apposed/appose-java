@@ -40,5 +40,5 @@ package org.apposed.appose;
  * </p>
  */
 public interface ShmFactory {
-	SharedMemory create(String name, boolean create, int rsize);
+	SharedMemory create(String name, boolean create, long rsize);
 }
