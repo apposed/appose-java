@@ -49,6 +49,8 @@ public interface SharedMemory extends AutoCloseable {
 	 * @param rsize  Requested size in bytes. The true allocated size will be at least
 	 *               this much, but may be rounded up to the next block size multiple,
 	 *               depending on the running platform.
+	 * @throws UnsupportedOperationException If support for shared memory is not
+	 *                                        implemented for this platform.
 	 */
 	static SharedMemory create(int rsize) {
 		return createOrAttach(null, true, rsize);
@@ -63,6 +65,8 @@ public interface SharedMemory extends AutoCloseable {
 	 * @param rsize  Requested size in bytes. The true allocated size will be at least
 	 *               this much, but may be rounded up to the next block size multiple,
 	 *               depending on the running platform.
+	 * @throws UnsupportedOperationException If support for shared memory is not
+	 *                                        implemented for this platform.
 	 */
 	static SharedMemory create(String name, int rsize) {
 		return createOrAttach(name, true, rsize);
@@ -76,6 +80,8 @@ public interface SharedMemory extends AutoCloseable {
 	 * @param rsize  Requested size in bytes. The true allocated size will be at least
 	 *               this much, but may be rounded up to the next block size multiple,
 	 *               depending on the running platform.
+	 * @throws UnsupportedOperationException If support for shared memory is not
+	 *                                        implemented for this platform.
 	 */
 	static SharedMemory attach(String name, int rsize) {
 		return createOrAttach(name, false, rsize);
@@ -94,6 +100,8 @@ public interface SharedMemory extends AutoCloseable {
 	 * @param rsize  requested size in bytes. The true allocated size will be at least
 	 *               this much, but may be rounded up to the next block size multiple,
 	 *               depending on the running platform.
+	 * @throws UnsupportedOperationException If support for shared memory is not
+	 *                                        implemented for this platform.
 	 */
 	static SharedMemory createOrAttach(String name, boolean create, int rsize) {
 		if (rsize < 0) {
