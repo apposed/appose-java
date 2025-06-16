@@ -70,7 +70,7 @@ public class TypesTest {
 			"\"shm\":{" +
 				"\"appose_type\":\"shm\"," +
 				"\"name\":\"SHM_NAME\"," +
-				"\"size\":SHM_SIZE" +
+				"\"rsize\":SHM_SIZE" +
 			"}" +
 		"}" +
 	"}";

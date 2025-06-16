@@ -94,7 +94,7 @@ public final class Types {
 
 		where
 			"name" is the unique name of the shared memory segment
-			"size" is the size in bytes.
+			"rsize" is the nominal/requested size in bytes.
 		(as required for python shared_memory.SharedMemory constructor)
 
 
@@ -150,7 +150,7 @@ public final class Types {
 	static final JsonGenerator GENERATOR = new JsonGenerator.Options() //
 			.addConverter(convert(SharedMemory.class, "shm", (map, shm) -> {
 				map.put("name", shm.name());
-				map.put("size", shm.size());
+				map.put("rsize", shm.rsize());
 			})).addConverter(convert(NDArray.class, "ndarray", (map, ndArray) -> {
 				map.put("dtype", ndArray.dType().label());
 				map.put("shape", ndArray.shape().toIntArray(C_ORDER));
@@ -180,8 +180,8 @@ public final class Types {
 				switch (appose_type) {
 					case "shm":
 						final String name = (String) map.get("name");
-						final int size = (int) map.get("size");
-						return SharedMemory.attach(name, size);
+						final int rsize = (int) map.get("rsize");
+						return SharedMemory.attach(name, rsize);
 					case "ndarray":
 						final NDArray.DType dType = toDType((String) map.get("dtype"));
 						final NDArray.Shape shape = toShape((List<Integer>) map.get("shape"));
