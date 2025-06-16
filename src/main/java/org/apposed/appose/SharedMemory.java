@@ -97,7 +97,7 @@ public interface SharedMemory extends AutoCloseable {
 	 *               name will be generated.
 	 * @param create Whether a new shared memory block is created ({@code true})
 	 *               or an existing one is attached to ({@code false}).
-	 * @param rsize  requested size in bytes. The true allocated size will be at least
+	 * @param rsize  Requested size in bytes. The true allocated size will be at least
 	 *               this much, but may be rounded up to the next block size multiple,
 	 *               depending on the running platform.
 	 * @throws UnsupportedOperationException If support for shared memory is not
@@ -132,7 +132,6 @@ public interface SharedMemory extends AutoCloseable {
 	 * The size in bytes as originally requested. The actual allocated size
 	 * ({@link #size()}) will be at least this much, but may be rounded up
 	 * to the next block size multiple, depending on the running platform.
-	 *
 	 *
 	 * @return The length in bytes of the shared memory, as <em>requested</em>.
 	 */

@@ -48,6 +48,10 @@ import org.apposed.appose.Service.Task;
 import org.apposed.appose.Service.TaskStatus;
 import org.junit.jupiter.api.Test;
 
+/**
+ * High-level (integration) tests for Appose functionality including
+ * cross-language.
+ */
 public class ApposeTest {
 
 	private static final String COLLATZ_GROOVY =
