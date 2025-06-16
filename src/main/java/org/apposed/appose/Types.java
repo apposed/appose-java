@@ -89,7 +89,7 @@ public final class Types {
 		{
 			appose_type:shm
 			name:psm_4812f794
-			size:16384
+			rsize:16384
 		}
 
 		where
