@@ -104,7 +104,7 @@ public class NDArray implements AutoCloseable {
 	 */
 	public ByteBuffer buffer() {
 		final long length = shape.numElements() * dType.bytesPerElement();
-		return shm.pointer().getByteBuffer(0, length);
+		return shm.buf(0, length);
 	}
 
 	/**

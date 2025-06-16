@@ -32,6 +32,8 @@ package org.apposed.appose.shm;
 import com.sun.jna.Pointer;
 import org.apposed.appose.SharedMemory;
 
+import java.nio.ByteBuffer;
+
 /**
  * Base class for platform-specific shared memory implementations.
  *
@@ -73,8 +75,8 @@ abstract class ShmBase<HANDLE> implements SharedMemory {
 	}
 
 	@Override
-	public Pointer pointer() {
-		return info.pointer;
+	public ByteBuffer buf(int fromIndex, int toIndex) {
+		return info.pointer.getByteBuffer(fromIndex, toIndex);
 	}
 
 	@Override

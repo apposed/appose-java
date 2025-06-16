@@ -57,10 +57,11 @@ public class SharedMemoryTest {
 			assertNotNull(shm.name());
 			assertEquals(rsize, shm.rsize()); // REQUESTED size
 			assertTrue(rsize <= shm.size()); // ALLOCATED size
-			assertNotNull(shm.pointer());
 
 			// Modify the memory contents.
-			ByteBuffer buffer = shm.pointer().getByteBuffer(0, rsize);
+			ByteBuffer buffer = shm.buf();
+			assertNotNull(buffer);
+			assertEquals(rsize, buffer.limit());
 			for (int i = 0; i < rsize; i++) {
 				buffer.put(i, (byte) (rsize - i));
 			}
@@ -129,7 +130,9 @@ public class SharedMemoryTest {
 			// Notably, on Windows, Python does not round, whereas ShmWindows
 			// rounds up to the next block size (4K on GitHub Actions CI).
 			assertTrue(shm.size() >= 345);
-			ByteBuffer buf = shm.pointer().getByteBuffer(0, shmRSize);
+			ByteBuffer buf = shm.buf();
+			assertNotNull(buf);
+			assertEquals(shmRSize, buf.limit());
 			assertEquals(12, buf.get(0));
 			assertEquals((byte) 234, buf.get(100));
 			assertEquals(7, buf.get(344));

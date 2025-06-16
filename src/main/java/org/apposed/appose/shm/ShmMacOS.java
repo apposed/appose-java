@@ -73,7 +73,7 @@ public class ShmMacOS implements ShmFactory {
 		@Override
 		protected void doClose() {
 			// Unmap the shared memory
-			if (pointer() != Pointer.NULL && CLibrary.INSTANCE.munmap(pointer(), size()) == -1) {
+			if (info.pointer != Pointer.NULL && CLibrary.INSTANCE.munmap(info.pointer, size()) == -1) {
 				throw new RuntimeException("munmap failed. Errno: " + Native.getLastError());
 			}
 

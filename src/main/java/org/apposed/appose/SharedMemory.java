@@ -29,8 +29,7 @@
 
 package org.apposed.appose;
 
-import com.sun.jna.Pointer;
-
+import java.nio.ByteBuffer;
 import java.util.ServiceLoader;
 
 /**
@@ -147,11 +146,24 @@ public interface SharedMemory extends AutoCloseable {
 	int size();
 
 	/**
-	 * JNA pointer to the shared memory segment.
+	 * Gets the contents of the shared memory block as a {@link ByteBuffer}.
 	 *
-	 * @return the pointer to the shared memory segment
+	 * @return Mutable {@link ByteBuffer} of the entire memory contents.
 	 */
-	Pointer pointer();
+	default ByteBuffer buf() {
+		return buf(0, rsize());
+	}
+
+	/**
+	 * Gets the contents of the shared memory block as a {@link ByteBuffer},
+	 * between the specified {@code fromIndex}, inclusive, and {@code toIndex},
+	 * exclusive.
+	 *
+	 * @param fromIndex Low endpoint (inclusive) of the {@link ByteBuffer} view.
+	 * @param toIndex High endpoint (exclusive) of the {@link ByteBuffer} view.
+	 * @return Mutable {@link ByteBuffer} of the memory contents in that range.
+	 */
+	ByteBuffer buf(int fromIndex, int toIndex);
 
 	/**
 	 * Sets whether the {@link #unlink()} method should be invoked to destroy
