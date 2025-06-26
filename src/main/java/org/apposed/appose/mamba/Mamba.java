@@ -424,7 +424,7 @@ class Mamba {
 	{
 		checkMambaInstalled();
 		runMamba("env", "create", "--prefix",
-				envDir.getAbsolutePath(), "-f", envYaml, "-y", "-vv" );
+				envDir.getAbsolutePath(), "-f", envYaml, "-y", "-vv", "--no-condarc" );
 	}
 
 	/**
