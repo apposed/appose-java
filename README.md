@@ -1,5 +1,7 @@
 # Appose Java
 
+[![Build Status](https://github.com/apposed/appose-java/actions/workflows/build.yml/badge.svg)](https://github.com/apposed/appose-java/actions/workflows/build.yml)
+
 ## What is Appose?
 
 Appose is a library for interprocess cooperation with shared memory.
