@@ -31,6 +31,7 @@ package org.apposed.appose;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
@@ -76,6 +77,13 @@ public class ApposeTest {
 		"    task.update(f\"[{time}] -> {v}\", current=time)\n" +
 		"    time += 1\n" +
 		"task.outputs[\"result\"] = time\n";
+
+	private static final String MAIN_THREAD_CHECK_GROOVY =
+		"task.outputs[\"thread\"] = Thread.currentThread().getName()\n";
+
+	private static final String MAIN_THREAD_CHECK_PYTHON =
+		"import threading\n" +
+		"task.outputs[\"thread\"] = threading.current_thread().name\n";
 
 	@Test
 	public void testGroovy() throws IOException, InterruptedException {
@@ -277,6 +285,38 @@ public class ApposeTest {
 				"seven" + nl;
 			String generalizedError = task.error.replaceFirst("exit code [0-9]+", "exit code ###");
 			assertEquals(expected, generalizedError);
+		}
+	}
+
+	@Test
+	public void testMainThreadQueueGroovy() throws IOException, InterruptedException {
+		Environment env = Appose.system();
+		try (Service service = env.groovy()) {
+			Task task = service.task(MAIN_THREAD_CHECK_GROOVY, "main");
+			task.waitFor();
+			String thread = (String) task.outputs.get("thread");
+			assertEquals("main", thread);
+
+			task = service.task(MAIN_THREAD_CHECK_GROOVY);
+			task.waitFor();
+			thread = (String) task.outputs.get("thread");
+			assertNotEquals("main", thread);
+		}
+	}
+
+	@Test
+	public void testMainThreadQueuePython() throws IOException, InterruptedException {
+		Environment env = Appose.system();
+		try (Service service = env.python()) {
+			Task task = service.task(MAIN_THREAD_CHECK_PYTHON, "main");
+			task.waitFor();
+			String thread = (String) task.outputs.get("thread");
+			assertEquals("MainThread", thread);
+
+			task = service.task(MAIN_THREAD_CHECK_PYTHON);
+			task.waitFor();
+			thread = (String) task.outputs.get("thread");
+			assertNotEquals("MainThread", thread);
 		}
 	}
 

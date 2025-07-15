@@ -124,7 +124,7 @@ public class Service implements AutoCloseable {
 	 * @throws IOException If something goes wrong communicating with the worker.
 	 */
 	public Task task(String script) throws IOException {
-		return task(script, null);
+		return task(script, null, null);
 	}
 
 	/**
@@ -136,8 +136,33 @@ public class Service implements AutoCloseable {
 	 * @throws IOException If something goes wrong communicating with the worker.
 	 */
 	public Task task(String script, Map<String, Object> inputs) throws IOException {
+		return task(script, inputs, null);
+	}
+
+	/**
+	 * Creates a new task, passing the given script to the worker for execution.
+	 *
+	 * @param script The script for the worker to execute in its environment.
+	 * @param queue Optional queue target. Pass "main" to queue to worker's main thread.
+	 * @return The newly created {@link Task} object tracking the execution.
+	 * @throws IOException If something goes wrong communicating with the worker.
+	 */
+	public Task task(String script, String queue) throws IOException {
+		return task(script, null, queue);
+	}
+
+	/**
+	 * Creates a new task, passing the given script to the worker for execution.
+	 *
+	 * @param script The script for the worker to execute in its environment.
+	 * @param inputs Optional list of key/value pairs to feed into the script as inputs.
+	 * @param queue Optional queue target. Pass "main" to queue to worker's main thread.
+	 * @return The newly created {@link Task} object tracking the execution.
+	 * @throws IOException If something goes wrong communicating with the worker.
+	 */
+	public Task task(String script, Map<String, Object> inputs, String queue) throws IOException {
 		start();
-		return new Task(script, inputs);
+		return new Task(script, inputs, queue);
 	}
 
 	/**
@@ -368,16 +393,18 @@ public class Service implements AutoCloseable {
 		private final Map<String, Object> mOutputs = new HashMap<>();
 		public final Map<String, Object> inputs = Collections.unmodifiableMap(mInputs);
 		public final Map<String, Object> outputs = Collections.unmodifiableMap(mOutputs);
+		public final String queue;
 
 		public TaskStatus status = TaskStatus.INITIAL;
 		public String error;
 
 		private final List<Consumer<TaskEvent>> listeners = new ArrayList<>();
 
-		public Task(String script, Map<String, Object> inputs) {
+		public Task(String script, Map<String, Object> inputs, String queue) {
 			this.script = script;
 			if (inputs != null) mInputs.putAll(inputs);
 			tasks.put(uuid, this);
+			this.queue = queue;
 		}
 
 		public synchronized Task start() {
@@ -387,6 +414,7 @@ public class Service implements AutoCloseable {
 			Map<String, Object> args = new HashMap<>();
 			args.put("script", script);
 			args.put("inputs", inputs);
+			args.put("queue", queue);
 			request(RequestType.EXECUTE, args);
 
 			return this;
