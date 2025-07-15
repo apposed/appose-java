@@ -32,10 +32,14 @@ package org.apposed.appose;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
+import java.util.ArrayDeque;
 import java.util.Collections;
+import java.util.Deque;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Objects;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.stream.Collectors;
 
 import org.apposed.appose.Service.RequestType;
 import org.apposed.appose.Service.ResponseType;
@@ -58,51 +62,107 @@ import groovy.lang.GroovyShell;
  */
 public class GroovyWorker {
 
-	private static final Map<String, Task> TASKS = new ConcurrentHashMap<>();
+	private final Map<String, Task> tasks = new ConcurrentHashMap<>();
+	private final Deque<Task> queue = new ArrayDeque<>();
+	private boolean running = true;
 
-	public static void main(String... args) throws IOException {
-		BufferedReader stdin = //
-			new BufferedReader(new InputStreamReader(System.in));
+	public GroovyWorker() {
+		new Thread(this::processInput, "Appose-Receiver").start();
+		new Thread(this::cleanupThreads, "Appose-Janitor").start();
+	}
+
+	/** Processes tasks from the task queue. */
+	public void run() {
+		while (running) {
+			if (queue.isEmpty()) {
+				// Nothing queued, so wait a bit.
+				try {
+					Thread.sleep(50);
+				}
+				catch (InterruptedException ignored) { }
+				continue;
+			}
+			Task task = queue.pop();
+			task.run();
+		}
+	}
+
+	private void processInput() {
+		BufferedReader stdin = new BufferedReader(new InputStreamReader(System.in));
 		while (true) {
-			String line = stdin.readLine();
-			if (line == null) break; // broken pipe
+			String line;
+			try {
+				line = stdin.readLine();
+			}
+			catch (IOException exc) {
+				line = null;
+			}
+			if (line == null) {
+				running = false;
+				break;
+			}
+
 			Map<String, Object> request = Types.decode(line);
 			String uuid = (String) request.get("task");
 			String requestType = (String) request.get("requestType");
+
 			switch (RequestType.valueOf(requestType)) {
 				case EXECUTE:
 					String script = (String) request.get("script");
-					@SuppressWarnings({ "rawtypes", "unchecked" })
+					@SuppressWarnings({"rawtypes", "unchecked"})
 					Map<String, Object> inputs = (Map) request.get("inputs");
-					execute(uuid, script, inputs);
+					String queue = (String) request.get("queue");
+					Task task = new Task(uuid, script, inputs);
+					tasks.put(uuid, task);
+					if ("main".equals(queue)) {
+						// Add the task to the main thread queue.
+						this.queue.add(task);
+					}
+					else {
+						// Create a thread and save a reference to it,
+						// in case its script somehow kills the thread.
+						task.thread = new Thread(task::run, "Appose-" + uuid);
+						task.thread.start();
+					}
 					break;
+
 				case CANCEL:
-					cancel(uuid);
-					break;
-				default:
+					Task taskToCancel = tasks.get(uuid);
+					if (taskToCancel == null) {
+						System.err.println("No such task: " + uuid);
+						continue;
+					}
+					taskToCancel.cancelRequested = true;
 					break;
 			}
 		}
 	}
 
-	/** Executes the script on a separate thread. */
-	private static void execute(String uuid, String script,
-		Map<String, Object> inputs)
-	{
-		Task task = new Task(uuid);
-		TASKS.put(uuid, task);
-		task.start(script, inputs);
+	private void cleanupThreads() {
+		while (running) {
+			try {
+				Thread.sleep(50);
+			}
+			catch (InterruptedException ignored) { }
+			Map<String, Task> dead = tasks.entrySet().stream()
+					.filter(Objects::nonNull)
+					.filter(entry -> !entry.getValue().thread.isAlive())
+					.collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
+			for (Map.Entry<String, Task> entry : dead.entrySet()) {
+				String uuid = entry.getKey();
+				Task task = entry.getValue();
+				tasks.remove(uuid);
+				if (!task.finished) {
+					// The task died before reporting a terminal status.
+					// We report this situation as failure by thread death.
+					task.fail("thread death");
+				}
+			}
+		}
 	}
 
-	private static void cancel(String uuid) {
-		Task task = TASKS.get(uuid);
-		if (task == null) {
-			// TODO: proper logging
-			// Maybe should stdout the error back to Appose calling process.
-			System.err.println("No such task: " + uuid);
-			return;
-		}
-		task.cancelRequested = true;
+	public static void main(String... args) {
+		new GroovyWorker().run();
 	}
 
 	/**
@@ -114,8 +174,15 @@ public class GroovyWorker {
 		public final Map<Object, Object> outputs = new ConcurrentHashMap<>();
 		public boolean cancelRequested;
 
-		public Task(String uuid) {
+		private final String script;
+		private final Map<String, Object> inputs;
+		private boolean finished;
+		private Thread thread;
+
+		public Task(String uuid, String script, Map<String, Object> inputs) {
 			this.uuid = uuid;
+			this.script = script;
+			this.inputs = inputs;
 		}
 
 		@SuppressWarnings("unused")
@@ -159,40 +226,36 @@ public class GroovyWorker {
 			respond(ResponseType.FAILURE, args);
 		}
 
-		private void start(String script, Map<String, Object> inputs) {
-			// TODO: Consider whether to retain a reference to this Thread, and
-			// expose a "force" option for cancelation that uses thread.stop().
-			new Thread(() -> {
-				try {
-					// Populate script bindings.
-					Binding binding = new Binding();
-					binding.setVariable("task", Task.this);
-					inputs.forEach(binding::setVariable);
+		private void run() {
+			try {
+				// Populate script bindings.
+				Binding binding = new Binding();
+				binding.setVariable("task", Task.this);
+				inputs.forEach(binding::setVariable);
 
-					// Inform the calling process that the script is launching.
-					reportLaunch();
+				// Inform the calling process that the script is launching.
+				reportLaunch();
 
-					// Execute the script.
-					Object result;
+				// Execute the script.
+				Object result;
 
-					GroovyShell shell = new GroovyShell(binding);
-					result = shell.evaluate(script);
+				GroovyShell shell = new GroovyShell(binding);
+				result = shell.evaluate(script);
 
-					// Report the results to the Appose calling process.
-					if (result instanceof Map) {
-						// Script produced a map; add all entries to the outputs.
-						outputs.putAll((Map<?, ?>) result);
-					}
-					else if (result != null) {
-						// Script produced a non-map; add it alone to the outputs.
-						outputs.put("result", result);
-					}
-					reportCompletion();
+				// Report the results to the Appose calling process.
+				if (result instanceof Map) {
+					// Script produced a map; add all entries to the outputs.
+					outputs.putAll((Map<?, ?>) result);
 				}
-				catch (Exception exc) {
-					fail(Types.stackTrace(exc));
+				else if (result != null) {
+					// Script produced a non-map; add it alone to the outputs.
+					outputs.put("result", result);
 				}
-			}, "Appose-" + uuid).start();
+				reportCompletion();
+			}
+			catch (Exception exc) {
+				fail(Types.stackTrace(exc));
+			}
 		}
 
 		private void reportLaunch() {
@@ -205,6 +268,17 @@ public class GroovyWorker {
 		}
 
 		private void respond(ResponseType responseType, Map<String, Object> args) {
+			boolean alreadyTerminated = false;
+			if (responseType.isTerminal()) {
+				if (finished) {
+					// This is not the first terminal response. Let's
+					// remember, in case an exception is generated below,
+					// so that we can avoid infinite recursion loops.
+					alreadyTerminated = true;
+				}
+				finished = true;
+			}
+
 			Map<String, Object> response = args == null ? new HashMap<>() : new HashMap<>(args);
 			response.put("task", uuid);
 			response.put("responseType", responseType.toString());
@@ -212,14 +286,15 @@ public class GroovyWorker {
 				System.out.println(Types.encode(response));
 			}
 			catch (Exception exc) {
-				// Encoding can fail due to unsupported types, when the response
-				// or its elements are not supported by JSON encoding.
-				// No matter what goes wrong, we want to tell the caller.
-				if (responseType == ResponseType.FAILURE) {
-					// TODO: How to address this hypothetical case
-					// of a failure message triggering another failure?
-					throw new RuntimeException(exc);
+				if (alreadyTerminated) {
+					// An exception triggered a failure response which
+					// then triggered another exception. Let's stop here
+					// to avoid the risk of infinite recursion loops.
+					return;
 				}
+				// Encoding can fail due to unsupported types, when the
+				// response or its elements are not supported by JSON encoding.
+				// No matter what goes wrong, we want to tell the caller.
 				fail(Types.stackTrace(exc));
 			}
 			// NB: Flush is necessary to ensure service receives the data!

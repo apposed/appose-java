@@ -34,13 +34,7 @@ import java.io.File;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.PrintWriter;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.UUID;
+import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Consumer;
 
@@ -354,7 +348,12 @@ public class Service implements AutoCloseable {
 	}
 
 	public enum ResponseType {
-		LAUNCH, UPDATE, COMPLETION, CANCELATION, FAILURE, CRASH
+		LAUNCH, UPDATE, COMPLETION, CANCELATION, FAILURE, CRASH;
+
+		/** True iff response type is COMPLETE, CANCELED, FAILED, or CRASHED. */
+		public boolean isTerminal() {
+			return Arrays.asList(COMPLETION, CANCELATION, FAILURE, CRASH).contains(this);
+		}
 	}
 
 	/**
