@@ -307,7 +307,6 @@ public class ApposeTest {
 
 		// Wait for task to finish.
 		task.waitFor();
-		assertComplete(task);
 
 		// Validate the execution result.
 		assertComplete(task);
