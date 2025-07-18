@@ -147,7 +147,7 @@ public class GroovyWorker {
 			catch (InterruptedException ignored) { }
 			Map<String, Task> dead = tasks.entrySet().stream()
 					.filter(Objects::nonNull)
-					.filter(entry -> !entry.getValue().thread.isAlive())
+					.filter(entry -> isTaskDead(entry.getValue()))
 					.collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
 			for (Map.Entry<String, Task> entry : dead.entrySet()) {
 				String uuid = entry.getKey();
@@ -160,6 +160,10 @@ public class GroovyWorker {
 				}
 			}
 		}
+	}
+
+	private boolean isTaskDead(Task task) {
+		return task.thread != null && !task.thread.isAlive();
 	}
 
 	public static void main(String... args) {
