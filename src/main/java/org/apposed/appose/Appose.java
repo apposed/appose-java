@@ -60,7 +60,7 @@ import java.io.IOException;
  * Task task = python.task("""
  *     5 + 6
  *     """);
- * task.start().waitFor();
+ * task.waitFor();
  * Object result = task.outputs.get("result");
  * assertEquals(11, result);
  * }</pre>
