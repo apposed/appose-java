@@ -172,7 +172,6 @@ public class ApposeTest {
 			Task task = service.task(script);
 			task.waitFor();
 			assertSame(TaskStatus.FAILED, task.status);
-			String nl = "(\r\n|\n|\r)";
 			String expectedError = "NameError: name 'whee' is not defined";
 			assertTrue(task.error.contains(expectedError));
 		}
@@ -182,6 +181,7 @@ public class ApposeTest {
 	public void testStartupCrash() throws InterruptedException, IOException {
 		Environment env = Appose.system();
 		List<String> pythonExes = Arrays.asList("python", "python3", "python.exe");
+		@SuppressWarnings("resource")
 		Service service = env.service(pythonExes, "-c", "import nonexistentpackage").start();
 		// Wait up to 500ms for the crash.
 		for (int i = 0; i < 100; i++) {
@@ -266,7 +266,6 @@ public class ApposeTest {
 
 			// Was the crash error successfully and consistently recorded?
 			assertNotNull(reportedError[0]);
-			List<String> lines = Arrays.asList(task.error.split("\\n"));
 			String nl = System.lineSeparator();
 			assertEquals(Arrays.asList("two", "four", "six"), service.invalidLines());
 			assertEquals(Arrays.asList("one", "three", "five", "seven"), service.errorLines());
