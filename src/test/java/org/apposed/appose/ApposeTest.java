@@ -42,7 +42,9 @@ import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import org.apposed.appose.Service.ResponseType;
 import org.apposed.appose.Service.Task;
@@ -78,6 +80,13 @@ public class ApposeTest {
 		"    time += 1\n" +
 		"task.outputs[\"result\"] = time\n";
 
+	private static final String CALC_SQRT_GROOVY =
+		"sqrt_age = age -> {\n" +
+		"  return Math.sqrt(age)\n" +
+		"}\n" +
+		"task.export(sqrt_age: sqrt_age)\n" +
+		"return sqrt_age(age)\n";
+
 	private static final String MAIN_THREAD_CHECK_GROOVY =
 		"task.outputs[\"thread\"] = Thread.currentThread().getName()\n";
 
@@ -100,6 +109,29 @@ public class ApposeTest {
 		try (Service service = env.python()) {
 			maybeDebug(service);
 			executeAndAssert(service, COLLATZ_PYTHON);
+		}
+	}
+
+	@Test
+	public void testScopeGroovy() throws IOException, InterruptedException {
+		Environment env = Appose.system();
+		try (Service service = env.groovy()) {
+			maybeDebug(service);
+
+			Map<String, Object> inputs = new HashMap<>();
+			inputs.put("age", 100);
+			Task task = service.task(CALC_SQRT_GROOVY, inputs);
+			task.waitFor();
+			assertComplete(task);
+			Number result = (Number) task.outputs.get("result");
+			assertEquals(10, result.intValue());
+
+			inputs.put("age", 81);
+			task = service.task("task.outputs['result'] = sqrt_age(age)", inputs);
+			task.waitFor();
+			assertComplete(task);
+			result = (Number) task.outputs.get("result");
+			assertEquals(9, result.intValue());
 		}
 	}
 

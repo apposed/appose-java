@@ -64,6 +64,7 @@ public class GroovyWorker {
 
 	private final Map<String, Task> tasks = new ConcurrentHashMap<>();
 	private final Deque<Task> queue = new ArrayDeque<>();
+	private final Map<String, Object> exports = new ConcurrentHashMap<>();
 	private boolean running = true;
 
 	public GroovyWorker() {
@@ -169,7 +170,7 @@ public class GroovyWorker {
 	 * Task object tracking the execution of a script. Accessible from the Groovy
 	 * script.
 	 */
-	public static class Task {
+	public class Task {
 		public final String uuid;
 		public final Map<Object, Object> outputs = new ConcurrentHashMap<>();
 		public boolean cancelRequested;
@@ -183,6 +184,11 @@ public class GroovyWorker {
 			this.uuid = uuid;
 			this.script = script;
 			this.inputs = inputs;
+		}
+
+		@SuppressWarnings("unused")
+		public void export(Map<String, Object> vars) {
+			exports.putAll(vars);
 		}
 
 		@SuppressWarnings("unused")
@@ -231,6 +237,7 @@ public class GroovyWorker {
 				// Populate script bindings.
 				Binding binding = new Binding();
 				binding.setVariable("task", Task.this);
+				exports.forEach(binding::setVariable);
 				inputs.forEach(binding::setVariable);
 
 				// Inform the calling process that the script is launching.
