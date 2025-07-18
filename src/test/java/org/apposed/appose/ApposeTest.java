@@ -397,7 +397,6 @@ public class ApposeTest {
 		if (task.status != TaskStatus.COMPLETE) {
 			String caller = new RuntimeException().getStackTrace()[1].getMethodName();
 			errorMessage = "TASK ERROR in method " + caller + ":\n" + task.error;
-			System.err.println();
 		}
 		assertEquals(TaskStatus.COMPLETE, task.status, errorMessage);
 	}
