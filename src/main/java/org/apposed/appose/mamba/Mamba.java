@@ -59,6 +59,9 @@
 
 package org.apposed.appose.mamba;
 
+import org.apposed.appose.util.DownloadUtils;
+import org.apposed.appose.util.FileDownloader;
+
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileOutputStream;
@@ -301,8 +304,8 @@ class Mamba {
 	private File downloadMicromamba() throws IOException, InterruptedException, URISyntaxException {
 		final File tempFile = File.createTempFile( "micromamba", ".tar.bz2" );
 		tempFile.deleteOnExit();
-		URL website = MambaInstallerUtils.redirectedURL(new URL(MICROMAMBA_URL));
-		long size = MambaInstallerUtils.getFileSize(website);
+		URL website = DownloadUtils.redirectedURL(new URL(MICROMAMBA_URL));
+		long size = DownloadUtils.getFileSize(website);
 		Thread currentThread = Thread.currentThread();
 		IOException[] ioe = {null};
 		InterruptedException[] ie = {null};
@@ -331,13 +334,13 @@ class Mamba {
 	private void decompressMicromamba(final File tempFile) throws IOException, InterruptedException {
 		final File tempTarFile = File.createTempFile( "micromamba", ".tar" );
 		tempTarFile.deleteOnExit();
-		MambaInstallerUtils.unBZip2(tempFile, tempTarFile);
+		DownloadUtils.unBZip2(tempFile, tempTarFile);
 		File mambaBaseDir = new File(rootdir);
 		if (!mambaBaseDir.isDirectory() && !mambaBaseDir.mkdirs())
 			throw new IOException("Failed to create Micromamba default directory " +
 				mambaBaseDir.getParentFile().getAbsolutePath() +
 				". Please try installing it in another directory.");
-		MambaInstallerUtils.unTar(tempTarFile, mambaBaseDir);
+		DownloadUtils.unTar(tempTarFile, mambaBaseDir);
 		File mmFile = new File(mambaCommand);
 		if (!mmFile.exists()) throw new IOException("Expected micromamba binary is missing: " + mambaCommand);
 		if (!mmFile.canExecute()) {

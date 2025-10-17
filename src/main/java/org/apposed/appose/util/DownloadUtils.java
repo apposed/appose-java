@@ -27,7 +27,7 @@
  * #L%
  */
 
-package org.apposed.appose.mamba;
+package org.apposed.appose.util;
 
 import java.io.BufferedInputStream;
 import java.io.File;
@@ -52,11 +52,11 @@ import org.apache.commons.compress.archivers.tar.TarArchiveInputStream;
 import org.apache.commons.compress.compressors.bzip2.BZip2CompressorInputStream;
 
 /**
- * Utility methods  unzip bzip2 files and to enable the download of micromamba
+ * Utility methods to unzip bzip2 files and to enable downloads
  */
-final class MambaInstallerUtils {
+public final class DownloadUtils {
 	
-	private MambaInstallerUtils() {
+	private DownloadUtils() {
 		// Prevent instantiation of utility class.
 	}
 	
@@ -110,11 +110,11 @@ final class MambaInstallerUtils {
 	/** Untar an input file into an output file.
 
 	 * The output file is created in the output folder, having the same name
-	 * as the input file, minus the '.tar' extension. 
-	 * 
+	 * as the input file, minus the '.tar' extension.
+	 *
 	 * @param inputFile     the input .tar file
-	 * @param outputDir     the output directory file. 
-	 * @throws IOException 
+	 * @param outputDir     the output directory file.
+	 * @throws IOException
 	 * @throws FileNotFoundException
 	 */
 	public static void unTar(final File inputFile, final File outputDir) throws FileNotFoundException, IOException, InterruptedException {
@@ -123,7 +123,7 @@ final class MambaInstallerUtils {
 				InputStream is = new FileInputStream(inputFile);
 				TarArchiveInputStream debInputStream = (TarArchiveInputStream) new ArchiveStreamFactory().createArchiveInputStream("tar", is);
 				) {
-		    TarArchiveEntry entry = null; 
+		    TarArchiveEntry entry = null;
 		    while ((entry = (TarArchiveEntry)debInputStream.getNextEntry()) != null) {
 		        final File outputFile = new File(outputDir, entry.getName());
 		        if (entry.isDirectory()) {
@@ -134,7 +134,7 @@ final class MambaInstallerUtils {
 		            }
 		        } else {
 		        	if (!outputFile.getParentFile().exists()) {
-		        	    if (!outputFile.getParentFile().mkdirs()) 
+		        	    if (!outputFile.getParentFile().mkdirs())
 		        	        throw new IOException("Failed to create directory " + outputFile.getParentFile().getAbsolutePath());
 		        	}
 		            try (OutputStream outputFileStream = new FileOutputStream(outputFile)) {
@@ -147,33 +147,7 @@ final class MambaInstallerUtils {
 		}
 
 	}
-	
-	/**
-	 * Example main method
-	 * @param args
-	 * 	no args are required
-	 * @throws FileNotFoundException if some file is not found
-	 * @throws IOException if there is any error reading or writting
-	 * @throws URISyntaxException if the url is wrong or there is no internet connection
-	 * @throws InterruptedException if there is interrruption
-	 */
-	public static void main(String[] args) throws FileNotFoundException, IOException, URISyntaxException, InterruptedException {
-		String url = Mamba.MICROMAMBA_URL;
-		final File tempFile = File.createTempFile( "miniconda", ".tar.bz2" );
-		tempFile.deleteOnExit();
-		URL website = MambaInstallerUtils.redirectedURL(new URL(url));
-		ReadableByteChannel rbc = Channels.newChannel(website.openStream());
-		try (FileOutputStream fos = new FileOutputStream(tempFile)) {
-			long transferred = fos.getChannel().transferFrom(rbc, 0, Long.MAX_VALUE);
-			System.out.print(tempFile.length());
-		}
-		String tarPath = "C:\\Users\\angel\\OneDrive\\Documentos\\pasteur\\git\\micromamba-1.5.1-1.tar";
-		String mambaPath = "C:\\Users\\angel\\OneDrive\\Documentos\\pasteur\\git\\mamba";
-		unBZip2(new File("C:\\Users\\angel\\OneDrive\\Documentos\\pasteur\\git\\micromamba-1.5.1-1.tar.bz2"), 
-			new File(tarPath));
-		unTar(new File(tarPath), new File(mambaPath));
-	}
-	
+
 	/**
 	 * This method shuold be used when we get the following response codes from 
 	 * a {@link HttpURLConnection}:
