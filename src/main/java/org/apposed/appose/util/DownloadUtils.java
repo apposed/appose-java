@@ -50,6 +50,7 @@ import org.apache.commons.compress.archivers.ArchiveStreamFactory;
 import org.apache.commons.compress.archivers.tar.TarArchiveEntry;
 import org.apache.commons.compress.archivers.tar.TarArchiveInputStream;
 import org.apache.commons.compress.compressors.bzip2.BZip2CompressorInputStream;
+import org.apache.commons.compress.compressors.gzip.GzipCompressorInputStream;
 
 /**
  * Utility methods to unzip bzip2 files and to enable downloads
@@ -148,6 +149,46 @@ public final class DownloadUtils {
 
 	}
 
+	/**
+	 * Decompress a gzip file and then untar it into a directory.
+	 * This method handles .tar.gz files (gzipped tar archives).
+	 *
+	 * @param inputFile     the input .tar.gz file
+	 * @param outputDir     the output directory file.
+	 * @throws IOException if there is any error reading or writing
+	 * @throws FileNotFoundException if the file is not found
+	 * @throws InterruptedException if the thread is interrupted
+	 */
+	public static void unTarGz(final File inputFile, final File outputDir) throws FileNotFoundException, IOException, InterruptedException {
+		try (
+				InputStream is = new FileInputStream(inputFile);
+				InputStream gzipIs = new GzipCompressorInputStream(new BufferedInputStream(is));
+				TarArchiveInputStream tarInputStream = (TarArchiveInputStream) new ArchiveStreamFactory().createArchiveInputStream("tar", gzipIs);
+				) {
+		    TarArchiveEntry entry = null;
+		    while ((entry = (TarArchiveEntry)tarInputStream.getNextEntry()) != null) {
+		        final File outputFile = new File(outputDir, entry.getName());
+		        if (entry.isDirectory()) {
+		            if (!outputFile.exists()) {
+		                if (!outputFile.mkdirs()) {
+		                    throw new IllegalStateException(String.format("Couldn't create directory %s.", outputFile.getAbsolutePath()));
+		                }
+		            }
+		        } else {
+		        	if (!outputFile.getParentFile().exists()) {
+		        	    if (!outputFile.getParentFile().mkdirs())
+		        	        throw new IOException("Failed to create directory " + outputFile.getParentFile().getAbsolutePath());
+		        	}
+		            try (OutputStream outputFileStream = new FileOutputStream(outputFile)) {
+		            	copy(tarInputStream, outputFileStream);
+		            }
+		        }
+		    }
+		} catch (ArchiveException e) {
+			throw new IOException(e);
+		}
+	}
+	
 	/**
 	 * This method shuold be used when we get the following response codes from 
 	 * a {@link HttpURLConnection}:
