@@ -166,6 +166,68 @@ public class ApposeTest {
 	}
 
 	@Test
+	public void testPixi() throws IOException, InterruptedException {
+		Environment env = Appose
+			.file("src/test/resources/envs/cowsay-pixi.toml", "pixi.toml")
+			.logDebug()
+			.build();
+		try (Service service = env.python()) {
+			maybeDebug(service);
+			Task task = service.task(
+				"import cowsay\n" +
+				"task.outputs['moo'] = cowsay.get_output_string('cow', 'moo')\n"
+			);
+			task.waitFor();
+			assertComplete(task);
+			String expectedMoo =
+				"  ___\n" +
+				"| moo |\n" +
+				"  ===\n" +
+				"   \\\n" +
+				"    \\\n" +
+				"      ^__^\n" +
+				"      (oo)\\_______\n" +
+				"      (__)\\       )\\/\\\n" +
+				"          ||----w |\n" +
+				"          ||     ||";
+			String actualMoo = (String) task.outputs.get("moo");
+			assertEquals(expectedMoo, actualMoo);
+		}
+	}
+
+	@Test
+	public void testPixiBuilderAPI() throws IOException, InterruptedException {
+		Environment env = Appose
+			.include("python>=3.8", "conda")
+			.include("pip", "conda")
+			.include("cowsay==6.1", "pypi")
+			.logDebug()
+			.build("appose-cowsay-builder");
+		try (Service service = env.python()) {
+			maybeDebug(service);
+			Task task = service.task(
+				"import cowsay\n" +
+				"task.outputs['moo'] = cowsay.get_output_string('cow', 'moo')\n"
+			);
+			task.waitFor();
+			assertComplete(task);
+			String expectedMoo =
+				"  ___\n" +
+				"| moo |\n" +
+				"  ===\n" +
+				"   \\\n" +
+				"    \\\n" +
+				"      ^__^\n" +
+				"      (oo)\\_______\n" +
+				"      (__)\\       )\\/\\\n" +
+				"          ||----w |\n" +
+				"          ||     ||";
+			String actualMoo = (String) task.outputs.get("moo");
+			assertEquals(expectedMoo, actualMoo);
+		}
+	}
+
+	@Test
 	public void testServiceStartupFailure() throws IOException, InterruptedException {
 		String tempNonExistingDir = "no-pythons-to-be-found-here";
 		new File(tempNonExistingDir).deleteOnExit();

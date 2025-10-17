@@ -49,9 +49,7 @@ import java.util.stream.Collectors;
 public class MambaHandler implements BuildHandler {
 
 	private final List<String> channels = new ArrayList<>();
-	private final List<String> condaIncludes = new ArrayList<>();
 	private final List<String> yamlIncludes = new ArrayList<>();
-	private final List<String> pypiIncludes = new ArrayList<>();
 
 	@Override
 	public boolean channel(String name, String location) {
@@ -69,13 +67,10 @@ public class MambaHandler implements BuildHandler {
 		if (scheme == null) throw new NullPointerException("scheme must not be null");
 		switch (scheme) {
 			case "conda":
-				// It's a conda package (or newline-separated package list).
-				condaIncludes.addAll(lines(content));
-				return true;
 			case "pypi":
-				// It's a PyPI package (or newline-separated package list).
-				pypiIncludes.addAll(lines(content));
-				return true;
+				// MambaHandler doesn't support programmatic conda/pypi includes yet.
+				// These should be handled by PixiHandler or included in environment.yml.
+				return false;
 			case "environment.yml":
 				yamlIncludes.add(content);
 				return true;
@@ -98,12 +93,6 @@ public class MambaHandler implements BuildHandler {
 
 	@Override
 	public void build(File envDir, Builder builder) throws IOException {
-		if (!channels.isEmpty() || !condaIncludes.isEmpty() || !pypiIncludes.isEmpty()) {
-			throw new UnsupportedOperationException(
-				"Sorry, I don't know how to mix in additional packages from Conda or PyPI yet." +
-					" Please put them in your environment.yml for now.");
-		}
-
 		Mamba conda = new Mamba(Mamba.BASE_PATH);
 		boolean isCondaDir = new File(envDir, "conda-meta").isDirectory();
 
