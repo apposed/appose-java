@@ -201,11 +201,37 @@ public class Builder {
 	 * @throws IllegalArgumentException if the channel is not understood by any of the available build handlers.
 	 */
 	public Builder channel(String name, String location) {
+		// Parse scheme:handler syntax if present in location
+		final String actualLocation;
+		final String preferredHandler;
+		if (location != null && location.contains(":")) {
+			int colonIndex = location.lastIndexOf(':');
+			// Only treat as handler hint if the part after colon looks like a handler name
+			// (not a URL scheme like http: or a port number)
+			String candidate = location.substring(colonIndex + 1);
+			if (isHandlerName(candidate)) {
+				actualLocation = location.substring(0, colonIndex);
+				preferredHandler = candidate;
+			} else {
+				actualLocation = location;
+				preferredHandler = null;
+			}
+		} else {
+			actualLocation = location;
+			preferredHandler = null;
+		}
+
+		// Try preferred handler first if specified
+		if (preferredHandler != null) {
+			BuildHandler handler = findHandler(preferredHandler);
+			if (handler != null && handler.channel(name, actualLocation)) return this;
+		}
+
 		// Pass the channel directive to all handlers.
-		if (handle(handler -> handler.channel(name, location))) return this;
+		if (handle(h -> h.channel(name, actualLocation))) return this;
 		// None of the handlers accepted the directive.
 		throw new IllegalArgumentException("Unsupported channel: " + name +
-			(location == null ? "" : "=" + location));
+			(actualLocation == null ? "" : "=" + actualLocation));
 	}
 
 	/**
@@ -255,10 +281,28 @@ public class Builder {
 	 * @throws IllegalArgumentException if the include directive is not understood by any of the available build handlers.
 	 */
 	public Builder include(String content, String scheme) {
+		// Parse scheme:handler syntax if present
+		final String actualScheme;
+		final String preferredHandler;
+		if (scheme.contains(":")) {
+			int colonIndex = scheme.indexOf(':');
+			actualScheme = scheme.substring(0, colonIndex);
+			preferredHandler = scheme.substring(colonIndex + 1);
+		} else {
+			actualScheme = scheme;
+			preferredHandler = null;
+		}
+
+		// Try preferred handler first if specified
+		if (preferredHandler != null) {
+			BuildHandler handler = findHandler(preferredHandler);
+			if (handler != null && handler.include(content, actualScheme)) return this;
+		}
+
 		// Pass the include directive to all handlers.
-		if (handle(handler -> handler.include(content, scheme))) return this;
+		if (handle(h -> h.include(content, actualScheme))) return this;
 		// None of the handlers accepted the directive.
-		throw new IllegalArgumentException("Unsupported '" + scheme + "' content: " + content);
+		throw new IllegalArgumentException("Unsupported '" + actualScheme + "' content: " + content);
 	}
 
 	/**
@@ -352,6 +396,72 @@ public class Builder {
 		for (BuildHandler handler : handlers)
 			handled |= handlerFunction.apply(handler);
 		return handled;
+	}
+
+	/**
+	 * Finds a handler by name, matching against the handler's class name.
+	 * Supports short names (e.g., "pixi" matches "PixiHandler") and full class names.
+	 *
+	 * @param handlerName The name or partial name of the handler to find.
+	 * @return The matching handler, or null if not found.
+	 */
+	private BuildHandler findHandler(String handlerName) {
+		if (handlerName == null || handlerName.isEmpty()) return null;
+
+		String normalizedName = handlerName.toLowerCase();
+		for (BuildHandler handler : handlers) {
+			String className = handler.getClass().getSimpleName().toLowerCase();
+			String fullClassName = handler.getClass().getName().toLowerCase();
+
+			// Match short name (e.g., "pixi" matches "PixiHandler")
+			if (className.equals(normalizedName) ||
+			    className.equals(normalizedName + "handler") ||
+			    className.startsWith(normalizedName)) {
+				return handler;
+			}
+
+			// Match full class name
+			if (fullClassName.equals(normalizedName) ||
+			    fullClassName.endsWith("." + normalizedName)) {
+				return handler;
+			}
+
+			// Match common aliases
+			if (matchesAlias(handler, normalizedName)) {
+				return handler;
+			}
+		}
+		return null;
+	}
+
+	/**
+	 * Checks if a handler name looks like a handler identifier rather than
+	 * a URL scheme or other non-handler string.
+	 */
+	private boolean isHandlerName(String candidate) {
+		if (candidate == null || candidate.isEmpty()) return false;
+		// Handler names are typically alphanumeric, possibly with underscores/hyphens
+		// Exclude common non-handler patterns like numbers (ports), URLs, etc.
+		return candidate.matches("[a-zA-Z][a-zA-Z0-9_-]*");
+	}
+
+	/**
+	 * Checks common aliases for known handlers.
+	 */
+	private boolean matchesAlias(BuildHandler handler, String name) {
+		String className = handler.getClass().getSimpleName().toLowerCase();
+
+		// MambaHandler aliases
+		if (className.contains("mamba")) {
+			return name.equals("micromamba") || name.equals("conda");
+		}
+
+		// PixiHandler aliases
+		if (className.contains("pixi")) {
+			return name.equals("pixi");
+		}
+
+		return false;
 	}
 
 	private static List<String> listFromConfig(String key, Map<String, List<String>> config) {

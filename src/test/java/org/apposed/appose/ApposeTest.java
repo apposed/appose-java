@@ -228,6 +228,43 @@ public class ApposeTest {
 	}
 
 	@Test
+	public void testExplicitMambaHandler() throws IOException, InterruptedException {
+		// Test explicit handler selection using scheme:handler syntax
+		Environment env = Appose
+			.file("src/test/resources/envs/cowsay.yml", "environment.yml:mamba")
+			.logDebug()
+			.build();
+		try (Service service = env.python()) {
+			maybeDebug(service);
+			// Verify it's actually using mamba by checking for conda-meta directory
+			File envBase = new File(env.base());
+			File condaMeta = new File(envBase, "conda-meta");
+			assertTrue(condaMeta.exists() && condaMeta.isDirectory(),
+				"Environment should have conda-meta directory when using MambaHandler");
+
+			Task task = service.task(
+				"import cowsay\n" +
+				"task.outputs['moo'] = cowsay.get_output_string('cow', 'moo')\n"
+			);
+			task.waitFor();
+			assertComplete(task);
+			String expectedMoo =
+				"  ___\n" +
+				"| moo |\n" +
+				"  ===\n" +
+				"   \\\n" +
+				"    \\\n" +
+				"      ^__^\n" +
+				"      (oo)\\_______\n" +
+				"      (__)\\       )\\/\\\n" +
+				"          ||----w |\n" +
+				"          ||     ||";
+			String actualMoo = (String) task.outputs.get("moo");
+			assertEquals(expectedMoo, actualMoo);
+		}
+	}
+
+	@Test
 	public void testServiceStartupFailure() throws IOException, InterruptedException {
 		String tempNonExistingDir = "no-pythons-to-be-found-here";
 		new File(tempNonExistingDir).deleteOnExit();
