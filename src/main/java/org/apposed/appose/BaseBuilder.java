@@ -48,8 +48,6 @@ public abstract class BaseBuilder {
 	public final List<Consumer<String>> outputSubscribers = new ArrayList<>();
 	public final List<Consumer<String>> errorSubscribers = new ArrayList<>();
 
-	private boolean includeSystemPath;
-
 	/**
 	 * Registers a callback method to be invoked when progress happens during environment building.
 	 *
@@ -93,17 +91,6 @@ public abstract class BaseBuilder {
 	}
 
 	/**
-	 * Configures whether to include the system PATH in the environment.
-	 *
-	 * @param includeSystemPath true to include system PATH.
-	 * @return This builder instance, for fluent-style programming.
-	 */
-	public BaseBuilder includeSystemPath(boolean includeSystemPath) {
-		this.includeSystemPath = includeSystemPath;
-		return this;
-	}
-
-	/**
 	 * Builds the environment with an auto-generated name.
 	 *
 	 * @return The newly constructed Appose {@link Environment}.
@@ -137,13 +124,6 @@ public abstract class BaseBuilder {
 	 * Suggests a name for the environment based on builder-specific logic.
 	 */
 	protected abstract String suggestEnvName();
-
-	/**
-	 * Returns whether system PATH should be included.
-	 */
-	protected boolean shouldIncludeSystemPath() {
-		return includeSystemPath;
-	}
 
 	/**
 	 * Functional interface for progress callbacks.

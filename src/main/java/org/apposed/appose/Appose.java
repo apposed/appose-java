@@ -297,71 +297,35 @@ public class Appose {
 		return new GenericBuilder(source);
 	}
 
-	// ===== DEPRECATED METHODS =====
+	// ===== DIRECT ENVIRONMENT SHORTCUTS =====
 
-	@Deprecated
-	public static Builder scheme(String scheme) {
-		return new Builder().scheme(scheme);
-	}
-
-	@Deprecated
-	public static Builder file(String filePath, String scheme) throws IOException {
-		return new Builder().file(filePath, scheme);
-	}
-
-	@Deprecated
-	public static Builder file(File file) throws IOException {
-		return new Builder().file(file);
-	}
-
-	@Deprecated
-	public static Builder file(File file, String scheme) throws IOException {
-		return new Builder().file(file, scheme);
-	}
-
-	@Deprecated
-	public static Builder channel(String name) {
-		return new Builder().channel(name);
-	}
-
-	@Deprecated
-	public static Builder channel(String name, String location) {
-		return new Builder().channel(name, location);
-	}
-
-	@Deprecated
-	public static Builder include(String content) {
-		return new Builder().include(content);
-	}
-
-	@Deprecated
-	public static Builder include(String content, String scheme) {
-		return new Builder().include(content, scheme);
-	}
-
-	@Deprecated
-	public static Builder conda(File environmentYaml) throws IOException {
-		return file(environmentYaml, "environment.yml");
-	}
-
-	@Deprecated
-	public static Environment build(File directory) throws IOException {
-		return new Builder().build(directory);
-	}
-
-	public static Environment build(String directory) throws IOException {
-		return build(new File(directory));
-	}
-
+	/**
+	 * Creates a system environment using the system PATH.
+	 * No packages are installed; uses whatever Python/Groovy/etc. is on the system.
+	 *
+	 * @return A system environment.
+	 */
 	public static Environment system() throws IOException {
-		return system(new File("."));
+		return new SystemBuilder().build();
 	}
 
-	public static Environment system(File directory) throws IOException {
-		return new Builder().useSystemPath().build(directory);
-	}
-
+	/**
+	 * Creates a system environment with a specific base directory.
+	 *
+	 * @param directory Base directory for the environment.
+	 * @return A system environment.
+	 */
 	public static Environment system(String directory) throws IOException {
-		return system(new File(directory));
+		return new SystemBuilder(directory).build();
+	}
+
+	/**
+	 * Creates a system environment with a specific base directory.
+	 *
+	 * @param directory Base directory for the environment.
+	 * @return A system environment.
+	 */
+	public static Environment system(File directory) throws IOException {
+		return new SystemBuilder(directory.getAbsolutePath()).build();
 	}
 }

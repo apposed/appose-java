@@ -30,7 +30,6 @@
 package org.apposed.appose;
 
 import org.apposed.appose.pixi.Pixi;
-import org.apposed.appose.pixi.PixiHandler;
 
 import java.io.BufferedReader;
 import java.io.File;

@@ -267,9 +267,17 @@ public class ApposeTest {
 
 	@Test
 	public void testServiceStartupFailure() throws IOException, InterruptedException {
-		String tempNonExistingDir = "no-pythons-to-be-found-here";
-		new File(tempNonExistingDir).deleteOnExit();
-		Environment env = Appose.build(tempNonExistingDir);
+		// Create an environment with no binPaths to test startup failure
+		File tempDir = new File("no-pythons-to-be-found-here");
+		tempDir.mkdirs();
+		tempDir.deleteOnExit();
+
+		Environment env = new Environment() {
+			@Override public String base() { return tempDir.getAbsolutePath(); }
+			@Override public List<String> binPaths() { return new ArrayList<>(); }
+			@Override public List<String> classpath() { return new ArrayList<>(); }
+			@Override public List<String> launchArgs() { return new ArrayList<>(); }
+		};
 		try (Service service = env.python()) {
 			String info = "";
 			try {
