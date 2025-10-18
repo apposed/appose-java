@@ -35,13 +35,13 @@ import com.sun.jna.platform.win32.Kernel32;
 import com.sun.jna.platform.win32.Win32Exception;
 import com.sun.jna.platform.win32.WinBase;
 import com.sun.jna.platform.win32.WinNT;
-import org.apposed.appose.Platforms;
 import org.apposed.appose.SharedMemory;
 import org.apposed.appose.ShmFactory;
+import org.apposed.appose.util.Platforms;
 
-import static org.apposed.appose.Platforms.OperatingSystem.WINDOWS;
 import static org.apposed.appose.shm.Shms.SHM_NAME_PREFIX_WIN;
 import static org.apposed.appose.shm.Shms.SHM_SAFE_NAME_LENGTH;
+import static org.apposed.appose.util.Platforms.OperatingSystem.WINDOWS;
 
 /**
  * Windows-specific shared memory implementation.

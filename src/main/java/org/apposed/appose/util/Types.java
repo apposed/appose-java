@@ -26,10 +26,12 @@
  * POSSIBILITY OF SUCH DAMAGE.
  * #L%
  */
-package org.apposed.appose;
+package org.apposed.appose.util;
 
 import groovy.json.JsonGenerator;
 import groovy.json.JsonSlurper;
+import org.apposed.appose.NDArray;
+import org.apposed.appose.SharedMemory;
 
 import java.io.PrintWriter;
 import java.io.StringWriter;

@@ -29,6 +29,8 @@
 
 package org.apposed.appose;
 
+import org.apposed.appose.util.Builders;
+
 import java.io.File;
 import java.io.IOException;
 

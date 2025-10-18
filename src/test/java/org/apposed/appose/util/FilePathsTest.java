@@ -27,7 +27,7 @@
  * #L%
  */
 
-package org.apposed.appose;
+package org.apposed.appose.util;
 
 import org.apache.commons.io.FileUtils;
 import org.junit.jupiter.api.Test;
@@ -41,7 +41,7 @@ import java.nio.file.Paths;
 import java.util.Arrays;
 import java.util.List;
 
-import static org.apposed.appose.Platforms.OperatingSystem.WINDOWS;
+import static org.apposed.appose.util.Platforms.OperatingSystem.WINDOWS;
 import static org.junit.jupiter.api.Assertions.*;
 
 /**

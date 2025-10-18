@@ -27,7 +27,7 @@
  * #L%
  */
 
-package org.apposed.appose;
+package org.apposed.appose.util;
 
 import java.io.File;
 import java.io.IOException;

@@ -29,9 +29,9 @@
 
 package org.apposed.appose.pixi;
 
-import org.apposed.appose.Platforms;
-import org.apposed.appose.util.DownloadUtils;
+import org.apposed.appose.util.Downloads;
 import org.apposed.appose.util.FileDownloader;
+import org.apposed.appose.util.Platforms;
 
 import java.io.BufferedReader;
 import java.io.File;
@@ -252,8 +252,8 @@ public class Pixi {
 	private File downloadPixi() throws IOException, InterruptedException, URISyntaxException {
 		final File tempFile = File.createTempFile("pixi", ".tar.gz");
 		tempFile.deleteOnExit();
-		URL website = DownloadUtils.redirectedURL(new URL(PIXI_URL));
-		long size = DownloadUtils.getFileSize(website);
+		URL website = Downloads.redirectedURL(new URL(PIXI_URL));
+		long size = Downloads.getFileSize(website);
 		Thread currentThread = Thread.currentThread();
 		IOException[] ioe = {null};
 		InterruptedException[] ie = {null};
@@ -290,7 +290,7 @@ public class Pixi {
 		if (!pixiBinDir.exists() && !pixiBinDir.mkdirs())
 			throw new IOException("Failed to create Pixi bin directory: " + pixiBinDir);
 
-		DownloadUtils.unTarGz(tempFile, pixiBinDir);
+		Downloads.unTarGz(tempFile, pixiBinDir);
 		File pixiFile = new File(pixiCommand);
 		if (!pixiFile.exists()) throw new IOException("Expected pixi binary is missing: " + pixiCommand);
 		if (!pixiFile.canExecute()) {

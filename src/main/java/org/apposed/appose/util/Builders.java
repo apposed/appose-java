@@ -27,7 +27,10 @@
  * #L%
  */
 
-package org.apposed.appose;
+package org.apposed.appose.util;
+
+import org.apposed.appose.Builder;
+import org.apposed.appose.BuilderFactory;
 
 import java.io.File;
 import java.nio.file.Path;
