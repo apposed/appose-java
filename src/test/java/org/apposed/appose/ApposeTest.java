@@ -228,7 +228,7 @@ public class ApposeTest {
 	}
 
 	@Test
-	public void testExplicitMambaHandler() throws IOException, InterruptedException {
+	public void testExplicitMambaBuilder() throws IOException, InterruptedException {
 		// Test explicit mamba builder selection using .builder() method
 		Environment env = Appose
 			.file("src/test/resources/envs/cowsay.yml")
