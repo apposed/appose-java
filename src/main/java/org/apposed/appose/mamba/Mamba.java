@@ -90,12 +90,12 @@ import java.util.stream.Collectors;
  * @author Ko Sugawara
  * @author Carlos Garcia
  */
-class Mamba {
+public class Mamba {
 
 	/**
 	 * String containing the path that points to the micromamba executable
 	 */
-	final String mambaCommand;
+	public final String mambaCommand;
 
 	/**
 	 * Root directory of micromamba that also contains the environments folder

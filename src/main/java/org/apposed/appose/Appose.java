@@ -242,38 +242,99 @@ import java.io.IOException;
  */
 public class Appose {
 
+	// ===== TYPE-SAFE BUILDERS =====
+
+	/**
+	 * Creates a Pixi-based environment builder.
+	 * Pixi supports both conda and PyPI packages natively.
+	 *
+	 * @return A new PixiBuilder instance.
+	 */
+	public static PixiBuilder pixi() {
+		return new PixiBuilder();
+	}
+
+	/**
+	 * Creates a Pixi-based environment builder from a source file.
+	 *
+	 * @param source Path to pixi.toml or environment.yml file.
+	 * @return A new PixiBuilder instance.
+	 */
+	public static PixiBuilder pixi(String source) {
+		return new PixiBuilder(source);
+	}
+
+	/**
+	 * Creates a Micromamba-based environment builder.
+	 * Micromamba uses traditional conda environments.
+	 *
+	 * @return A new MambaBuilder instance.
+	 */
+	public static MambaBuilder mamba() {
+		return new MambaBuilder();
+	}
+
+	/**
+	 * Creates a Micromamba-based environment builder from an environment.yml file.
+	 *
+	 * @param source Path to environment.yml file.
+	 * @return A new MambaBuilder instance.
+	 */
+	public static MambaBuilder mamba(String source) {
+		return new MambaBuilder(source);
+	}
+
+	// ===== GENERIC AUTO-DETECTING BUILDER =====
+
+	/**
+	 * Creates a generic builder that auto-detects the appropriate handler
+	 * based on the source file extension.
+	 *
+	 * @param source Path to environment configuration file.
+	 * @return A new GenericBuilder instance.
+	 */
+	public static GenericBuilder file(String source) {
+		return new GenericBuilder(source);
+	}
+
+	// ===== DEPRECATED METHODS =====
+
+	@Deprecated
 	public static Builder scheme(String scheme) {
 		return new Builder().scheme(scheme);
 	}
 
-	public static Builder file(String filePath) throws IOException {
-		return new Builder().file(filePath);
-	}
-
+	@Deprecated
 	public static Builder file(String filePath, String scheme) throws IOException {
 		return new Builder().file(filePath, scheme);
 	}
 
+	@Deprecated
 	public static Builder file(File file) throws IOException {
 		return new Builder().file(file);
 	}
 
+	@Deprecated
 	public static Builder file(File file, String scheme) throws IOException {
 		return new Builder().file(file, scheme);
 	}
 
+	@Deprecated
 	public static Builder channel(String name) {
 		return new Builder().channel(name);
 	}
 
+	@Deprecated
 	public static Builder channel(String name, String location) {
 		return new Builder().channel(name, location);
 	}
 
+	@Deprecated
 	public static Builder include(String content) {
 		return new Builder().include(content);
 	}
 
+	@Deprecated
 	public static Builder include(String content, String scheme) {
 		return new Builder().include(content, scheme);
 	}
@@ -283,6 +344,7 @@ public class Appose {
 		return file(environmentYaml, "environment.yml");
 	}
 
+	@Deprecated
 	public static Environment build(File directory) throws IOException {
 		return new Builder().build(directory);
 	}

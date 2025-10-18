@@ -138,7 +138,7 @@ public class ApposeTest {
 	@Test
 	public void testConda() throws IOException, InterruptedException {
 		Environment env = Appose
-			.conda(new File("src/test/resources/envs/cowsay.yml"))
+			.file("src/test/resources/envs/cowsay.yml")
 			.logDebug()
 			.build();
 		try (Service service = env.python()) {
@@ -168,7 +168,7 @@ public class ApposeTest {
 	@Test
 	public void testPixi() throws IOException, InterruptedException {
 		Environment env = Appose
-			.file("src/test/resources/envs/cowsay-pixi.toml", "pixi.toml")
+			.pixi("src/test/resources/envs/cowsay-pixi.toml")
 			.logDebug()
 			.build();
 		try (Service service = env.python()) {
@@ -198,9 +198,9 @@ public class ApposeTest {
 	@Test
 	public void testPixiBuilderAPI() throws IOException, InterruptedException {
 		Environment env = Appose
-			.include("python>=3.8", "conda")
-			.include("pip", "conda")
-			.include("cowsay==6.1", "pypi")
+			.pixi()
+			.conda("python>=3.8", "pip")
+			.pypi("cowsay==6.1")
 			.logDebug()
 			.build("appose-cowsay-builder");
 		try (Service service = env.python()) {
@@ -229,11 +229,12 @@ public class ApposeTest {
 
 	@Test
 	public void testExplicitMambaHandler() throws IOException, InterruptedException {
-		// Test explicit handler selection using scheme:handler syntax
+		// Test explicit handler selection using .builder() method
 		Environment env = Appose
-			.file("src/test/resources/envs/cowsay.yml", "environment.yml:mamba")
+			.file("src/test/resources/envs/cowsay.yml")
+			.builder("mamba")
 			.logDebug()
-			.build();
+			.build("appose-cowsay-mamba");
 		try (Service service = env.python()) {
 			maybeDebug(service);
 			// Verify it's actually using mamba by checking for conda-meta directory

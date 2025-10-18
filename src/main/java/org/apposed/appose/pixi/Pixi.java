@@ -60,13 +60,14 @@ import java.util.stream.Collectors;
  * management than micromamba and supports both conda and PyPI packages.
  *
  * @author Curtis Rueden
+ * @author Claude Code
  */
-class Pixi {
+public class Pixi {
 
 	/**
 	 * String containing the path that points to the pixi executable
 	 */
-	final String pixiCommand;
+	public final String pixiCommand;
 
 	/**
 	 * Root directory where pixi is installed
