@@ -27,9 +27,11 @@
  * #L%
  */
 
-package org.apposed.appose;
+package org.apposed.appose.mamba;
 
-import org.apposed.appose.mamba.Mamba;
+import org.apposed.appose.BaseBuilder;
+import org.apposed.appose.Builder;
+import org.apposed.appose.Environment;
 
 import java.io.BufferedReader;
 import java.io.File;
@@ -54,11 +56,11 @@ public class MambaBuilder extends BaseBuilder {
 	// Public no-arg constructor for ServiceLoader
 	public MambaBuilder() {}
 
-	MambaBuilder(String source) {
+	public MambaBuilder(String source) {
 		this.source = source;
 	}
 
-	MambaBuilder(String source, String scheme) {
+	public MambaBuilder(String source, String scheme) {
 		this.source = source;
 		this.scheme = scheme;
 	}

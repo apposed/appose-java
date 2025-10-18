@@ -1,3 +1,1 @@
-org.apposed.appose.PixiBuilder
-org.apposed.appose.MambaBuilder
-org.apposed.appose.SystemBuilder
+# This file is deprecated - use org.apposed.appose.BuilderFactory instead

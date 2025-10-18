@@ -37,59 +37,59 @@ import java.util.List;
 import java.util.ServiceLoader;
 
 /**
- * Utility class for discovering and managing environment builders.
+ * Utility class for discovering and managing environment builder factories.
  *
  * @author Curtis Rueden
  */
 public class Builders {
 
-	private static List<Builder> cachedBuilders;
+	private static List<BuilderFactory> cachedFactories;
 
 	/**
-	 * Discovers all available builders via ServiceLoader.
-	 * Builders are cached and sorted by priority (highest first).
+	 * Discovers all available builder factories via ServiceLoader.
+	 * Factories are cached and sorted by priority (highest first).
 	 *
-	 * @return List of discovered builders, sorted by priority.
+	 * @return List of discovered factories, sorted by priority.
 	 */
-	public static synchronized List<Builder> discover() {
-		if (cachedBuilders == null) {
-			ServiceLoader<Builder> loader = ServiceLoader.load(Builder.class);
-			cachedBuilders = new ArrayList<>();
-			for (Builder builder : loader) {
-				cachedBuilders.add(builder);
+	public static synchronized List<BuilderFactory> discoverFactories() {
+		if (cachedFactories == null) {
+			ServiceLoader<BuilderFactory> loader = ServiceLoader.load(BuilderFactory.class);
+			cachedFactories = new ArrayList<>();
+			for (BuilderFactory factory : loader) {
+				cachedFactories.add(factory);
 			}
 			// Sort by priority (descending - highest priority first)
-			cachedBuilders.sort((a, b) -> Double.compare(b.priority(), a.priority()));
+			cachedFactories.sort((a, b) -> Double.compare(b.priority(), a.priority()));
 		}
-		return cachedBuilders;
+		return cachedFactories;
 	}
 
 	/**
-	 * Finds a builder by name.
+	 * Finds a factory by name.
 	 *
 	 * @param name The builder name to search for.
-	 * @return The builder with matching name, or null if not found.
+	 * @return The factory with matching name, or null if not found.
 	 */
-	public static Builder findByName(String name) {
-		for (Builder builder : discover()) {
-			if (builder.name().equalsIgnoreCase(name)) {
-				return builder;
+	public static BuilderFactory findFactoryByName(String name) {
+		for (BuilderFactory factory : discoverFactories()) {
+			if (factory.name().equalsIgnoreCase(name)) {
+				return factory;
 			}
 		}
 		return null;
 	}
 
 	/**
-	 * Finds the first builder that supports the given scheme.
-	 * Builders are checked in priority order.
+	 * Finds the first factory that supports the given scheme.
+	 * Factories are checked in priority order.
 	 *
-	 * @param scheme The scheme to find a builder for.
-	 * @return The first builder that supports the scheme, or null if none found.
+	 * @param scheme The scheme to find a factory for.
+	 * @return The first factory that supports the scheme, or null if none found.
 	 */
-	public static Builder findByScheme(String scheme) {
-		for (Builder builder : discover()) {
-			if (builder.supports(scheme)) {
-				return builder;
+	public static BuilderFactory findFactoryByScheme(String scheme) {
+		for (BuilderFactory factory : discoverFactories()) {
+			if (factory.supports(scheme)) {
+				return factory;
 			}
 		}
 		return null;

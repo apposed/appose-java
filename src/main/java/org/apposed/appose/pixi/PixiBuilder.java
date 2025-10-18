@@ -27,9 +27,11 @@
  * #L%
  */
 
-package org.apposed.appose;
+package org.apposed.appose.pixi;
 
-import org.apposed.appose.pixi.Pixi;
+import org.apposed.appose.BaseBuilder;
+import org.apposed.appose.Builder;
+import org.apposed.appose.Environment;
 
 import java.io.BufferedReader;
 import java.io.File;
@@ -59,12 +61,12 @@ public class PixiBuilder extends BaseBuilder {
 	// Public no-arg constructor for ServiceLoader
 	public PixiBuilder() {}
 
-	// Package-private constructors for Appose class
-	PixiBuilder(String source) {
+	// Public constructors for Appose class
+	public PixiBuilder(String source) {
 		this.source = source;
 	}
 
-	PixiBuilder(String source, String scheme) {
+	public PixiBuilder(String source, String scheme) {
 		this.source = source;
 		this.scheme = scheme;
 	}

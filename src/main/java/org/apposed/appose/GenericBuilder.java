@@ -122,42 +122,35 @@ public class GenericBuilder extends BaseBuilder {
 	}
 
 	private BaseBuilder createBuilder(String builderName, String source, String scheme) {
-		// Find builder by name using ServiceLoader
-		Builder found = Builders.findByName(builderName);
-		if (found == null) {
+		// Find factory by name using ServiceLoader
+		BuilderFactory factory = Builders.findFactoryByName(builderName);
+		if (factory == null) {
 			throw new IllegalArgumentException("Unknown builder: " + builderName);
 		}
 
-		// Instantiate the appropriate builder with source and scheme
-		// This requires matching the builder type and calling its constructor
-		if (found instanceof PixiBuilder) {
-			return new PixiBuilder(source, scheme);
-		} else if (found instanceof MambaBuilder) {
-			return new MambaBuilder(source, scheme);
-		} else if (found instanceof SystemBuilder) {
-			return new SystemBuilder(source);
+		// Create builder instance via factory
+		Builder builder = factory.createBuilder(source, scheme);
+		if (!(builder instanceof BaseBuilder)) {
+			throw new IllegalArgumentException("Builder must extend BaseBuilder: " + builderName);
 		}
 
-		throw new IllegalArgumentException("Cannot create builder instance for: " + builderName);
+		return (BaseBuilder) builder;
 	}
 
 	private BaseBuilder selectDefaultBuilder(String scheme, String source) {
-		// Find the highest-priority builder that supports this scheme
-		Builder found = Builders.findByScheme(scheme);
-		if (found == null) {
+		// Find the highest-priority factory that supports this scheme
+		BuilderFactory factory = Builders.findFactoryByScheme(scheme);
+		if (factory == null) {
 			throw new IllegalArgumentException("No builder supports scheme: " + scheme);
 		}
 
-		// Instantiate the appropriate builder with source and scheme
-		if (found instanceof PixiBuilder) {
-			return new PixiBuilder(source, scheme);
-		} else if (found instanceof MambaBuilder) {
-			return new MambaBuilder(source, scheme);
-		} else if (found instanceof SystemBuilder) {
-			return new SystemBuilder(source != null ? source : ".");
+		// Create builder instance via factory
+		Builder builder = factory.createBuilder(source, scheme);
+		if (!(builder instanceof BaseBuilder)) {
+			throw new IllegalArgumentException("Builder must extend BaseBuilder for scheme: " + scheme);
 		}
 
-		throw new IllegalArgumentException("Cannot create builder instance for scheme: " + scheme);
+		return (BaseBuilder) builder;
 	}
 
 	@Override

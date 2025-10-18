@@ -29,6 +29,9 @@
 
 package org.apposed.appose;
 
+import org.apposed.appose.mamba.MambaBuilder;
+import org.apposed.appose.pixi.PixiBuilder;
+
 import java.io.File;
 import java.io.IOException;
 
