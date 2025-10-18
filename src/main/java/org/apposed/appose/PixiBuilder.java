@@ -56,9 +56,10 @@ public class PixiBuilder extends BaseBuilder {
 	private final List<String> pypiPackages = new ArrayList<>();
 	private final List<String> channels = new ArrayList<>();
 
-	// Package-private constructors for Appose class
-	PixiBuilder() {}
+	// Public no-arg constructor for ServiceLoader
+	public PixiBuilder() {}
 
+	// Package-private constructors for Appose class
 	PixiBuilder(String source) {
 		this.source = source;
 	}
@@ -236,7 +237,30 @@ public class PixiBuilder extends BaseBuilder {
 	}
 
 	@Override
-	protected String suggestEnvName() {
+	public String name() {
+		return "pixi";
+	}
+
+	@Override
+	public boolean supports(String scheme) {
+		switch (scheme) {
+			case "pixi.toml":
+			case "environment.yml":
+			case "conda":
+			case "pypi":
+				return true;
+			default:
+				return false;
+		}
+	}
+
+	@Override
+	public double priority() {
+		return 100.0; // Preferred for environment.yml and conda/pypi packages
+	}
+
+	@Override
+	public String suggestEnvName() {
 		// Try to extract name from pixi.toml or environment.yml content
 		if (source != null) {
 			File sourceFile = new File(source);

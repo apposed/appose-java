@@ -122,41 +122,63 @@ public class GenericBuilder extends BaseBuilder {
 	}
 
 	private BaseBuilder createBuilder(String builderName, String source, String scheme) {
-		switch (builderName.toLowerCase()) {
-			case "pixi":
-			case "pixihandler":
-				return new PixiBuilder(source, scheme);
-			case "mamba":
-			case "micromamba":
-			case "conda":
-			case "mambahandler":
-				return new MambaBuilder(source, scheme);
-			default:
-				throw new IllegalArgumentException("Unknown builder: " + builderName);
+		// Find builder by name using ServiceLoader
+		Builder found = Builders.findByName(builderName);
+		if (found == null) {
+			throw new IllegalArgumentException("Unknown builder: " + builderName);
 		}
+
+		// Instantiate the appropriate builder with source and scheme
+		// This requires matching the builder type and calling its constructor
+		if (found instanceof PixiBuilder) {
+			return new PixiBuilder(source, scheme);
+		} else if (found instanceof MambaBuilder) {
+			return new MambaBuilder(source, scheme);
+		} else if (found instanceof SystemBuilder) {
+			return new SystemBuilder(source);
+		}
+
+		throw new IllegalArgumentException("Cannot create builder instance for: " + builderName);
 	}
 
 	private BaseBuilder selectDefaultBuilder(String scheme, String source) {
-		switch (scheme) {
-			case "pixi.toml":
-				return new PixiBuilder(source, scheme);
-			case "environment.yml":
-				// Default to pixi for environment.yml
-				return new PixiBuilder(source, scheme);
-			case "requirements.txt":
-				// Would be UvBuilder when implemented
-				throw new UnsupportedOperationException("UV builder not yet implemented");
-			case "conda":
-			case "pypi":
-				// For programmatic package building, default to pixi
-				return new PixiBuilder(source, scheme);
-			default:
-				throw new IllegalArgumentException("Cannot determine builder for scheme: " + scheme);
+		// Find the highest-priority builder that supports this scheme
+		Builder found = Builders.findByScheme(scheme);
+		if (found == null) {
+			throw new IllegalArgumentException("No builder supports scheme: " + scheme);
 		}
+
+		// Instantiate the appropriate builder with source and scheme
+		if (found instanceof PixiBuilder) {
+			return new PixiBuilder(source, scheme);
+		} else if (found instanceof MambaBuilder) {
+			return new MambaBuilder(source, scheme);
+		} else if (found instanceof SystemBuilder) {
+			return new SystemBuilder(source != null ? source : ".");
+		}
+
+		throw new IllegalArgumentException("Cannot create builder instance for scheme: " + scheme);
 	}
 
 	@Override
-	protected String suggestEnvName() {
+	public String name() {
+		return "generic";
+	}
+
+	@Override
+	public boolean supports(String scheme) {
+		// GenericBuilder supports all schemes by delegating
+		return true;
+	}
+
+	@Override
+	public double priority() {
+		// Not used in ServiceLoader discovery
+		return 0.0;
+	}
+
+	@Override
+	public String suggestEnvName() {
 		// Delegate to the resolved builder
 		if (delegate == null) {
 			delegate = resolveDelegate();
@@ -164,3 +186,4 @@ public class GenericBuilder extends BaseBuilder {
 		return delegate.suggestEnvName();
 	}
 }
+

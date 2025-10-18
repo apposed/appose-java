@@ -47,8 +47,8 @@ public class SystemBuilder extends BaseBuilder {
 	private String baseDirectory;
 	private boolean useSystemPath;
 
-	// Package-private constructor for Appose class
-	SystemBuilder() {
+	// Public no-arg constructor for ServiceLoader
+	public SystemBuilder() {
 		this.baseDirectory = ".";
 		this.useSystemPath = true; // Appose.system() includes system PATH
 	}
@@ -70,20 +70,19 @@ public class SystemBuilder extends BaseBuilder {
 	}
 
 	@Override
+	public Environment build(String envName) throws IOException {
+		// SystemBuilder uses baseDirectory instead of default appose location
+		return build(new File(baseDirectory));
+	}
+
+	@Override
 	public Environment build(File envDir) throws IOException {
-		// For SystemBuilder, we use envDir directly instead of the default location
 		// Create directory if it doesn't exist
 		if (!envDir.exists() && !envDir.mkdirs()) {
 			throw new IOException("Failed to create base directory: " + envDir);
 		}
 
 		return createEnvironment(envDir);
-	}
-
-	@Override
-	protected File determineEnvDir(String envName) {
-		// SystemBuilder uses baseDirectory instead of standard appose location
-		return new File(baseDirectory);
 	}
 
 	private Environment createEnvironment(File base) {
@@ -116,7 +115,24 @@ public class SystemBuilder extends BaseBuilder {
 	}
 
 	@Override
-	protected String suggestEnvName() {
+	public String name() {
+		return "system";
+	}
+
+	@Override
+	public boolean supports(String scheme) {
+		// SystemBuilder is a catch-all fallback
+		return true;
+	}
+
+	@Override
+	public double priority() {
+		return 0.0; // Lowest priority - only used as fallback
+	}
+
+	@Override
+	public String suggestEnvName() {
 		return "system";
 	}
 }
+

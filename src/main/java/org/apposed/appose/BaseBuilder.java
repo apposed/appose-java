@@ -39,10 +39,11 @@ import java.util.function.Consumer;
 
 /**
  * Base class for environment builders.
+ * Provides common implementation for the Builder interface.
  *
  * @author Curtis Rueden
  */
-public abstract class BaseBuilder {
+public abstract class BaseBuilder implements Builder {
 
 	public final List<ProgressConsumer> progressSubscribers = new ArrayList<>();
 	public final List<Consumer<String>> outputSubscribers = new ArrayList<>();
@@ -100,42 +101,55 @@ public abstract class BaseBuilder {
 		return build((String) null);
 	}
 
-	/**
-	 * Builds the environment with the specified name.
-	 *
-	 * @param envName The name for the environment, or null to auto-generate.
-	 * @return The newly constructed Appose {@link Environment}.
-	 * @throws IOException If something goes wrong building the environment.
-	 */
-	public Environment build(String envName) throws IOException {
-		File envDir = determineEnvDir(envName);
-		return build(envDir);
-	}
+	// ===== BUILDER INTERFACE IMPLEMENTATION =====
 
 	/**
 	 * Builds the environment at the specified directory.
+	 * Concrete builders must implement this method.
 	 *
 	 * @param envDir The directory for the environment.
 	 * @return The newly constructed Appose {@link Environment}.
 	 * @throws IOException If something goes wrong building the environment.
 	 */
+	@Override
 	public abstract Environment build(File envDir) throws IOException;
 
 	/**
-	 * Determines the environment directory based on the name and builder type.
+	 * Returns the name of this builder.
+	 * Concrete builders must implement this method.
+	 *
+	 * @return The builder name.
 	 */
-	protected File determineEnvDir(String envName) {
-		if (envName == null) {
-			envName = suggestEnvName();
-		}
-		Path envPath = Paths.get(System.getProperty("user.home"), ".local", "share", "appose", envName);
-		return envPath.toFile();
-	}
+	@Override
+	public abstract String name();
+
+	/**
+	 * Checks if this builder supports the given scheme.
+	 * Concrete builders must implement this method.
+	 *
+	 * @param scheme The scheme to check.
+	 * @return true if this builder supports the scheme.
+	 */
+	@Override
+	public abstract boolean supports(String scheme);
+
+	/**
+	 * Returns the priority of this builder.
+	 * Concrete builders must implement this method.
+	 *
+	 * @return The priority value.
+	 */
+	@Override
+	public abstract double priority();
 
 	/**
 	 * Suggests a name for the environment based on builder-specific logic.
+	 * Concrete builders must implement this method.
+	 *
+	 * @return A suggested environment name.
 	 */
-	protected abstract String suggestEnvName();
+	@Override
+	public abstract String suggestEnvName();
 
 	/**
 	 * Functional interface for progress callbacks.

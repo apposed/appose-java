@@ -51,8 +51,8 @@ public class MambaBuilder extends BaseBuilder {
 	private String source;
 	private String scheme;
 
-	// Package-private constructors for Appose class
-	MambaBuilder() {}
+	// Public no-arg constructor for ServiceLoader
+	public MambaBuilder() {}
 
 	MambaBuilder(String source) {
 		this.source = source;
@@ -145,7 +145,22 @@ public class MambaBuilder extends BaseBuilder {
 	}
 
 	@Override
-	protected String suggestEnvName() {
+	public String name() {
+		return "mamba";
+	}
+
+	@Override
+	public boolean supports(String scheme) {
+		return "environment.yml".equals(scheme);
+	}
+
+	@Override
+	public double priority() {
+		return 50.0; // Lower priority than pixi for environment.yml
+	}
+
+	@Override
+	public String suggestEnvName() {
 		// Try to extract name from environment.yml
 		if (source != null) {
 			File sourceFile = new File(source);
