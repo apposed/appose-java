@@ -141,28 +141,7 @@ public class ApposeTest {
 			.file("src/test/resources/envs/cowsay.yml")
 			.logDebug()
 			.build();
-		try (Service service = env.python()) {
-			maybeDebug(service);
-			Task task = service.task(
-				"import cowsay\n" +
-				"task.outputs['moo'] = cowsay.get_output_string('cow', 'moo')\n"
-			);
-			task.waitFor();
-			assertComplete(task);
-			String expectedMoo =
-				"  ___\n" +
-				"| moo |\n" +
-				"  ===\n" +
-				"   \\\n" +
-				"    \\\n" +
-				"      ^__^\n" +
-				"      (oo)\\_______\n" +
-				"      (__)\\       )\\/\\\n" +
-				"          ||----w |\n" +
-				"          ||     ||";
-			String actualMoo = (String) task.outputs.get("moo");
-			assertEquals(expectedMoo, actualMoo);
-		}
+		cowsayAndAssert(env, "moo");
 	}
 
 	@Test
@@ -171,28 +150,7 @@ public class ApposeTest {
 			.pixi("src/test/resources/envs/cowsay-pixi.toml")
 			.logDebug()
 			.build();
-		try (Service service = env.python()) {
-			maybeDebug(service);
-			Task task = service.task(
-				"import cowsay\n" +
-				"task.outputs['moo'] = cowsay.get_output_string('cow', 'moo')\n"
-			);
-			task.waitFor();
-			assertComplete(task);
-			String expectedMoo =
-				"  ___\n" +
-				"| moo |\n" +
-				"  ===\n" +
-				"   \\\n" +
-				"    \\\n" +
-				"      ^__^\n" +
-				"      (oo)\\_______\n" +
-				"      (__)\\       )\\/\\\n" +
-				"          ||----w |\n" +
-				"          ||     ||";
-			String actualMoo = (String) task.outputs.get("moo");
-			assertEquals(expectedMoo, actualMoo);
-		}
+		cowsayAndAssert(env, "baa");
 	}
 
 	@Test
@@ -203,28 +161,7 @@ public class ApposeTest {
 			.pypi("cowsay==6.1")
 			.logDebug()
 			.build("appose-cowsay-builder");
-		try (Service service = env.python()) {
-			maybeDebug(service);
-			Task task = service.task(
-				"import cowsay\n" +
-				"task.outputs['moo'] = cowsay.get_output_string('cow', 'moo')\n"
-			);
-			task.waitFor();
-			assertComplete(task);
-			String expectedMoo =
-				"  ___\n" +
-				"| moo |\n" +
-				"  ===\n" +
-				"   \\\n" +
-				"    \\\n" +
-				"      ^__^\n" +
-				"      (oo)\\_______\n" +
-				"      (__)\\       )\\/\\\n" +
-				"          ||----w |\n" +
-				"          ||     ||";
-			String actualMoo = (String) task.outputs.get("moo");
-			assertEquals(expectedMoo, actualMoo);
-		}
+		cowsayAndAssert(env, "ooh");
 	}
 
 	@Test
@@ -235,34 +172,14 @@ public class ApposeTest {
 			.builder("mamba")
 			.logDebug()
 			.build("appose-cowsay-mamba");
-		try (Service service = env.python()) {
-			maybeDebug(service);
-			// Verify it's actually using mamba by checking for conda-meta directory
-			File envBase = new File(env.base());
-			File condaMeta = new File(envBase, "conda-meta");
-			assertTrue(condaMeta.exists() && condaMeta.isDirectory(),
-				"Environment should have conda-meta directory when using mamba builder");
 
-			Task task = service.task(
-				"import cowsay\n" +
-				"task.outputs['moo'] = cowsay.get_output_string('cow', 'moo')\n"
-			);
-			task.waitFor();
-			assertComplete(task);
-			String expectedMoo =
-				"  ___\n" +
-				"| moo |\n" +
-				"  ===\n" +
-				"   \\\n" +
-				"    \\\n" +
-				"      ^__^\n" +
-				"      (oo)\\_______\n" +
-				"      (__)\\       )\\/\\\n" +
-				"          ||----w |\n" +
-				"          ||     ||";
-			String actualMoo = (String) task.outputs.get("moo");
-			assertEquals(expectedMoo, actualMoo);
-		}
+		// Verify it's actually using mamba by checking for conda-meta directory
+		File envBase = new File(env.base());
+		File condaMeta = new File(envBase, "conda-meta");
+		assertTrue(condaMeta.exists() && condaMeta.isDirectory(),
+			"Environment should have conda-meta directory when using mamba builder");
+
+		cowsayAndAssert(env, "yay");
 	}
 
 	@Test
@@ -515,6 +432,44 @@ public class ApposeTest {
 		assertEquals(0, completion.current); // no current from non-UPDATE response
 		assertEquals(0, completion.maximum); // no maximum from non-UPDATE response
 		assertNull(completion.error);
+	}
+
+	public void cowsayAndAssert(Environment env, String greeting)
+		throws IOException, InterruptedException
+	{
+		try (Service service = env.python()) {
+			maybeDebug(service);
+			Task task = service.task(
+				"import cowsay\n" +
+				"task.outputs['result'] = cowsay.get_output_string('cow', '" + greeting + "')\n"
+			);
+			task.waitFor();
+			assertComplete(task);
+			// Cowsay bubble borders are the length of the greeting
+			String topBorder = "  " + repeat("_", greeting.length());
+			String bottomBorder = "  " + repeat("=", greeting.length());
+			String expected =
+				topBorder + "\n" +
+				"| " + greeting + " |\n" +
+				bottomBorder + "\n" +
+				"   \\\n" +
+				"    \\\n" +
+				"      ^__^\n" +
+				"      (oo)\\_______\n" +
+				"      (__)\\       )\\/\\\n" +
+				"          ||----w |\n" +
+				"          ||     ||";
+			String actual = (String) task.outputs.get("result");
+			assertEquals(expected, actual);
+		}
+	}
+
+	private String repeat(String str, int count) {
+		StringBuilder sb = new StringBuilder();
+		for (int i = 0; i < count; i++) {
+			sb.append(str);
+		}
+		return sb.toString();
 	}
 
 	private void maybeDebug(Service service) {
