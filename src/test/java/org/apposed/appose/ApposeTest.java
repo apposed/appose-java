@@ -229,7 +229,7 @@ public class ApposeTest {
 
 	@Test
 	public void testExplicitMambaHandler() throws IOException, InterruptedException {
-		// Test explicit handler selection using .builder() method
+		// Test explicit mamba builder selection using .builder() method
 		Environment env = Appose
 			.file("src/test/resources/envs/cowsay.yml")
 			.builder("mamba")
@@ -241,7 +241,7 @@ public class ApposeTest {
 			File envBase = new File(env.base());
 			File condaMeta = new File(envBase, "conda-meta");
 			assertTrue(condaMeta.exists() && condaMeta.isDirectory(),
-				"Environment should have conda-meta directory when using MambaHandler");
+				"Environment should have conda-meta directory when using mamba builder");
 
 			Task task = service.task(
 				"import cowsay\n" +
