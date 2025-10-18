@@ -64,13 +64,7 @@ public class MambaBuilder extends BaseBuilder {
 	}
 
 	@Override
-	public Environment build(String envName) throws IOException {
-		if (source == null) {
-			throw new IllegalStateException("No source file specified for MambaBuilder");
-		}
-
-		File envDir = determineEnvDir(envName);
-
+	public Environment build(File envDir) throws IOException {
 		// Check for incompatible existing environments
 		if (new File(envDir, ".pixi").isDirectory()) {
 			throw new IOException("Cannot use MambaBuilder: environment already managed by Pixi at " + envDir);
@@ -82,8 +76,13 @@ public class MambaBuilder extends BaseBuilder {
 		// Is this envDir an already-existing conda directory?
 		boolean isCondaDir = new File(envDir, "conda-meta").isDirectory();
 		if (isCondaDir) {
-			// Environment already exists, just use it
+			// Environment already exists, just wrap it
 			return createEnvironment(envDir);
+		}
+
+		// Building a new environment - source file is required
+		if (source == null) {
+			throw new IllegalStateException("No source file specified for MambaBuilder");
 		}
 
 		File sourceFile = new File(source);

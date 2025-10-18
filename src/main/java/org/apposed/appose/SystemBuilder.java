@@ -45,25 +45,45 @@ import java.util.List;
 public class SystemBuilder extends BaseBuilder {
 
 	private String baseDirectory;
+	private boolean useSystemPath;
 
 	// Package-private constructor for Appose class
 	SystemBuilder() {
 		this.baseDirectory = ".";
+		this.useSystemPath = true; // Appose.system() includes system PATH
 	}
 
 	SystemBuilder(String baseDirectory) {
 		this.baseDirectory = baseDirectory;
+		this.useSystemPath = false; // Wrapping a directory does NOT include system PATH
+	}
+
+	/**
+	 * Configures whether to include the system PATH.
+	 *
+	 * @param useSystemPath true to include system PATH
+	 * @return This builder instance, for fluent-style programming.
+	 */
+	public SystemBuilder useSystemPath(boolean useSystemPath) {
+		this.useSystemPath = useSystemPath;
+		return this;
 	}
 
 	@Override
-	public Environment build(String envName) throws IOException {
-		File base = new File(baseDirectory);
+	public Environment build(File envDir) throws IOException {
+		// For SystemBuilder, we use envDir directly instead of the default location
 		// Create directory if it doesn't exist
-		if (!base.exists() && !base.mkdirs()) {
-			throw new IOException("Failed to create base directory: " + baseDirectory);
+		if (!envDir.exists() && !envDir.mkdirs()) {
+			throw new IOException("Failed to create base directory: " + envDir);
 		}
 
-		return createEnvironment(base);
+		return createEnvironment(envDir);
+	}
+
+	@Override
+	protected File determineEnvDir(String envName) {
+		// SystemBuilder uses baseDirectory instead of standard appose location
+		return new File(baseDirectory);
 	}
 
 	private Environment createEnvironment(File base) {
@@ -72,11 +92,19 @@ public class SystemBuilder extends BaseBuilder {
 		List<String> binPaths = new ArrayList<>();
 		List<String> classpath = new ArrayList<>();
 
-		// Add system PATH directories
-		String pathEnv = System.getenv("PATH");
-		if (pathEnv != null) {
-			String[] paths = pathEnv.split(File.pathSeparator);
-			binPaths.addAll(Arrays.asList(paths));
+		// Add bin directory from the environment itself
+		File binDir = new File(base, "bin");
+		if (binDir.isDirectory()) {
+			binPaths.add(binDir.getAbsolutePath());
+		}
+
+		// Optionally add system PATH directories
+		if (useSystemPath) {
+			String pathEnv = System.getenv("PATH");
+			if (pathEnv != null) {
+				String[] paths = pathEnv.split(File.pathSeparator);
+				binPaths.addAll(Arrays.asList(paths));
+			}
 		}
 
 		return new Environment() {

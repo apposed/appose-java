@@ -300,6 +300,51 @@ public class Appose {
 	// ===== DIRECT ENVIRONMENT SHORTCUTS =====
 
 	/**
+	 * Wraps an existing environment directory, automatically detecting the environment type.
+	 * This method intelligently detects whether the directory contains a pixi, mamba/conda,
+	 * or other environment and sets up the appropriate activation.
+	 *
+	 * @param envDir The directory containing the environment.
+	 * @return An Environment configured for the detected type.
+	 * @throws IOException If the directory doesn't exist or type cannot be determined.
+	 */
+	public static Environment wrap(File envDir) throws IOException {
+		if (!envDir.exists()) {
+			throw new IOException("Environment directory does not exist: " + envDir);
+		}
+
+		// Check for pixi environment
+		if (new File(envDir, ".pixi").isDirectory() || new File(envDir, "pixi.toml").isFile()) {
+			return new PixiBuilder().build(envDir);
+		}
+
+		// Check for conda/mamba environment
+		if (new File(envDir, "conda-meta").isDirectory()) {
+			// MambaBuilder will detect it's already built and just wrap it
+			return new MambaBuilder().build(envDir);
+		}
+
+		// Check for UV/venv environment
+		if (new File(envDir, "pyvenv.cfg").exists()) {
+			throw new UnsupportedOperationException("UV/venv environments not yet supported");
+		}
+
+		// Default to system builder (no special activation, just use binaries in directory)
+		return new SystemBuilder(envDir.getAbsolutePath()).build(envDir);
+	}
+
+	/**
+	 * Wraps an existing environment directory, automatically detecting the environment type.
+	 *
+	 * @param envDir The path to the directory containing the environment.
+	 * @return An Environment configured for the detected type.
+	 * @throws IOException If the directory doesn't exist or type cannot be determined.
+	 */
+	public static Environment wrap(String envDir) throws IOException {
+		return wrap(new File(envDir));
+	}
+
+	/**
 	 * Creates a system environment using the system PATH.
 	 * No packages are installed; uses whatever Python/Groovy/etc. is on the system.
 	 *

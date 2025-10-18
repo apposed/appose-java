@@ -29,6 +29,7 @@
 
 package org.apposed.appose;
 
+import java.io.File;
 import java.io.IOException;
 
 /**
@@ -73,7 +74,7 @@ public class GenericBuilder extends BaseBuilder {
 	}
 
 	@Override
-	public Environment build(String envName) throws IOException {
+	public Environment build(File envDir) throws IOException {
 		if (delegate == null) {
 			delegate = resolveDelegate();
 			// Copy subscribers from generic builder to delegate
@@ -81,7 +82,7 @@ public class GenericBuilder extends BaseBuilder {
 			delegate.outputSubscribers.addAll(this.outputSubscribers);
 			delegate.errorSubscribers.addAll(this.errorSubscribers);
 		}
-		return delegate.build(envName);
+		return delegate.build(envDir);
 	}
 
 	private BaseBuilder resolveDelegate() {
@@ -158,7 +159,7 @@ public class GenericBuilder extends BaseBuilder {
 	protected String suggestEnvName() {
 		// Delegate to the resolved builder
 		if (delegate == null) {
-			resolveDelegate();
+			delegate = resolveDelegate();
 		}
 		return delegate.suggestEnvName();
 	}

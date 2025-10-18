@@ -97,7 +97,7 @@ public abstract class BaseBuilder {
 	 * @throws IOException If something goes wrong building the environment.
 	 */
 	public Environment build() throws IOException {
-		return build(null);
+		return build((String) null);
 	}
 
 	/**
@@ -107,7 +107,19 @@ public abstract class BaseBuilder {
 	 * @return The newly constructed Appose {@link Environment}.
 	 * @throws IOException If something goes wrong building the environment.
 	 */
-	public abstract Environment build(String envName) throws IOException;
+	public Environment build(String envName) throws IOException {
+		File envDir = determineEnvDir(envName);
+		return build(envDir);
+	}
+
+	/**
+	 * Builds the environment at the specified directory.
+	 *
+	 * @param envDir The directory for the environment.
+	 * @return The newly constructed Appose {@link Environment}.
+	 * @throws IOException If something goes wrong building the environment.
+	 */
+	public abstract Environment build(File envDir) throws IOException;
 
 	/**
 	 * Determines the environment directory based on the name and builder type.

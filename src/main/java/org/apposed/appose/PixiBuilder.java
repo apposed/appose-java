@@ -102,9 +102,7 @@ public class PixiBuilder extends BaseBuilder {
 	}
 
 	@Override
-	public Environment build(String envName) throws IOException {
-		File envDir = determineEnvDir(envName);
-
+	public Environment build(File envDir) throws IOException {
 		// Check for incompatible existing environments
 		if (new File(envDir, "conda-meta").exists() && !new File(envDir, ".pixi").exists()) {
 			throw new IOException("Cannot use PixiBuilder: environment already managed by Micromamba/Conda at " + envDir);
