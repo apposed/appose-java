@@ -290,14 +290,14 @@ public class Appose {
 	// ===== GENERIC AUTO-DETECTING BUILDER =====
 
 	/**
-	 * Creates a generic builder that auto-detects the appropriate handler
+	 * Creates a builder that auto-detects the appropriate handler
 	 * based on the source file extension.
 	 *
 	 * @param source Path to environment configuration file.
-	 * @return A new GenericBuilder instance.
+	 * @return A new DynamicBuilder instance.
 	 */
-	public static GenericBuilder file(String source) {
-		return new GenericBuilder(source);
+	public static DynamicBuilder file(String source) {
+		return new DynamicBuilder(source);
 	}
 
 	// ===== DIRECT ENVIRONMENT SHORTCUTS =====

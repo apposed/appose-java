@@ -35,12 +35,12 @@ import java.io.File;
 import java.io.IOException;
 
 /**
- * Generic builder that auto-detects the appropriate specific builder
+ * Dynamic builder that auto-detects the appropriate specific builder
  * based on source file and scheme.
  *
  * @author Curtis Rueden
  */
-public class GenericBuilder extends BaseBuilder {
+public class DynamicBuilder extends BaseBuilder {
 
 	private final String source;
 	private String scheme;
@@ -48,7 +48,7 @@ public class GenericBuilder extends BaseBuilder {
 	private BaseBuilder delegate;
 
 	// Package-private constructor for Appose class
-	GenericBuilder(String source) {
+	DynamicBuilder(String source) {
 		this.source = source;
 	}
 
@@ -59,7 +59,7 @@ public class GenericBuilder extends BaseBuilder {
 	 * @param scheme The scheme (e.g., "environment.yml", "pixi.toml") or "scheme:builder"
 	 * @return This builder instance, for fluent-style programming.
 	 */
-	public GenericBuilder scheme(String scheme) {
+	public DynamicBuilder scheme(String scheme) {
 		this.scheme = scheme;
 		return this;
 	}
@@ -70,7 +70,7 @@ public class GenericBuilder extends BaseBuilder {
 	 * @param builderName The builder name (e.g., "pixi", "mamba", "uv")
 	 * @return This builder instance, for fluent-style programming.
 	 */
-	public GenericBuilder builder(String builderName) {
+	public DynamicBuilder builder(String builderName) {
 		this.builderName = builderName;
 		return this;
 	}
@@ -79,7 +79,7 @@ public class GenericBuilder extends BaseBuilder {
 	public Environment build(File envDir) throws IOException {
 		if (delegate == null) {
 			delegate = resolveDelegate();
-			// Copy subscribers from generic builder to delegate
+			// Copy subscribers from dynamic builder to delegate
 			delegate.progressSubscribers.addAll(this.progressSubscribers);
 			delegate.outputSubscribers.addAll(this.outputSubscribers);
 			delegate.errorSubscribers.addAll(this.errorSubscribers);
@@ -157,12 +157,12 @@ public class GenericBuilder extends BaseBuilder {
 
 	@Override
 	public String name() {
-		return "generic";
+		return "dynamic";
 	}
 
 	@Override
 	public boolean supports(String scheme) {
-		// GenericBuilder supports all schemes by delegating
+		// DynamicBuilder supports all schemes by delegating
 		return true;
 	}
 
