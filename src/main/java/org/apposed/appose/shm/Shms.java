@@ -33,7 +33,7 @@ import java.util.Random;
 /**
  * Utilities used in platform-specific {@code ShmBase} implementations.
  */
-class ShmUtils {
+class Shms {
 
 	/**
 	 * Constant to specify that the shared memory segment that is going to be
@@ -106,13 +106,13 @@ class ShmUtils {
 	 * @param prefix    prefix of the generated filename
 	 * @return a random filename with the given {@code prefix}.
 	 */
-	static String make_filename(int maxLength, String prefix) {
+	static String makeFilename(int maxLength, String prefix) {
 		// number of random bytes to use for name
 		final int nbytes = (maxLength - prefix.length()) / 2;
 		if (nbytes < 2) {
 			throw new IllegalArgumentException("prefix too long");
 		}
-		final String name = prefix + token_hex(nbytes);
+		final String name = prefix + tokenHex(nbytes);
 		assert name.length() <= maxLength;
 		return name;
 	}
@@ -126,7 +126,7 @@ class ShmUtils {
 		}
 	}
 
-	private static String token_hex(int nbytes) {
+	private static String tokenHex(int nbytes) {
 		final byte[] bytes = new byte[nbytes];
 		new Random().nextBytes(bytes);
 		StringBuilder sb = new StringBuilder(nbytes * 2);

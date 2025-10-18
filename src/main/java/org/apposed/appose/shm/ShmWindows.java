@@ -40,8 +40,8 @@ import org.apposed.appose.SharedMemory;
 import org.apposed.appose.ShmFactory;
 
 import static org.apposed.appose.Platforms.OperatingSystem.WINDOWS;
-import static org.apposed.appose.shm.ShmUtils.SHM_NAME_PREFIX_WIN;
-import static org.apposed.appose.shm.ShmUtils.SHM_SAFE_NAME_LENGTH;
+import static org.apposed.appose.shm.Shms.SHM_NAME_PREFIX_WIN;
+import static org.apposed.appose.shm.Shms.SHM_SAFE_NAME_LENGTH;
 
 /**
  * Windows-specific shared memory implementation.
@@ -76,18 +76,18 @@ public class ShmWindows implements ShmFactory {
 		}
 
 		private static ShmInfo<WinNT.HANDLE> prepareShm(String name, boolean create, long rsize) {
-			String shm_name;
+			String shmName;
 			long prevSize;
 			if (name == null) {
 				do {
-					shm_name = ShmUtils.make_filename(SHM_SAFE_NAME_LENGTH, SHM_NAME_PREFIX_WIN);
-					prevSize = getSHMSize(shm_name);
+					shmName = Shms.makeFilename(SHM_SAFE_NAME_LENGTH, SHM_NAME_PREFIX_WIN);
+					prevSize = getSHMSize(shmName);
 				} while (prevSize >= 0);
 			} else {
-				shm_name = name;
-				prevSize = getSHMSize(shm_name);
+				shmName = name;
+				prevSize = getSHMSize(shmName);
 			}
-			ShmUtils.checkSize(shm_name, prevSize, rsize);
+			Shms.checkSize(shmName, prevSize, rsize);
 
 			final WinNT.HANDLE hMapFile = Kernel32.INSTANCE.CreateFileMapping(
 				WinBase.INVALID_HANDLE_VALUE,
@@ -95,7 +95,7 @@ public class ShmWindows implements ShmFactory {
 				WinNT.PAGE_READWRITE,
 				(int) (rsize >>> 32),        // hi 32 bits of size
 				(int) (rsize & 0xFFFFFFFFL), // lo 32 bits of size
-				"Local\\" + shm_name
+				"Local\\" + shmName
 			);
 			if (hMapFile == null) {
 				throw new RuntimeException("Error creating shared memory: " + lastError());
@@ -129,7 +129,7 @@ public class ShmWindows implements ShmFactory {
 			}
 
 			ShmInfo<WinNT.HANDLE> info = new ShmInfo<>();
-			info.name = shm_name;
+			info.name = shmName;
 			info.rsize = rsize; // REQUESTED size
 			info.size = shm_size; // ALLOCATED size
 			info.pointer = pointer;

@@ -36,16 +36,16 @@ import org.apposed.appose.SharedMemory;
 import org.apposed.appose.ShmFactory;
 
 import static org.apposed.appose.Platforms.OperatingSystem.LINUX;
-import static org.apposed.appose.shm.ShmUtils.MAP_SHARED;
-import static org.apposed.appose.shm.ShmUtils.O_CREAT;
-import static org.apposed.appose.shm.ShmUtils.O_RDONLY;
-import static org.apposed.appose.shm.ShmUtils.O_RDWR;
-import static org.apposed.appose.shm.ShmUtils.PROT_READ;
-import static org.apposed.appose.shm.ShmUtils.PROT_WRITE;
-import static org.apposed.appose.shm.ShmUtils.SHM_NAME_PREFIX_POSIX;
-import static org.apposed.appose.shm.ShmUtils.SHM_SAFE_NAME_LENGTH;
-import static org.apposed.appose.shm.ShmUtils.withLeadingSlash;
-import static org.apposed.appose.shm.ShmUtils.withoutLeadingSlash;
+import static org.apposed.appose.shm.Shms.MAP_SHARED;
+import static org.apposed.appose.shm.Shms.O_CREAT;
+import static org.apposed.appose.shm.Shms.O_RDONLY;
+import static org.apposed.appose.shm.Shms.O_RDWR;
+import static org.apposed.appose.shm.Shms.PROT_READ;
+import static org.apposed.appose.shm.Shms.PROT_WRITE;
+import static org.apposed.appose.shm.Shms.SHM_NAME_PREFIX_POSIX;
+import static org.apposed.appose.shm.Shms.SHM_SAFE_NAME_LENGTH;
+import static org.apposed.appose.shm.Shms.withLeadingSlash;
+import static org.apposed.appose.shm.Shms.withoutLeadingSlash;
 
 /**
  * Linux-specific shared memory implementation.
@@ -88,20 +88,20 @@ public class ShmLinux implements ShmFactory {
 		}
 
 		private static ShmInfo<Integer> prepareShm(String name, boolean create, long rsize) {
-			String shm_name;
+			String shmName;
 			long prevSize;
 			if (name == null) {
 				do {
-					shm_name = ShmUtils.make_filename(SHM_SAFE_NAME_LENGTH, SHM_NAME_PREFIX_POSIX);
-					prevSize = getSHMSize(shm_name);
+					shmName = Shms.makeFilename(SHM_SAFE_NAME_LENGTH, SHM_NAME_PREFIX_POSIX);
+					prevSize = getSHMSize(shmName);
 				} while (prevSize >= 0);
 			} else {
-				shm_name = withLeadingSlash(name);
-				prevSize = getSHMSize(shm_name);
+				shmName = withLeadingSlash(name);
+				prevSize = getSHMSize(shmName);
 			}
-			ShmUtils.checkSize(shm_name, prevSize, rsize);
+			Shms.checkSize(shmName, prevSize, rsize);
 
-			final int shmFd = LibRtOrC.shm_open(shm_name, O_CREAT | O_RDWR, 0666);
+			final int shmFd = LibRtOrC.shm_open(shmName, O_CREAT | O_RDWR, 0666);
 			if (shmFd < 0) {
 				throw new RuntimeException("shm_open failed, errno: " + Native.getLastError());
 			}
@@ -111,19 +111,19 @@ public class ShmLinux implements ShmFactory {
 					throw new RuntimeException("ftruncate failed, errno: " + Native.getLastError());
 				}
 			}
-			final long shm_size = getSHMSize(shmFd);
+			final long shmSize = getSHMSize(shmFd);
 
-			Pointer pointer = LibRtOrC.mmap(Pointer.NULL, shm_size, PROT_READ | PROT_WRITE, MAP_SHARED, shmFd, 0);
+			Pointer pointer = LibRtOrC.mmap(Pointer.NULL, shmSize, PROT_READ | PROT_WRITE, MAP_SHARED, shmFd, 0);
 			if (pointer == Pointer.NULL) {
 				LibRtOrC.close(shmFd);
-				LibRtOrC.shm_unlink(shm_name);
+				LibRtOrC.shm_unlink(shmName);
 				throw new RuntimeException("mmap failed, errno: " + Native.getLastError());
 			}
 
 			ShmInfo<Integer> info = new ShmInfo<>();
-			info.name = withoutLeadingSlash(shm_name);
+			info.name = withoutLeadingSlash(shmName);
 			info.rsize = rsize; // REQUESTED size
-			info.size = shm_size; // ALLOCATED size
+			info.size = shmSize; // ALLOCATED size
 			info.pointer = pointer;
 			info.handle = shmFd;
 			info.unlinkOnClose = create;
@@ -167,7 +167,7 @@ public class ShmLinux implements ShmFactory {
 
 			/**
 			 * Depending on the computer, some might work with LibRT or LibC to create SHM segments.
-			 * Thus if true use librt if false, use libc instance
+			 * Thus: if true use librt, if false use libc instance.
 			 */
 			private static boolean useLibRT = true;
 

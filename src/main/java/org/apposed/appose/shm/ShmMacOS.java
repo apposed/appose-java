@@ -36,14 +36,14 @@ import org.apposed.appose.SharedMemory;
 import org.apposed.appose.ShmFactory;
 
 import static org.apposed.appose.Platforms.OperatingSystem.MACOS;
-import static org.apposed.appose.shm.ShmUtils.MAP_SHARED;
-import static org.apposed.appose.shm.ShmUtils.O_RDONLY;
-import static org.apposed.appose.shm.ShmUtils.PROT_READ;
-import static org.apposed.appose.shm.ShmUtils.PROT_WRITE;
-import static org.apposed.appose.shm.ShmUtils.SHM_NAME_PREFIX_POSIX;
-import static org.apposed.appose.shm.ShmUtils.SHM_SAFE_NAME_LENGTH;
-import static org.apposed.appose.shm.ShmUtils.withLeadingSlash;
-import static org.apposed.appose.shm.ShmUtils.withoutLeadingSlash;
+import static org.apposed.appose.shm.Shms.MAP_SHARED;
+import static org.apposed.appose.shm.Shms.O_RDONLY;
+import static org.apposed.appose.shm.Shms.PROT_READ;
+import static org.apposed.appose.shm.Shms.PROT_WRITE;
+import static org.apposed.appose.shm.Shms.SHM_NAME_PREFIX_POSIX;
+import static org.apposed.appose.shm.Shms.SHM_SAFE_NAME_LENGTH;
+import static org.apposed.appose.shm.Shms.withLeadingSlash;
+import static org.apposed.appose.shm.Shms.withoutLeadingSlash;
 
 /**
  * MacOS-specific shared memory implementation.
@@ -84,21 +84,21 @@ public class ShmMacOS implements ShmFactory {
 		}
 
 		private static ShmInfo<Integer> prepareShm(String name, boolean create, long rsize) {
-			String shm_name;
+			String shmName;
 			long prevSize;
 			if (name == null) {
 				do {
-					shm_name = ShmUtils.make_filename(SHM_SAFE_NAME_LENGTH, SHM_NAME_PREFIX_POSIX);
-					prevSize = getSHMSize(shm_name);
+					shmName = Shms.makeFilename(SHM_SAFE_NAME_LENGTH, SHM_NAME_PREFIX_POSIX);
+					prevSize = getSHMSize(shmName);
 				} while (prevSize >= 0);
 			} else {
-				shm_name = withLeadingSlash(name);
-				prevSize = getSHMSize(shm_name);
+				shmName = withLeadingSlash(name);
+				prevSize = getSHMSize(shmName);
 			}
-			ShmUtils.checkSize(shm_name, prevSize, rsize);
+			Shms.checkSize(shmName, prevSize, rsize);
 
 			// shmFd = INSTANCE.shm_open(this.memoryName, O_RDWR, 0666);
-			final int shmFd = MacosHelpers.INSTANCE.create_shared_memory(shm_name, rsize);
+			final int shmFd = MacosHelpers.INSTANCE.create_shared_memory(shmName, rsize);
 			if (shmFd < 0) {
 				throw new RuntimeException("shm_open failed, errno: " + Native.getLastError());
 			}
@@ -107,12 +107,12 @@ public class ShmMacOS implements ShmFactory {
 			Pointer pointer = CLibrary.INSTANCE.mmap(Pointer.NULL, shm_size, PROT_READ | PROT_WRITE, MAP_SHARED, shmFd, 0);
 			if (pointer == Pointer.NULL) {
 				CLibrary.INSTANCE.close(shmFd);
-				CLibrary.INSTANCE.shm_unlink(shm_name);
+				CLibrary.INSTANCE.shm_unlink(shmName);
 				throw new RuntimeException("mmap failed, errno: " + Native.getLastError());
 			}
 
 			ShmInfo<Integer> info = new ShmInfo<>();
-			info.name = withoutLeadingSlash(shm_name);
+			info.name = withoutLeadingSlash(shmName);
 			info.rsize = rsize; // REQUESTED size
 			info.size = shm_size; // ALLOCATED size
 			info.pointer = pointer;
