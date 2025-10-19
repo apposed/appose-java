@@ -39,7 +39,6 @@ import java.io.FileReader;
 import java.io.IOException;
 import java.net.URISyntaxException;
 import java.nio.file.Files;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
@@ -136,12 +135,10 @@ public class MambaBuilder extends BaseBuilder {
 		String base = envDir.getAbsolutePath();
 		List<String> launchArgs = Arrays.asList(mamba.mambaCommand, "run", "-p", base);
 		List<String> binPaths = Arrays.asList(envDir.toPath().resolve("bin").toString());
-		List<String> classpath = new ArrayList<>();
 
 		return new Environment() {
 			@Override public String base() { return base; }
 			@Override public List<String> binPaths() { return binPaths; }
-			@Override public List<String> classpath() { return classpath; }
 			@Override public List<String> launchArgs() { return launchArgs; }
 		};
 	}

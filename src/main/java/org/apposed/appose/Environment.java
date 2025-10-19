@@ -44,7 +44,6 @@ public interface Environment {
 
 	String base();
 	List<String> binPaths();
-	List<String> classpath();
 	List<String> launchArgs();
 
 	/**

@@ -228,12 +228,10 @@ public class PixiBuilder extends BaseBuilder {
 		List<String> binPaths = Arrays.asList(
 			envDir.toPath().resolve(".pixi").resolve("envs").resolve("default").resolve("bin").toString()
 		);
-		List<String> classpath = new ArrayList<>();
 
 		return new Environment() {
 			@Override public String base() { return base; }
 			@Override public List<String> binPaths() { return binPaths; }
-			@Override public List<String> classpath() { return classpath; }
 			@Override public List<String> launchArgs() { return launchArgs; }
 		};
 	}

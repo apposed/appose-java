@@ -89,7 +89,6 @@ public class SystemBuilder extends BaseBuilder {
 		String basePath = base.getAbsolutePath();
 		List<String> launchArgs = new ArrayList<>();
 		List<String> binPaths = new ArrayList<>();
-		List<String> classpath = new ArrayList<>();
 
 		// Add bin directory from the environment itself
 		File binDir = new File(base, "bin");
@@ -109,7 +108,6 @@ public class SystemBuilder extends BaseBuilder {
 		return new Environment() {
 			@Override public String base() { return basePath; }
 			@Override public List<String> binPaths() { return binPaths; }
-			@Override public List<String> classpath() { return classpath; }
 			@Override public List<String> launchArgs() { return launchArgs; }
 		};
 	}

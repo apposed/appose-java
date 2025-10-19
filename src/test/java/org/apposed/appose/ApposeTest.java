@@ -192,7 +192,6 @@ public class ApposeTest {
 		Environment env = new Environment() {
 			@Override public String base() { return tempDir.getAbsolutePath(); }
 			@Override public List<String> binPaths() { return new ArrayList<>(); }
-			@Override public List<String> classpath() { return new ArrayList<>(); }
 			@Override public List<String> launchArgs() { return new ArrayList<>(); }
 		};
 		try (Service service = env.python()) {
