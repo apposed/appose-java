@@ -30,7 +30,6 @@
 package org.apposed.appose.pixi;
 
 import org.apposed.appose.BaseBuilder;
-import org.apposed.appose.Builder;
 import org.apposed.appose.Environment;
 
 import java.io.BufferedReader;
@@ -43,7 +42,6 @@ import java.nio.file.Files;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
-import java.util.Optional;
 
 /**
  * Type-safe builder for Pixi-based environments.

@@ -30,7 +30,6 @@
 package org.apposed.appose.mamba;
 
 import org.apposed.appose.BaseBuilder;
-import org.apposed.appose.Builder;
 import org.apposed.appose.Environment;
 
 import java.io.BufferedReader;
