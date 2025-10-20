@@ -345,8 +345,8 @@ public class Appose {
 			return factory.createBuilder().build(envDir);
 		}
 
-		// Default to system builder (no special activation, just use binaries in directory)
-		return new SystemBuilder(envDir.getAbsolutePath()).build(envDir);
+		// Default to simple builder (no special activation, just use binaries in directory)
+		return new SimpleBuilder().build(envDir);
 	}
 
 	/**
@@ -361,32 +361,38 @@ public class Appose {
 	}
 
 	/**
-	 * Creates a system environment builder using the system PATH.
-	 * No packages are installed; uses whatever Python/Groovy/etc. is on the system.
+	 * Creates a system environment with sensible defaults.
+	 * <p>
+	 * This is a convenience method equivalent to:
+	 * <pre>
+	 * Appose.custom().inheritRunningJava().appendSystemPath().build()
+	 * </pre>
+	 * The resulting environment:
+	 * <ul>
+	 * <li>Uses the parent process's Java installation</li>
+	 * <li>Includes the system PATH for finding executables</li>
+	 * <li>Uses the current directory as the working directory</li>
+	 * </ul>
 	 *
-	 * @return A new SystemBuilder instance.
+	 * @return A system environment ready to use.
+	 * @throws IOException If the environment cannot be created.
 	 */
-	public static SystemBuilder system() {
-		return new SystemBuilder();
+	public static Environment system() throws IOException {
+		return new SimpleBuilder()
+			.inheritRunningJava()
+			.appendSystemPath()
+			.build();
 	}
 
 	/**
-	 * Creates a system environment builder with a specific base directory.
+	 * Creates a custom simple environment builder with no defaults.
+	 * Use this when you need explicit control over binary paths and configuration.
 	 *
-	 * @param directory Base directory for the environment.
-	 * @return A new SystemBuilder instance.
+	 * @return A new SimpleBuilder instance.
+	 * @see #wrap(File)
+	 * @see #wrap(String)
 	 */
-	public static SystemBuilder system(String directory) {
-		return new SystemBuilder(directory);
-	}
-
-	/**
-	 * Creates a system environment builder with a specific base directory.
-	 *
-	 * @param directory Base directory for the environment.
-	 * @return A new SystemBuilder instance.
-	 */
-	public static SystemBuilder system(File directory) {
-		return new SystemBuilder(directory.getAbsolutePath());
+	public static SimpleBuilder custom() {
+		return new SimpleBuilder();
 	}
 }

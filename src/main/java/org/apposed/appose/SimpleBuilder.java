@@ -40,26 +40,18 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * Builder for system environments that use the system PATH.
- * System environments don't install packages; they use whatever
- * Python/Groovy/etc. is available on the system.
+ * Builder for simple environments without package management.
+ * Simple environments don't install packages; they use whatever executables
+ * are found via configured binary paths.
  *
  * @author Curtis Rueden
  */
-public class SystemBuilder extends BaseBuilder {
+public class SimpleBuilder extends BaseBuilder {
 
-	private final String baseDirectory;
 	private final List<String> customBinPaths = new ArrayList<>();
 
-	public SystemBuilder() {
-		this.baseDirectory = ".";
-		// Appose.system() includes system PATH by default
-		customBinPaths.addAll(Environments.systemPath());
-	}
-
-	public SystemBuilder(String baseDirectory) {
-		this.baseDirectory = baseDirectory;
-		// Wrapping a directory does NOT include system PATH by default
+	public SimpleBuilder() {
+		// No default binPaths - user must configure explicitly
 	}
 
 	/**
@@ -69,7 +61,7 @@ public class SystemBuilder extends BaseBuilder {
 	 * @param paths Additional binary paths to search
 	 * @return This builder instance, for fluent-style programming.
 	 */
-	public SystemBuilder binPaths(String... paths) {
+	public SimpleBuilder binPaths(String... paths) {
 		customBinPaths.addAll(Arrays.asList(paths));
 		return this;
 	}
@@ -81,7 +73,7 @@ public class SystemBuilder extends BaseBuilder {
 	 * @param paths Additional binary paths to search
 	 * @return This builder instance, for fluent-style programming.
 	 */
-	public SystemBuilder binPaths(List<String> paths) {
+	public SimpleBuilder binPaths(List<String> paths) {
 		customBinPaths.addAll(paths);
 		return this;
 	}
@@ -92,7 +84,7 @@ public class SystemBuilder extends BaseBuilder {
 	 *
 	 * @return This builder instance, for fluent-style programming.
 	 */
-	public SystemBuilder appendSystemPath() {
+	public SimpleBuilder appendSystemPath() {
 		customBinPaths.addAll(Environments.systemPath());
 		return this;
 	}
@@ -111,7 +103,7 @@ public class SystemBuilder extends BaseBuilder {
 	 *
 	 * @return This builder instance, for fluent-style programming.
 	 */
-	public SystemBuilder inheritRunningJava() {
+	public SimpleBuilder inheritRunningJava() {
 		String javaHome = System.getProperty("java.home");
 		if (javaHome != null) {
 			File javaHomeBin = new File(javaHome, "bin");
@@ -126,8 +118,14 @@ public class SystemBuilder extends BaseBuilder {
 
 	@Override
 	public Environment build(String envName) throws IOException {
-		// SystemBuilder uses baseDirectory instead of default appose location
-		return build(new File(baseDirectory));
+		throw new UnsupportedOperationException(
+			"SimpleBuilder does not support named environments. " +
+			"Use build() or build(File) to specify the working directory.");
+	}
+
+	@Override
+	public Environment build() throws IOException {
+		return build(new File("."));
 	}
 
 	@Override
@@ -166,7 +164,8 @@ public class SystemBuilder extends BaseBuilder {
 
 	@Override
 	public String suggestEnvName() {
-		return "system";
+		throw new UnsupportedOperationException(
+			"SimpleBuilder does not use named environments.");
 	}
 }
 

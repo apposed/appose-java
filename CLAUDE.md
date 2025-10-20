@@ -106,7 +106,7 @@ The `Appose` class provides static factory methods for creating environments:
 - `Appose.file(source)` - Creates a DynamicBuilder that auto-detects builder based on file extension
 
 **Direct environment creation:**
-- `Appose.system()` / `Appose.system(directory)` - Creates a SystemBuilder for system PATH
+- `Appose.system()` - Creates a SimpleBuilder with system PATH and inherited Java
 - `Appose.wrap(directory)` - Wraps an existing environment directory, auto-detecting its type
 
 ## Important Notes

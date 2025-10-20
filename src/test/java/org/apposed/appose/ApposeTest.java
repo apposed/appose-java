@@ -96,7 +96,7 @@ public class ApposeTest {
 
 	@Test
 	public void testGroovy() throws IOException, InterruptedException {
-		Environment env = Appose.system().inheritRunningJava().build();
+		Environment env = Appose.system();
 		try (Service service = env.groovy()) {
 			maybeDebug(service);
 			executeAndAssert(service, COLLATZ_GROOVY);
@@ -105,7 +105,7 @@ public class ApposeTest {
 
 	@Test
 	public void testPython() throws IOException, InterruptedException {
-		Environment env = Appose.system().build();
+		Environment env = Appose.system();
 		try (Service service = env.python()) {
 			maybeDebug(service);
 			executeAndAssert(service, COLLATZ_PYTHON);
@@ -114,7 +114,7 @@ public class ApposeTest {
 
 	@Test
 	public void testScopeGroovy() throws IOException, InterruptedException {
-		Environment env = Appose.system().inheritRunningJava().build();
+		Environment env = Appose.system();
 		try (Service service = env.groovy()) {
 			maybeDebug(service);
 
@@ -323,7 +323,7 @@ public class ApposeTest {
 
 	@Test
 	public void testTaskFailurePython() throws InterruptedException, IOException {
-		Environment env = Appose.system().build();
+		Environment env = Appose.system();
 		try (Service service = env.python()) {
 			maybeDebug(service);
 			String script = "whee\n";
@@ -337,7 +337,7 @@ public class ApposeTest {
 
 	@Test
 	public void testStartupCrash() throws InterruptedException, IOException {
-		Environment env = Appose.system().build();
+		Environment env = Appose.system();
 		List<String> pythonExes = Arrays.asList("python", "python3", "python.exe");
 		@SuppressWarnings("resource")
 		Service service = env.service(pythonExes, "-c", "import nonexistentpackage").start();
@@ -357,7 +357,7 @@ public class ApposeTest {
 
 	@Test
 	public void testPythonSysExit() throws InterruptedException, IOException {
-		Environment env = Appose.system().build();
+		Environment env = Appose.system();
 		try (Service service = env.python()) {
 			maybeDebug(service);
 
@@ -379,7 +379,7 @@ public class ApposeTest {
 
 	@Test
 	public void testCrashWithActiveTask() throws InterruptedException, IOException {
-		Environment env = Appose.system().build();
+		Environment env = Appose.system();
 		try (Service service = env.python()) {
 			maybeDebug(service);
 			// Create a "long-running" task.
@@ -447,7 +447,7 @@ public class ApposeTest {
 
 	@Test
 	public void testMainThreadQueueGroovy() throws IOException, InterruptedException {
-		Environment env = Appose.system().inheritRunningJava().build();
+		Environment env = Appose.system();
 		try (Service service = env.groovy()) {
 			Task task = service.task(MAIN_THREAD_CHECK_GROOVY, "main");
 			task.waitFor();
@@ -463,7 +463,7 @@ public class ApposeTest {
 
 	@Test
 	public void testMainThreadQueuePython() throws IOException, InterruptedException {
-		Environment env = Appose.system().build();
+		Environment env = Appose.system();
 		try (Service service = env.python()) {
 			Task task = service.task(MAIN_THREAD_CHECK_PYTHON, "main");
 			task.waitFor();

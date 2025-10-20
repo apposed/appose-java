@@ -57,7 +57,7 @@ public class NDArrayExampleGroovy {
 		System.out.println("v = " + v);
 
 		// pass to groovy
-		Environment env = Appose.system().inheritRunningJava().build();
+		Environment env = Appose.system();
 		try (Service service = env.groovy()) {
 			final Map< String, Object > inputs = new HashMap<>();
 			inputs.put( "img", ndArray);
