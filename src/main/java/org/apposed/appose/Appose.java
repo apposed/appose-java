@@ -31,8 +31,9 @@ package org.apposed.appose;
 
 import org.apposed.appose.mamba.MambaBuilder;
 import org.apposed.appose.pixi.PixiBuilder;
-import org.apposed.appose.uv.UvBuilder;
 import org.apposed.appose.util.Builders;
+import org.apposed.appose.util.Versions;
+import org.apposed.appose.uv.UvBuilder;
 
 import java.io.File;
 import java.io.IOException;
@@ -394,5 +395,17 @@ public class Appose {
 	 */
 	public static SimpleBuilder custom() {
 		return new SimpleBuilder();
+	}
+
+	/**
+	 * Gets the version of Appose in use.
+	 *
+	 * @return The version string extracted from the JAR manifest,
+	 *   or {@code "<dev>"} if there is no enclosing JAR with
+	 *   appropriate manifest entries.
+	 */
+	public static String getVersion() {
+		String v = Versions.getVersion(Appose.class);
+		return v == null ? "<dev>" : v;
 	}
 }
