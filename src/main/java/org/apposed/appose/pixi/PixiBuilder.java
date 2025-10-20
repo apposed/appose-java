@@ -106,10 +106,10 @@ public class PixiBuilder extends BaseBuilder {
 	public Environment build(File envDir) throws IOException {
 		// Check for incompatible existing environments
 		if (new File(envDir, "conda-meta").exists() && !new File(envDir, ".pixi").exists()) {
-			throw new IOException("Cannot use PixiBuilder: environment already managed by Micromamba/Conda at " + envDir);
+			throw new IOException("Cannot use PixiBuilder: environment already managed by Mamba/Conda at " + envDir);
 		}
 		if (new File(envDir, "pyvenv.cfg").exists()) {
-			throw new IOException("Cannot use PixiBuilder: environment already managed by UV/venv at " + envDir);
+			throw new IOException("Cannot use PixiBuilder: environment already managed by uv/venv at " + envDir);
 		}
 
 		Pixi pixi = new Pixi(Pixi.BASE_PATH);

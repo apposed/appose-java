@@ -36,8 +36,10 @@ import java.io.IOException;
 import java.util.function.Consumer;
 
 /**
- * Interface for environment builders that can be discovered via ServiceLoader.
+ * Interface for environment builders.
+ * <p>
  * Builders are responsible for creating and configuring Appose environments.
+ * </p>
  *
  * @author Curtis Rueden
  */

@@ -58,7 +58,7 @@ import java.io.IOException;
  * </p>
  * 
  * <pre>{@code
- * Environment env = Appose.conda("/path/to/environment.yml").build();
+ * Environment env = Appose.mamba("/path/to/environment.yml").build();
  * Service python = env.python();
  * Task task = python.task("""
  *     5 + 6
@@ -72,7 +72,7 @@ import java.io.IOException;
  * </p>
  * 
  * <pre>{@code
- * Environment env = Appose.conda("/path/to/environment.yml").build();
+ * Environment env = Appose.mamba("/path/to/environment.yml").build();
  * Service python = env.python();
  * Task golden_ratio = python.task("""
  *     # Approximate the golden ratio using the Fibonacci sequence.
