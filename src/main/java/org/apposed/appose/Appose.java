@@ -31,6 +31,7 @@ package org.apposed.appose;
 
 import org.apposed.appose.mamba.MambaBuilder;
 import org.apposed.appose.pixi.PixiBuilder;
+import org.apposed.appose.uv.UvBuilder;
 import org.apposed.appose.util.Builders;
 
 import java.io.File;
@@ -286,6 +287,26 @@ public class Appose {
 	 */
 	public static MambaBuilder mamba(String source) {
 		return new MambaBuilder(source);
+	}
+
+	/**
+	 * Creates a UV-based virtual environment builder.
+	 * UV is a fast Python package installer and resolver.
+	 *
+	 * @return A new UvBuilder instance.
+	 */
+	public static UvBuilder uv() {
+		return new UvBuilder();
+	}
+
+	/**
+	 * Creates a UV-based virtual environment builder from a requirements.txt file.
+	 *
+	 * @param source Path to requirements.txt file.
+	 * @return A new UvBuilder instance.
+	 */
+	public static UvBuilder uv(String source) {
+		return new UvBuilder(source);
 	}
 
 	// ===== GENERIC AUTO-DETECTING BUILDER =====

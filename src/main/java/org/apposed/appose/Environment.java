@@ -198,7 +198,12 @@ public interface Environment {
 			// becomes available on the system path while the environment is activated.
 			exe = exes.get(0);
 		}
-		else exe = exeFile.getCanonicalPath();
+		else {
+			// Use getAbsolutePath() instead of getCanonicalPath() to preserve symlinks.
+			// This is important for Python virtual environments where the python symlink
+			// needs to be used directly (not the resolved target) for proper site-packages access.
+			exe = exeFile.getAbsolutePath();
+		}
 
 		// Construct final args list: launchArgs + exe + args
 		List<String> allArgs = new ArrayList<>(launchArgs);

@@ -100,6 +100,7 @@ The `Appose` class provides static factory methods for creating environments:
 **Type-safe builders:**
 - `Appose.pixi()` / `Appose.pixi(source)` - Creates a PixiBuilder
 - `Appose.mamba()` / `Appose.mamba(source)` - Creates a MambaBuilder
+- `Appose.uv()` / `Appose.uv(source)` - Creates a UvBuilder
 
 **Dynamic builder:**
 - `Appose.file(source)` - Creates a DynamicBuilder that auto-detects builder based on file extension
@@ -138,6 +139,14 @@ The project provides type-safe builder classes for different environment types:
 - Uses `mamba run -p <envDir>` for activation
 - Location: `org.apposed.appose.mamba.MambaBuilder`
 
+**UvBuilder** - Fast Python virtual environments via UV
+- Created via `Appose.uv()` or `Appose.uv(source)`
+- Type-safe methods: `include(packages...)`, `python(version)`
+- Supports `requirements.txt` files
+- Standard Python venv structure (no special activation needed)
+- Environment structure: `<envDir>/bin` (or `Scripts` on Windows)
+- Location: `org.apposed.appose.uv.UvBuilder`
+
 **DynamicBuilder** - Auto-detects appropriate builder based on source file
 - Created via `Appose.file(source)`
 - Methods: `scheme(scheme)`, `builder(builderName)`
@@ -169,6 +178,16 @@ Environment env = Appose.pixi()
 // Mamba builder
 Environment env = Appose.mamba("path/to/environment.yml")
     .build();
+
+// UV builder with requirements.txt
+Environment env = Appose.uv("path/to/requirements.txt")
+    .build();
+
+// UV builder with programmatic packages
+Environment env = Appose.uv()
+    .python("3.11")
+    .include("numpy", "pandas", "matplotlib")
+    .build("my-env");
 
 // Dynamic builder (auto-detects)
 Environment env = Appose.file("path/to/environment.yml")
