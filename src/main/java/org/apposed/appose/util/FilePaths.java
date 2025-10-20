@@ -96,9 +96,9 @@ public final class FilePaths {
 	 *   <li>etc.</li>
 	 * </ul>
 	 *
-	 * @param srcDir TODO
-	 * @param destDir TODO
-	 * @param overwrite TODO
+	 * @param srcDir Source directory whose contents will be moved.
+	 * @param destDir Destination directory into which the source directory's contents will be merged.
+	 * @param overwrite If true, overwrite existing destination files; if false, back up source files instead.
 	 */
 	public static void moveDirectory(File srcDir, File destDir, boolean overwrite) throws IOException {
 		if (!srcDir.isDirectory()) throw new IllegalArgumentException("Not a directory: " + srcDir);
@@ -156,9 +156,13 @@ public final class FilePaths {
 	}
 
 	/**
-	 * TODO
+	 * Renames the given file to a backup filename in its parent directory.
+	 * <p>
+	 *   The file will be renamed to {@code filename.ext.old}, or {@code filename.ext.0.old},
+	 *   {@code filename.ext.1.old}, etc., if {@code filename.ext.old} already exists.
+	 * </p>
 	 *
-	 * @param srcFile TODO
+	 * @param srcFile Source file to rename to a backup.
 	 * @throws IOException If something goes wrong with the needed I/O operations.
 	 */
 	public static void renameToBackup(File srcFile) throws IOException {
@@ -166,10 +170,14 @@ public final class FilePaths {
 	}
 
 	/**
-	 * TODO
+	 * Renames the given file to a backup filename in the specified destination directory.
+	 * <p>
+	 *   The file will be renamed to {@code destDir/filename.ext.old}, or {@code destDir/filename.ext.0.old},
+	 *   {@code destDir/filename.ext.1.old}, etc., if {@code destDir/filename.ext.old} already exists.
+	 * </p>
 	 *
-	 * @param srcFile TODO
-	 * @param destDir TODO
+	 * @param srcFile Source file to rename to a backup.
+	 * @param destDir Destination directory where the backup file will be created.
 	 * @throws IOException If something goes wrong with the needed I/O operations.
 	 */
 	public static void renameToBackup(File srcFile, File destDir) throws IOException {
