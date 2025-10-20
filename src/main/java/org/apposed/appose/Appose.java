@@ -361,32 +361,32 @@ public class Appose {
 	}
 
 	/**
-	 * Creates a system environment using the system PATH.
+	 * Creates a system environment builder using the system PATH.
 	 * No packages are installed; uses whatever Python/Groovy/etc. is on the system.
 	 *
-	 * @return A system environment.
+	 * @return A new SystemBuilder instance.
 	 */
-	public static Environment system() throws IOException {
-		return new SystemBuilder().build();
+	public static SystemBuilder system() {
+		return new SystemBuilder();
 	}
 
 	/**
-	 * Creates a system environment with a specific base directory.
+	 * Creates a system environment builder with a specific base directory.
 	 *
 	 * @param directory Base directory for the environment.
-	 * @return A system environment.
+	 * @return A new SystemBuilder instance.
 	 */
-	public static Environment system(String directory) throws IOException {
-		return new SystemBuilder(directory).build();
+	public static SystemBuilder system(String directory) {
+		return new SystemBuilder(directory);
 	}
 
 	/**
-	 * Creates a system environment with a specific base directory.
+	 * Creates a system environment builder with a specific base directory.
 	 *
 	 * @param directory Base directory for the environment.
-	 * @return A system environment.
+	 * @return A new SystemBuilder instance.
 	 */
-	public static Environment system(File directory) throws IOException {
-		return new SystemBuilder(directory.getAbsolutePath()).build();
+	public static SystemBuilder system(File directory) {
+		return new SystemBuilder(directory.getAbsolutePath());
 	}
 }

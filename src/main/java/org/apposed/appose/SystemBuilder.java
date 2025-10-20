@@ -29,11 +29,15 @@
 
 package org.apposed.appose;
 
+import org.apposed.appose.util.Environments;
+
 import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 /**
  * Builder for system environments that use the system PATH.
@@ -45,26 +49,78 @@ import java.util.List;
 public class SystemBuilder extends BaseBuilder {
 
 	private final String baseDirectory;
-	private boolean useSystemPath;
+	private final List<String> customBinPaths = new ArrayList<>();
 
 	public SystemBuilder() {
 		this.baseDirectory = ".";
-		this.useSystemPath = true; // Appose.system() includes system PATH
+		// Appose.system() includes system PATH by default
+		customBinPaths.addAll(Environments.systemPath());
 	}
 
 	public SystemBuilder(String baseDirectory) {
 		this.baseDirectory = baseDirectory;
-		this.useSystemPath = false; // Wrapping a directory does NOT include system PATH
+		// Wrapping a directory does NOT include system PATH by default
 	}
 
 	/**
-	 * Configures whether to include the system PATH.
+	 * Appends additional binary paths to search for executables.
+	 * Paths are searched in the order they are added.
 	 *
-	 * @param useSystemPath true to include system PATH
+	 * @param paths Additional binary paths to search
 	 * @return This builder instance, for fluent-style programming.
 	 */
-	public SystemBuilder useSystemPath(boolean useSystemPath) {
-		this.useSystemPath = useSystemPath;
+	public SystemBuilder binPaths(String... paths) {
+		customBinPaths.addAll(Arrays.asList(paths));
+		return this;
+	}
+
+	/**
+	 * Appends additional binary paths to search for executables.
+	 * Paths are searched in the order they are added.
+	 *
+	 * @param paths Additional binary paths to search
+	 * @return This builder instance, for fluent-style programming.
+	 */
+	public SystemBuilder binPaths(List<String> paths) {
+		customBinPaths.addAll(paths);
+		return this;
+	}
+
+	/**
+	 * Appends the current process's system PATH directories to the environment's binary paths.
+	 * This is a convenience method equivalent to {@code binPaths(Environments.systemPath())}.
+	 *
+	 * @return This builder instance, for fluent-style programming.
+	 */
+	public SystemBuilder appendSystemPath() {
+		customBinPaths.addAll(Environments.systemPath());
+		return this;
+	}
+
+	/**
+	 * Configures the environment to use the same Java installation as the parent process.
+	 * This prepends {@code ${java.home}/bin} to the binary paths and sets the JAVA_HOME
+	 * environment variable, ensuring worker processes use the same JVM version.
+	 * <p>
+	 * This is a convenience method equivalent to:
+	 * <pre>
+	 * binPaths(new File(System.getProperty("java.home"), "bin").getPath())
+	 *     .env("JAVA_HOME", System.getProperty("java.home"))
+	 * </pre>
+	 * </p>
+	 *
+	 * @return This builder instance, for fluent-style programming.
+	 */
+	public SystemBuilder inheritRunningJava() {
+		String javaHome = System.getProperty("java.home");
+		if (javaHome != null) {
+			File javaHomeBin = new File(javaHome, "bin");
+			if (javaHomeBin.isDirectory()) {
+				// Prepend to beginning of list for highest priority
+				customBinPaths.add(0, javaHomeBin.getAbsolutePath());
+			}
+			envVars.put("JAVA_HOME", javaHome);
+		}
 		return this;
 	}
 
@@ -89,35 +145,22 @@ public class SystemBuilder extends BaseBuilder {
 		List<String> launchArgs = new ArrayList<>();
 		List<String> binPaths = new ArrayList<>();
 
-		// Note: Prepend ${java.home}/bin to binPaths to ensure we find the
-		// correct Java executable: the same one the parent process is using.
-		String javaHome = System.getProperty("java.home");
-		if (javaHome != null) {
-			File javaHomeBin = new File(javaHome, "bin");
-			if (javaHomeBin.isDirectory()) {
-				binPaths.add(javaHomeBin.getAbsolutePath());
-			}
-		}
-
-		// Add bin directory from the environment itself
+		// Add bin directory from the environment itself (highest priority)
 		File binDir = new File(base, "bin");
 		if (binDir.isDirectory()) {
 			binPaths.add(binDir.getAbsolutePath());
 		}
 
-		// Optionally add system PATH directories
-		if (useSystemPath) {
-			String pathEnv = System.getenv("PATH");
-			if (pathEnv != null) {
-				String[] paths = pathEnv.split(File.pathSeparator);
-				binPaths.addAll(Arrays.asList(paths));
-			}
-		}
+		// Add custom binary paths configured via builder methods
+		binPaths.addAll(customBinPaths);
+
+		Map<String, String> environmentVars = new HashMap<>(envVars);
 
 		return new Environment() {
 			@Override public String base() { return basePath; }
 			@Override public List<String> binPaths() { return binPaths; }
 			@Override public List<String> launchArgs() { return launchArgs; }
+			@Override public Map<String, String> envVars() { return environmentVars; }
 		};
 	}
 

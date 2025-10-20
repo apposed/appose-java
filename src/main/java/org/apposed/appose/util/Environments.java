@@ -29,7 +29,11 @@
 
 package org.apposed.appose.util;
 
+import java.io.File;
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -58,5 +62,23 @@ public final class Environments {
 			if (value != null) envVars.put(key, value);
 		}
 		return envVars;
+	}
+
+	/**
+	 * Returns the current process's system PATH as a list of directory paths.
+	 * <p>
+	 * This splits the PATH environment variable on the platform-specific separator
+	 * (colon on Unix-like systems, semicolon on Windows).
+	 * </p>
+	 *
+	 * @return List of directory paths from the system PATH, or empty list if PATH is not set
+	 */
+	public static List<String> systemPath() {
+		String pathEnv = System.getenv("PATH");
+		if (pathEnv == null || pathEnv.isEmpty()) {
+			return new ArrayList<>();
+		}
+		String separator = File.pathSeparator;
+		return Arrays.asList(pathEnv.split(separator));
 	}
 }
