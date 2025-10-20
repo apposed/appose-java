@@ -58,6 +58,7 @@ public class Service implements AutoCloseable {
 	private static int serviceCount = 0;
 
 	private final File cwd;
+	private final Map<String, String> envVars;
 	private final String[] args;
 	private final Map<String, Task> tasks = new ConcurrentHashMap<>();
 	private final int serviceID;
@@ -85,7 +86,12 @@ public class Service implements AutoCloseable {
 	private Consumer<String> debugListener;
 
 	public Service(File cwd, String... args) {
+		this(cwd, null, args);
+	}
+
+	public Service(File cwd, Map<String, String> envVars, String... args) {
 		this.cwd = cwd;
+		this.envVars = envVars != null ? new HashMap<>(envVars) : new HashMap<>();
 		this.args = args.clone();
 		serviceID = serviceCount++;
 	}
@@ -114,6 +120,7 @@ public class Service implements AutoCloseable {
 
 		String prefix = "Appose-Service-" + serviceID;
 		ProcessBuilder pb = new ProcessBuilder(args).directory(cwd);
+		pb.environment().putAll(envVars);
 		process = pb.start();
 		stdin = new PrintWriter(process.getOutputStream());
 		stdoutThread = new Thread(this::stdoutLoop, prefix + "-Stdout");

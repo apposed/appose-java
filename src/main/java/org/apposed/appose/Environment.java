@@ -38,6 +38,7 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 public interface Environment {
@@ -45,6 +46,16 @@ public interface Environment {
 	String base();
 	List<String> binPaths();
 	List<String> launchArgs();
+
+	/**
+	 * Environment variables to set when launching worker processes.
+	 * By default, returns an empty map.
+	 *
+	 * @return A map of environment variable names to values.
+	 */
+	default Map<String, String> envVars() {
+		return Collections.emptyMap();
+	}
 
 	/**
 	 * Creates a Python script service.
@@ -210,6 +221,6 @@ public interface Environment {
 		allArgs.add(exe);
 		allArgs.addAll(Arrays.asList(args));
 
-		return new Service(new File(base()), allArgs.toArray(new String[0]));
+		return new Service(new File(base()), envVars(), allArgs.toArray(new String[0]));
 	}
 }

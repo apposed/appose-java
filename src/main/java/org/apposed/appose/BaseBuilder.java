@@ -34,7 +34,9 @@ import java.io.IOException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.function.Consumer;
 
 /**
@@ -48,6 +50,7 @@ public abstract class BaseBuilder implements Builder {
 	public final List<ProgressConsumer> progressSubscribers = new ArrayList<>();
 	public final List<Consumer<String>> outputSubscribers = new ArrayList<>();
 	public final List<Consumer<String>> errorSubscribers = new ArrayList<>();
+	public final Map<String, String> envVars = new HashMap<>();
 
 	/**
 	 * Registers a callback method to be invoked when progress happens during environment building.
@@ -89,6 +92,29 @@ public abstract class BaseBuilder implements Builder {
 	 */
 	public BaseBuilder logDebug() {
 		return subscribeOutput(System.err::println).subscribeError(System.err::println);
+	}
+
+	/**
+	 * Sets an environment variable to be passed to worker processes.
+	 *
+	 * @param key The environment variable name.
+	 * @param value The environment variable value.
+	 * @return This builder instance, for fluent-style programming.
+	 */
+	public BaseBuilder env(String key, String value) {
+		envVars.put(key, value);
+		return this;
+	}
+
+	/**
+	 * Sets multiple environment variables to be passed to worker processes.
+	 *
+	 * @param vars Map of environment variable names to values.
+	 * @return This builder instance, for fluent-style programming.
+	 */
+	public BaseBuilder env(Map<String, String> vars) {
+		envVars.putAll(vars);
+		return this;
 	}
 
 	/**
