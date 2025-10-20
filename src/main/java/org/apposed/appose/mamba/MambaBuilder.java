@@ -142,21 +142,6 @@ public class MambaBuilder extends BaseBuilder {
 	}
 
 	@Override
-	public String name() {
-		return "mamba";
-	}
-
-	@Override
-	public boolean supports(String scheme) {
-		return "environment.yml".equals(scheme);
-	}
-
-	@Override
-	public double priority() {
-		return 50.0; // Lower priority than pixi for environment.yml
-	}
-
-	@Override
 	public String suggestEnvName() {
 		// Try to extract name from environment.yml
 		if (source != null) {

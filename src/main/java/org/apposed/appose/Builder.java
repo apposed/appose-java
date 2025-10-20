@@ -45,32 +45,6 @@ import java.util.function.Consumer;
  */
 public interface Builder {
 
-	// ===== DISCOVERY METHODS =====
-
-	/**
-	 * Returns the name of this builder (e.g., "pixi", "mamba", "uv").
-	 *
-	 * @return The builder name.
-	 */
-	String name();
-
-	/**
-	 * Checks if this builder supports the given scheme.
-	 *
-	 * @param scheme The scheme to check (e.g., "pixi.toml", "environment.yml", "conda", "pypi").
-	 * @return true if this builder supports the scheme.
-	 */
-	boolean supports(String scheme);
-
-	/**
-	 * Returns the priority of this builder for scheme resolution.
-	 * Higher priority builders are checked first when multiple builders
-	 * support the same scheme.
-	 *
-	 * @return The priority value (higher = preferred).
-	 */
-	double priority();
-
 	// ===== CORE BUILDING METHODS =====
 
 	/**
@@ -151,4 +125,11 @@ public interface Builder {
 	 * @return A suggested environment name.
 	 */
 	String suggestEnvName();
+
+	/**
+	 * Functional interface for progress callbacks.
+	 */
+	interface ProgressConsumer {
+		void accept(String title, long current, long maximum);
+	}
 }

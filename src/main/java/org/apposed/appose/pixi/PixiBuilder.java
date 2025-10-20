@@ -236,29 +236,6 @@ public class PixiBuilder extends BaseBuilder {
 	}
 
 	@Override
-	public String name() {
-		return "pixi";
-	}
-
-	@Override
-	public boolean supports(String scheme) {
-		switch (scheme) {
-			case "pixi.toml":
-			case "environment.yml":
-			case "conda":
-			case "pypi":
-				return true;
-			default:
-				return false;
-		}
-	}
-
-	@Override
-	public double priority() {
-		return 100.0; // Preferred for environment.yml and conda/pypi packages
-	}
-
-	@Override
 	public String suggestEnvName() {
 		// Try to extract name from pixi.toml or environment.yml content
 		if (source != null) {

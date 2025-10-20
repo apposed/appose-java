@@ -197,27 +197,6 @@ public class UvBuilder extends BaseBuilder {
 	}
 
 	@Override
-	public String name() {
-		return "uv";
-	}
-
-	@Override
-	public boolean supports(String scheme) {
-		switch (scheme) {
-			case "requirements.txt":
-			case "pypi":
-				return true;
-			default:
-				return false;
-		}
-	}
-
-	@Override
-	public double priority() {
-		return 75.0; // Between pixi (100) and mamba (50)
-	}
-
-	@Override
 	public String suggestEnvName() {
 		// Try to extract name from requirements.txt if present
 		if (source != null) {

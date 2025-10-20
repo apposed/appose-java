@@ -31,8 +31,6 @@ package org.apposed.appose;
 
 import java.io.File;
 import java.io.IOException;
-import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -141,34 +139,6 @@ public abstract class BaseBuilder implements Builder {
 	public abstract Environment build(File envDir) throws IOException;
 
 	/**
-	 * Returns the name of this builder.
-	 * Concrete builders must implement this method.
-	 *
-	 * @return The builder name.
-	 */
-	@Override
-	public abstract String name();
-
-	/**
-	 * Checks if this builder supports the given scheme.
-	 * Concrete builders must implement this method.
-	 *
-	 * @param scheme The scheme to check.
-	 * @return true if this builder supports the scheme.
-	 */
-	@Override
-	public abstract boolean supports(String scheme);
-
-	/**
-	 * Returns the priority of this builder.
-	 * Concrete builders must implement this method.
-	 *
-	 * @return The priority value.
-	 */
-	@Override
-	public abstract double priority();
-
-	/**
 	 * Suggests a name for the environment based on builder-specific logic.
 	 * Concrete builders must implement this method.
 	 *
@@ -176,11 +146,4 @@ public abstract class BaseBuilder implements Builder {
 	 */
 	@Override
 	public abstract String suggestEnvName();
-
-	/**
-	 * Functional interface for progress callbacks.
-	 */
-	public interface ProgressConsumer {
-		void accept(String title, long current, long maximum);
-	}
 }

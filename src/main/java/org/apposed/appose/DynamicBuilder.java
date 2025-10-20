@@ -156,23 +156,6 @@ public class DynamicBuilder extends BaseBuilder {
 	}
 
 	@Override
-	public String name() {
-		return "dynamic";
-	}
-
-	@Override
-	public boolean supports(String scheme) {
-		// DynamicBuilder supports all schemes by delegating
-		return true;
-	}
-
-	@Override
-	public double priority() {
-		// Not used in ServiceLoader discovery
-		return 0.0;
-	}
-
-	@Override
 	public String suggestEnvName() {
 		// Delegate to the resolved builder
 		if (delegate == null) {

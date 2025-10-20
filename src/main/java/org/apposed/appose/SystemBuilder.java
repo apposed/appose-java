@@ -165,22 +165,6 @@ public class SystemBuilder extends BaseBuilder {
 	}
 
 	@Override
-	public String name() {
-		return "system";
-	}
-
-	@Override
-	public boolean supports(String scheme) {
-		// SystemBuilder is a catch-all fallback
-		return true;
-	}
-
-	@Override
-	public double priority() {
-		return 0.0; // Lowest priority - only used as fallback
-	}
-
-	@Override
 	public String suggestEnvName() {
 		return "system";
 	}
