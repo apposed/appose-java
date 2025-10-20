@@ -56,10 +56,8 @@ public class PixiBuilder extends BaseBuilder {
 	private final List<String> pypiPackages = new ArrayList<>();
 	private final List<String> channels = new ArrayList<>();
 
-	// Public no-arg constructor for ServiceLoader
 	public PixiBuilder() {}
 
-	// Public constructors for Appose class
 	public PixiBuilder(String source) {
 		this.source = source;
 	}

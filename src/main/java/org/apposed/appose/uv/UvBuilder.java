@@ -55,10 +55,8 @@ public class UvBuilder extends BaseBuilder {
 	private String pythonVersion;
 	private final List<String> packages = new ArrayList<>();
 
-	// Public no-arg constructor for ServiceLoader
 	public UvBuilder() {}
 
-	// Public constructors for Appose class
 	public UvBuilder(String source) {
 		this.source = source;
 	}

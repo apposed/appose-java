@@ -47,13 +47,12 @@ public class SystemBuilder extends BaseBuilder {
 	private final String baseDirectory;
 	private boolean useSystemPath;
 
-	/** Public no-arg constructor for ServiceLoader. */
 	public SystemBuilder() {
 		this.baseDirectory = ".";
 		this.useSystemPath = true; // Appose.system() includes system PATH
 	}
 
-	SystemBuilder(String baseDirectory) {
+	public SystemBuilder(String baseDirectory) {
 		this.baseDirectory = baseDirectory;
 		this.useSystemPath = false; // Wrapping a directory does NOT include system PATH
 	}
