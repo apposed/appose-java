@@ -90,6 +90,16 @@ public class SystemBuilder extends BaseBuilder {
 		List<String> launchArgs = new ArrayList<>();
 		List<String> binPaths = new ArrayList<>();
 
+		// Note: Prepend ${java.home}/bin to binPaths to ensure we find the
+		// correct Java executable: the same one the parent process is using.
+		String javaHome = System.getProperty("java.home");
+		if (javaHome != null) {
+			File javaHomeBin = new File(javaHome, "bin");
+			if (javaHomeBin.isDirectory()) {
+				binPaths.add(javaHomeBin.getAbsolutePath());
+			}
+		}
+
 		// Add bin directory from the environment itself
 		File binDir = new File(base, "bin");
 		if (binDir.isDirectory()) {
