@@ -183,6 +183,71 @@ public class ApposeTest {
 	}
 
 	@Test
+	public void testWrap() throws IOException {
+		// Test wrapping a pixi environment
+		File pixiDir = new File("target/test-wrap-pixi");
+		pixiDir.mkdirs();
+		File pixiToml = new File(pixiDir, "pixi.toml");
+		pixiToml.createNewFile();
+
+		try {
+			Environment pixiEnv = Appose.wrap(pixiDir);
+			assertNotNull(pixiEnv);
+			assertEquals(pixiDir.getAbsolutePath(), pixiEnv.base());
+			assertNotNull(pixiEnv.launchArgs());
+			assertFalse(pixiEnv.launchArgs().isEmpty());
+			assertTrue(pixiEnv.launchArgs().get(0).contains("pixi"),
+				"Pixi environment should use pixi launcher");
+		} finally {
+			pixiToml.delete();
+		}
+
+		// Test wrapping a conda/mamba environment
+		File condaDir = new File("target/test-wrap-conda");
+		condaDir.mkdirs();
+		File condaMeta = new File(condaDir, "conda-meta");
+		condaMeta.mkdirs();
+
+		try {
+			Environment condaEnv = Appose.wrap(condaDir);
+			assertNotNull(condaEnv);
+			assertEquals(condaDir.getAbsolutePath(), condaEnv.base());
+			assertNotNull(condaEnv.launchArgs());
+			assertFalse(condaEnv.launchArgs().isEmpty());
+			assertTrue(condaEnv.launchArgs().get(0).contains("micromamba"),
+				"Conda environment should use micromamba launcher");
+		} finally {
+			condaMeta.delete();
+		}
+
+		// Test wrapping a plain directory (should fall back to SystemBuilder)
+		File systemDir = new File("target/test-wrap-system");
+		systemDir.mkdirs();
+
+		try {
+			Environment systemEnv = Appose.wrap(systemDir);
+			assertNotNull(systemEnv);
+			assertEquals(systemDir.getAbsolutePath(), systemEnv.base());
+			// SystemBuilder uses empty launch args by default
+			assertTrue(systemEnv.launchArgs().isEmpty(),
+				"System environment should have no special launcher");
+		} finally {
+			systemDir.delete();
+			pixiDir.delete();
+			condaDir.delete();
+		}
+
+		// Test that wrapping non-existent directory throws exception
+		File nonExistent = new File("target/does-not-exist");
+		try {
+			Appose.wrap(nonExistent);
+			fail("Should have thrown IOException for non-existent directory");
+		} catch (IOException e) {
+			assertTrue(e.getMessage().contains("does not exist"));
+		}
+	}
+
+	@Test
 	public void testServiceStartupFailure() throws IOException, InterruptedException {
 		// Create an environment with no binPaths to test startup failure
 		File tempDir = new File("no-pythons-to-be-found-here");

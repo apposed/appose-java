@@ -31,6 +31,7 @@ package org.apposed.appose;
 
 import org.apposed.appose.mamba.MambaBuilder;
 import org.apposed.appose.pixi.PixiBuilder;
+import org.apposed.appose.util.Builders;
 
 import java.io.File;
 import java.io.IOException;
@@ -316,20 +317,11 @@ public class Appose {
 			throw new IOException("Environment directory does not exist: " + envDir);
 		}
 
-		// Check for pixi environment
-		if (new File(envDir, ".pixi").isDirectory() || new File(envDir, "pixi.toml").isFile()) {
-			return new PixiBuilder().build(envDir);
-		}
+		// Find a builder factory that can wrap this directory
+		BuilderFactory factory = Builders.findFactoryForWrapping(envDir);
 
-		// Check for conda/mamba environment
-		if (new File(envDir, "conda-meta").isDirectory()) {
-			// MambaBuilder will detect it's already built and just wrap it
-			return new MambaBuilder().build(envDir);
-		}
-
-		// Check for UV/venv environment
-		if (new File(envDir, "pyvenv.cfg").exists()) {
-			throw new UnsupportedOperationException("UV/venv environments not yet supported");
+		if (factory != null) {
+			return factory.createBuilder().build(envDir);
 		}
 
 		// Default to system builder (no special activation, just use binaries in directory)

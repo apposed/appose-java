@@ -67,4 +67,10 @@ public class MambaBuilderFactory implements BuilderFactory {
 	public double priority() {
 		return 50.0; // Lower priority than pixi for environment.yml
 	}
+
+	@Override
+	public boolean canWrap(java.io.File envDir) {
+		// Check for conda/mamba environment marker
+		return new java.io.File(envDir, "conda-meta").isDirectory();
+	}
 }

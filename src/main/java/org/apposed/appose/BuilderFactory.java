@@ -84,4 +84,13 @@ public interface BuilderFactory {
 	 * @return The priority value (higher = more preferred)
 	 */
 	double priority();
+
+	/**
+	 * Checks if this builder can wrap the given existing environment directory.
+	 * Used by {@link Appose#wrap(File)} to auto-detect environment type.
+	 *
+	 * @param envDir The directory to check
+	 * @return true if this builder can wrap the directory
+	 */
+	boolean canWrap(java.io.File envDir);
 }

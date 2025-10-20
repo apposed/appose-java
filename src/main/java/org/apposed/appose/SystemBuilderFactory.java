@@ -66,4 +66,10 @@ public class SystemBuilderFactory implements BuilderFactory {
 	public double priority() {
 		return 0.0; // Lowest priority - only used as fallback
 	}
+
+	@Override
+	public boolean canWrap(java.io.File envDir) {
+		// SystemBuilder can wrap any directory as a fallback
+		return true;
+	}
 }

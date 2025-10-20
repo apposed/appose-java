@@ -75,4 +75,11 @@ public class PixiBuilderFactory implements BuilderFactory {
 	public double priority() {
 		return 100.0; // Preferred for environment.yml and conda/pypi packages
 	}
+
+	@Override
+	public boolean canWrap(java.io.File envDir) {
+		// Check for pixi environment markers
+		return new java.io.File(envDir, ".pixi").isDirectory() ||
+		       new java.io.File(envDir, "pixi.toml").isFile();
+	}
 }

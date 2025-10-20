@@ -99,6 +99,22 @@ public class Builders {
 	}
 
 	/**
+	 * Finds the first factory that can wrap the given environment directory.
+	 * Factories are checked in priority order (highest priority first).
+	 *
+	 * @param envDir The directory to find a factory for.
+	 * @return The first factory that can wrap the directory, or null if none found.
+	 */
+	public static BuilderFactory findFactoryForWrapping(File envDir) {
+		for (BuilderFactory factory : discoverFactories()) {
+			if (factory.canWrap(envDir)) {
+				return factory;
+			}
+		}
+		return null;
+	}
+
+	/**
 	 * Determines the environment directory based on the name and builder type.
 	 *
 	 * @param builder The builder to get suggestions from.
