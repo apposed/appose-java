@@ -32,6 +32,7 @@ package org.apposed.appose.uv;
 import org.apposed.appose.util.Downloads;
 import org.apposed.appose.util.FileDownloader;
 import org.apposed.appose.util.Platforms;
+import org.apposed.appose.util.Processes;
 
 import java.io.BufferedReader;
 import java.io.File;
@@ -46,7 +47,9 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
@@ -90,6 +93,11 @@ public class Uv {
 	 * Consumer that tracks the standard error stream produced by the uv process when it is executed.
 	 */
 	private Consumer<String> errorConsumer;
+
+	/**
+	 * Environment variables to set when running uv commands.
+	 */
+	private Map<String, String> envVars = new HashMap<>();
 
 	/**
 	 * Relative path to the uv executable from the uv {@link #rootdir}
@@ -155,10 +163,7 @@ public class Uv {
 	 * @return The {@link ProcessBuilder} with the working directory specified in the constructor.
 	 */
 	private ProcessBuilder getBuilder(final boolean isInheritIO) {
-		final ProcessBuilder builder = new ProcessBuilder().directory(new File(rootdir));
-		if (isInheritIO)
-			builder.inheritIO();
-		return builder;
+		return Processes.builder(new File(rootdir), envVars, isInheritIO);
 	}
 
 	/**
@@ -242,6 +247,16 @@ public class Uv {
 	 */
 	public void setErrorConsumer(Consumer<String> consumer) {
 		this.errorConsumer = consumer;
+	}
+
+	/**
+	 * Sets environment variables to be passed to uv processes.
+	 * @param envVars Map of environment variable names to values
+	 */
+	public void setEnvVars(Map<String, String> envVars) {
+		if (envVars != null) {
+			this.envVars = new HashMap<>(envVars);
+		}
 	}
 
 	private File downloadUv() throws IOException, InterruptedException, URISyntaxException {

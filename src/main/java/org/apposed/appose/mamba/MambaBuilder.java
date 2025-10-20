@@ -40,6 +40,7 @@ import java.net.URISyntaxException;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 
 /**
  * Type-safe builder for Micromamba-based environments.
@@ -105,6 +106,7 @@ public class MambaBuilder extends BaseBuilder {
 		Mamba mamba = new Mamba(Mamba.BASE_PATH);
 
 		// Setup progress/output consumers
+		mamba.setEnvVars(envVars);
 		mamba.setOutputConsumer(msg -> outputSubscribers.forEach(sub -> sub.accept(msg)));
 		mamba.setErrorConsumer(msg -> errorSubscribers.forEach(sub -> sub.accept(msg)));
 		mamba.setMambaDownloadProgressConsumer((cur, max) -> {
@@ -135,6 +137,7 @@ public class MambaBuilder extends BaseBuilder {
 			@Override public String base() { return base; }
 			@Override public List<String> binPaths() { return binPaths; }
 			@Override public List<String> launchArgs() { return launchArgs; }
+			@Override public Map<String, String> envVars() { return MambaBuilder.this.envVars; }
 		};
 	}
 

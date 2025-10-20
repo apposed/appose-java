@@ -29,6 +29,7 @@
 
 package org.apposed.appose;
 
+import org.apposed.appose.util.Processes;
 import org.apposed.appose.util.Types;
 
 import java.io.BufferedReader;
@@ -119,8 +120,7 @@ public class Service implements AutoCloseable {
 		}
 
 		String prefix = "Appose-Service-" + serviceID;
-		ProcessBuilder pb = new ProcessBuilder(args).directory(cwd);
-		pb.environment().putAll(envVars);
+		ProcessBuilder pb = Processes.builder(cwd, envVars, false, args);
 		process = pb.start();
 		stdin = new PrintWriter(process.getOutputStream());
 		stdoutThread = new Thread(this::stdoutLoop, prefix + "-Stdout");

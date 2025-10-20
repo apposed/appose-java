@@ -61,6 +61,7 @@ package org.apposed.appose.mamba;
 
 import org.apposed.appose.util.Downloads;
 import org.apposed.appose.util.FileDownloader;
+import org.apposed.appose.util.Processes;
 
 import java.io.BufferedReader;
 import java.io.File;
@@ -78,7 +79,9 @@ import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Calendar;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
@@ -127,6 +130,11 @@ public class Mamba {
 	 * Consumer that tracks the standard error stream produced by the micromamba process when it is executed.
 	 */
 	private Consumer<String> errorConsumer;
+
+	/**
+	 * Environment variables to set when running micromamba commands.
+	 */
+	private Map<String, String> envVars = new HashMap<>();
 
 	/**
 	 * Relative path to the micromamba executable from the micromamba {@link #rootdir}
@@ -188,7 +196,7 @@ public class Mamba {
 	/**
 	 * Returns a {@link ProcessBuilder} with the working directory specified in the
 	 * constructor.
-	 * 
+	 *
 	 * @param isInheritIO
 	 *            Sets the source and destination for subprocess standard I/O to be
 	 *            the same as those of the current Java process.
@@ -197,10 +205,7 @@ public class Mamba {
 	 */
 	private ProcessBuilder getBuilder( final boolean isInheritIO )
 	{
-		final ProcessBuilder builder = new ProcessBuilder().directory( new File( rootdir ) );
-		if ( isInheritIO )
-			builder.inheritIO();
-		return builder;
+		return Processes.builder(new File(rootdir), envVars, isInheritIO);
 	}
 
 	/**
@@ -299,6 +304,16 @@ public class Mamba {
 	 */
 	public void setErrorConsumer(Consumer<String> consumer) {
 		this.errorConsumer = consumer;
+	}
+
+	/**
+	 * Sets environment variables to be passed to micromamba processes.
+	 * @param envVars Map of environment variable names to values
+	 */
+	public void setEnvVars(Map<String, String> envVars) {
+		if (envVars != null) {
+			this.envVars = new HashMap<>(envVars);
+		}
 	}
 
 	private File downloadMicromamba() throws IOException, InterruptedException, URISyntaxException {

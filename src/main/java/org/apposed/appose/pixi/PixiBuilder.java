@@ -42,6 +42,7 @@ import java.nio.file.Files;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Map;
 
 /**
  * Type-safe builder for Pixi-based environments.
@@ -113,6 +114,7 @@ public class PixiBuilder extends BaseBuilder {
 		Pixi pixi = new Pixi(Pixi.BASE_PATH);
 
 		// Setup progress/output consumers
+		pixi.setEnvVars(envVars);
 		pixi.setOutputConsumer(msg -> outputSubscribers.forEach(sub -> sub.accept(msg)));
 		pixi.setErrorConsumer(msg -> errorSubscribers.forEach(sub -> sub.accept(msg)));
 		pixi.setPixiDownloadProgressConsumer((cur, max) -> {
@@ -229,6 +231,7 @@ public class PixiBuilder extends BaseBuilder {
 			@Override public String base() { return base; }
 			@Override public List<String> binPaths() { return binPaths; }
 			@Override public List<String> launchArgs() { return launchArgs; }
+			@Override public Map<String, String> envVars() { return PixiBuilder.this.envVars; }
 		};
 	}
 
