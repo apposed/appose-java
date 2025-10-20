@@ -37,8 +37,8 @@ import java.io.File;
 import java.io.FileReader;
 import java.io.IOException;
 import java.net.URISyntaxException;
-import java.nio.file.Files;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 
 /**
@@ -103,9 +103,6 @@ public class MambaBuilder extends BaseBuilder {
 			throw new IllegalArgumentException("MambaBuilder only supports environment.yml scheme, got: " + scheme);
 		}
 
-		// Read environment.yml content
-		String yamlContent = new String(Files.readAllBytes(sourceFile.toPath()));
-
 		Mamba mamba = new Mamba(Mamba.BASE_PATH);
 
 		// Setup progress/output consumers
@@ -133,7 +130,7 @@ public class MambaBuilder extends BaseBuilder {
 		Mamba mamba = new Mamba(Mamba.BASE_PATH);
 		String base = envDir.getAbsolutePath();
 		List<String> launchArgs = Arrays.asList(mamba.mambaCommand, "run", "-p", base);
-		List<String> binPaths = Arrays.asList(envDir.toPath().resolve("bin").toString());
+		List<String> binPaths = Collections.singletonList(envDir.toPath().resolve("bin").toString());
 
 		return new Environment() {
 			@Override public String base() { return base; }

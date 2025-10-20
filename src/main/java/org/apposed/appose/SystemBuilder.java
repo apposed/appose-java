@@ -44,10 +44,10 @@ import java.util.List;
  */
 public class SystemBuilder extends BaseBuilder {
 
-	private String baseDirectory;
+	private final String baseDirectory;
 	private boolean useSystemPath;
 
-	// Public no-arg constructor for ServiceLoader
+	/** Public no-arg constructor for ServiceLoader. */
 	public SystemBuilder() {
 		this.baseDirectory = ".";
 		this.useSystemPath = true; // Appose.system() includes system PATH
