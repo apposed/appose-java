@@ -55,7 +55,6 @@ public final class PixiBuilder extends BaseBuilder<PixiBuilder> {
 	private String scheme;
 	private final List<String> condaPackages = new ArrayList<>();
 	private final List<String> pypiPackages = new ArrayList<>();
-	private final List<String> channels = new ArrayList<>();
 
 	public PixiBuilder() {}
 
@@ -67,6 +66,8 @@ public final class PixiBuilder extends BaseBuilder<PixiBuilder> {
 		this.source = source;
 		this.scheme = scheme;
 	}
+
+	// -- PixiBuilder methods --
 
 	/**
 	 * Adds conda packages to the environment.
@@ -90,17 +91,7 @@ public final class PixiBuilder extends BaseBuilder<PixiBuilder> {
 		return this;
 	}
 
-	/**
-	 * Adds conda channels to search for packages.
-	 *
-	 * @param channels Channel names (e.g., "conda-forge", "bioconda")
-	 * @return This builder instance, for fluent-style programming.
-	 */
-	@Override
-	public PixiBuilder channels(String... channels) {
-		this.channels.addAll(Arrays.asList(channels));
-		return this;
-	}
+	// -- Builder methods --
 
 	@Override
 	public Environment build() throws IOException {
@@ -116,13 +107,15 @@ public final class PixiBuilder extends BaseBuilder<PixiBuilder> {
 
 		Pixi pixi = new Pixi(Pixi.BASE_PATH);
 
-		// Setup progress/output consumers
-		pixi.setEnvVars(envVars);
+		// Set up progress/output consumers.
 		pixi.setOutputConsumer(msg -> outputSubscribers.forEach(sub -> sub.accept(msg)));
 		pixi.setErrorConsumer(msg -> errorSubscribers.forEach(sub -> sub.accept(msg)));
 		pixi.setPixiDownloadProgressConsumer((cur, max) -> {
 			progressSubscribers.forEach(subscriber -> subscriber.accept("Downloading pixi", cur, max));
 		});
+
+		// Pass along intended build configuration.
+		pixi.setEnvVars(envVars);
 
 		try {
 			pixi.installPixi();
@@ -188,17 +181,17 @@ public final class PixiBuilder extends BaseBuilder<PixiBuilder> {
 
 				pixi.init(envDir);
 
-				// Add channels
+				// Add channels.
 				if (!channels.isEmpty()) {
 					pixi.addChannels(envDir, channels.toArray(new String[0]));
 				}
 
-				// Add conda packages
+				// Add conda packages.
 				if (!condaPackages.isEmpty()) {
 					pixi.addCondaPackages(envDir, condaPackages.toArray(new String[0]));
 				}
 
-				// Add PyPI packages
+				// Add PyPI packages.
 				if (!pypiPackages.isEmpty()) {
 					// Ensure python and pip are available
 					List<String> basePackages = new ArrayList<>();
@@ -208,7 +201,7 @@ public final class PixiBuilder extends BaseBuilder<PixiBuilder> {
 					pixi.addPypiPackages(envDir, pypiPackages.toArray(new String[0]));
 				}
 
-				// Add appose package if we're building programmatically with packages
+				// Add appose package if we're building programmatically with packages.
 				if (!condaPackages.isEmpty() || !pypiPackages.isEmpty()) {
 					pixi.addCondaPackages(envDir, "appose");
 				}
@@ -220,26 +213,21 @@ public final class PixiBuilder extends BaseBuilder<PixiBuilder> {
 		}
 	}
 
-	private Environment createEnvironment(Pixi pixi, File envDir) {
-		String base = envDir.getAbsolutePath();
-		List<String> launchArgs = Arrays.asList(
-			pixi.pixiCommand, "run", "--manifest-path",
-			new File(envDir, "pixi.toml").getAbsolutePath()
-		);
-		List<String> binPaths = Arrays.asList(
-			envDir.toPath().resolve(".pixi").resolve("envs").resolve("default").resolve("bin").toString()
-		);
-
-		return new Environment() {
-			@Override public String base() { return base; }
-			@Override public List<String> binPaths() { return binPaths; }
-			@Override public List<String> launchArgs() { return launchArgs; }
-			@Override public Map<String, String> envVars() { return PixiBuilder.this.envVars; }
-		};
+	/**
+	 * Adds conda channels to search for packages.
+	 *
+	 * @param channels Channel names (e.g., "conda-forge", "bioconda")
+	 * @return This builder instance, for fluent-style programming.
+	 */
+	@Override
+	public PixiBuilder channels(String... channels) {
+		return super.channels(channels);
 	}
 
+	// -- Internal methods --
+
 	@Override
-	public String suggestEnvName() {
+	protected String suggestEnvName() {
 		// Try to extract name from pixi.toml or environment.yml content
 		if (source != null) {
 			File sourceFile = new File(source);
@@ -266,5 +254,25 @@ public final class PixiBuilder extends BaseBuilder<PixiBuilder> {
 			}
 		}
 		return "appose-pixi-env";
+	}
+
+	// -- Helper methods --
+
+	private Environment createEnvironment(Pixi pixi, File envDir) {
+		String base = envDir.getAbsolutePath();
+		List<String> launchArgs = Arrays.asList(
+				pixi.pixiCommand, "run", "--manifest-path",
+				new File(envDir, "pixi.toml").getAbsolutePath()
+		);
+		List<String> binPaths = Arrays.asList(
+				envDir.toPath().resolve(".pixi").resolve("envs").resolve("default").resolve("bin").toString()
+		);
+
+		return new Environment() {
+			@Override public String base() { return base; }
+			@Override public List<String> binPaths() { return binPaths; }
+			@Override public List<String> launchArgs() { return launchArgs; }
+			@Override public Map<String, String> envVars() { return PixiBuilder.this.envVars; }
+		};
 	}
 }

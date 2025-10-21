@@ -52,7 +52,6 @@ public final class UvBuilder extends BaseBuilder<UvBuilder> {
 	private String scheme;
 	private String pythonVersion;
 	private final List<String> packages = new ArrayList<>();
-	private final List<String> indexes = new ArrayList<>();
 
 	public UvBuilder() {}
 
@@ -64,6 +63,8 @@ public final class UvBuilder extends BaseBuilder<UvBuilder> {
 		this.source = source;
 		this.scheme = scheme;
 	}
+
+	// -- UvBuilder methods --
 
 	/**
 	 * Specifies the Python version to use for the virtual environment.
@@ -87,18 +88,7 @@ public final class UvBuilder extends BaseBuilder<UvBuilder> {
 		return this;
 	}
 
-	/**
-	 * Adds PyPI index URLs for package discovery.
-	 * These are alternative or additional package indexes beyond the default pypi.org.
-	 *
-	 * @param indexes Index URLs (e.g., custom PyPI mirrors or private package repositories)
-	 * @return This builder instance, for fluent-style programming.
-	 */
-	@Override
-	public UvBuilder channels(String... indexes) {
-		this.indexes.addAll(Arrays.asList(indexes));
-		return this;
-	}
+	// -- Builder methods --
 
 	@Override
 	public Environment build() throws IOException {
@@ -114,13 +104,15 @@ public final class UvBuilder extends BaseBuilder<UvBuilder> {
 
 		Uv uv = new Uv(Uv.BASE_PATH);
 
-		// Setup progress/output consumers
-		uv.setEnvVars(envVars);
+		// Set up progress/output consumers.
 		uv.setOutputConsumer(msg -> outputSubscribers.forEach(sub -> sub.accept(msg)));
 		uv.setErrorConsumer(msg -> errorSubscribers.forEach(sub -> sub.accept(msg)));
 		uv.setUvDownloadProgressConsumer((cur, max) -> {
 			progressSubscribers.forEach(subscriber -> subscriber.accept("Downloading uv", cur, max));
 		});
+
+		// Pass along intended build configuration.
+		uv.setEnvVars(envVars);
 
 		try {
 			uv.installUv();
@@ -172,6 +164,8 @@ public final class UvBuilder extends BaseBuilder<UvBuilder> {
 					uv.createVenv(envDir, pythonVersion);
 				}
 
+				// FIXME: assign channels/indices to uv object here?
+
 				// Install packages
 				if (!packages.isEmpty()) {
 					List<String> allPackages = new ArrayList<>(packages);
@@ -189,25 +183,19 @@ public final class UvBuilder extends BaseBuilder<UvBuilder> {
 		}
 	}
 
-	private Environment createEnvironment(File envDir) {
-		String base = envDir.getAbsolutePath();
-
-		// UV virtual environments use standard venv structure
-		String binDir = System.getProperty("os.name").toLowerCase().contains("windows") ? "Scripts" : "bin";
-		List<String> binPaths = Collections.singletonList(
-			envDir.toPath().resolve(binDir).toString()
-		);
-
-		// No special launch args needed - executables are directly in bin/Scripts
-		List<String> launchArgs = Collections.emptyList();
-
-		return new Environment() {
-			@Override public String base() { return base; }
-			@Override public List<String> binPaths() { return binPaths; }
-			@Override public List<String> launchArgs() { return launchArgs; }
-			@Override public Map<String, String> envVars() { return UvBuilder.this.envVars; }
-		};
+	/**
+	 * Adds PyPI index URLs for package discovery.
+	 * These are alternative or additional package indexes beyond the default pypi.org.
+	 *
+	 * @param indexes Index URLs (e.g., custom PyPI mirrors or private package repositories)
+	 * @return This builder instance, for fluent-style programming.
+	 */
+	@Override
+	public UvBuilder channels(String... indexes) {
+		return super.channels(indexes);
 	}
+
+	// -- Internal methods --
 
 	@Override
 	protected String suggestEnvName() {
@@ -224,5 +212,27 @@ public final class UvBuilder extends BaseBuilder<UvBuilder> {
 			}
 		}
 		return "appose-uv-env";
+	}
+
+	// -- Helper methods --
+
+	private Environment createEnvironment(File envDir) {
+		String base = envDir.getAbsolutePath();
+
+		// UV virtual environments use standard venv structure
+		String binDir = System.getProperty("os.name").toLowerCase().contains("windows") ? "Scripts" : "bin";
+		List<String> binPaths = Collections.singletonList(
+				envDir.toPath().resolve(binDir).toString()
+		);
+
+		// No special launch args needed - executables are directly in bin/Scripts
+		List<String> launchArgs = Collections.emptyList();
+
+		return new Environment() {
+			@Override public String base() { return base; }
+			@Override public List<String> binPaths() { return binPaths; }
+			@Override public List<String> launchArgs() { return launchArgs; }
+			@Override public Map<String, String> envVars() { return UvBuilder.this.envVars; }
+		};
 	}
 }

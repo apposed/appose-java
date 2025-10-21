@@ -54,9 +54,8 @@ public final class DynamicBuilder extends BaseBuilder<DynamicBuilder> {
 
 	/**
 	 * Specifies the scheme for the source file.
-	 * Can use "scheme:builder" syntax to also specify preferred builder.
 	 *
-	 * @param scheme The scheme (e.g., "environment.yml", "pixi.toml") or "scheme:builder"
+	 * @param scheme The scheme (e.g., "environment.yml", "pixi.toml")
 	 * @return This builder instance, for fluent-style programming.
 	 */
 	public DynamicBuilder scheme(String scheme) {

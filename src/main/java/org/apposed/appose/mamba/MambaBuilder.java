@@ -63,6 +63,17 @@ public final class MambaBuilder extends BaseBuilder<MambaBuilder> {
 		this.scheme = scheme;
 	}
 
+	/**
+	 * Adds conda channels to search for packages.
+	 *
+	 * @param channels Channel names (e.g., "conda-forge", "bioconda")
+	 * @return This builder instance, for fluent-style programming.
+	 */
+	@Override
+	public MambaBuilder channels(String... channels) {
+		return super.channels(channels);
+	}
+
 	@Override
 	public Environment build() throws IOException {
 		File envDir = envDir();
@@ -107,20 +118,22 @@ public final class MambaBuilder extends BaseBuilder<MambaBuilder> {
 
 		Mamba mamba = new Mamba(Mamba.BASE_PATH);
 
-		// Setup progress/output consumers
-		mamba.setEnvVars(envVars);
+		// Set up progress/output consumers.
 		mamba.setOutputConsumer(msg -> outputSubscribers.forEach(sub -> sub.accept(msg)));
 		mamba.setErrorConsumer(msg -> errorSubscribers.forEach(sub -> sub.accept(msg)));
 		mamba.setMambaDownloadProgressConsumer((cur, max) -> {
 			progressSubscribers.forEach(subscriber -> subscriber.accept("Downloading micromamba", cur, max));
 		});
 
+		// Pass along intended build configuration.
+		mamba.setEnvVars(envVars);
+		// FIXME: assign channels to mamba object?
+
 		try {
 			mamba.installMicromamba();
 
-			// Create environment from YAML
-			// Note: Simplified - no directory contortions!
-			// If envDir exists but isn't a conda dir, mamba will fail with clear error
+			// Create environment from YAML.
+			// If envDir exists but isn't a conda dir, mamba will fail with clear error.
 			mamba.createWithYaml(envDir, sourceFile.getAbsolutePath());
 
 			return createEnvironment(envDir);
