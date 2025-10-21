@@ -37,6 +37,8 @@ import java.io.File;
 import java.io.FileReader;
 import java.io.IOException;
 import java.net.URISyntaxException;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
@@ -49,17 +51,14 @@ import java.util.Map;
  */
 public final class MambaBuilder extends BaseBuilder<MambaBuilder> {
 
-	private String source;
-	private String scheme;
-
 	public MambaBuilder() {}
 
 	public MambaBuilder(String source) {
-		this.source = source;
+		this.sourceFile = source;
 	}
 
 	public MambaBuilder(String source, String scheme) {
-		this.source = source;
+		this.sourceFile = source;
 		this.scheme = scheme;
 	}
 
@@ -86,29 +85,27 @@ public final class MambaBuilder extends BaseBuilder<MambaBuilder> {
 			throw new IOException("Cannot use MambaBuilder: environment already managed by UV/venv at " + envDir);
 		}
 
+		// Resolve configuration content (from file, content string, or null)
+		String configContent = resolveConfigContent();
+
 		// Is this envDir an already-existing conda directory?
 		boolean isCondaDir = new File(envDir, "conda-meta").isDirectory();
-		if (isCondaDir) {
-			// Environment already exists, just wrap it
+		if (isCondaDir && configContent == null) {
+			// Environment already exists and no new config, just wrap it
 			return createEnvironment(envDir);
 		}
 
-		// Building a new environment - source file is required
-		if (source == null) {
-			throw new IllegalStateException("No source file specified for MambaBuilder");
+		// Building a new environment - config content is required
+		if (configContent == null) {
+			throw new IllegalStateException("No source specified for MambaBuilder. Use .file() or .content()");
 		}
 
-		File sourceFile = new File(source);
-		if (!sourceFile.exists()) {
-			throw new IOException("Source file not found: " + source);
-		}
-
-		// Determine scheme if not specified
+		// Infer scheme if not explicitly set
 		if (scheme == null) {
-			if (source.endsWith(".yml") || source.endsWith(".yaml")) {
-				scheme = "environment.yml";
+			if (sourceFile != null) {
+				scheme = inferSchemeFromFilename(new File(sourceFile).getName());
 			} else {
-				throw new IllegalArgumentException("MambaBuilder only supports environment.yml files");
+				scheme = inferSchemeFromContent(configContent);
 			}
 		}
 
@@ -138,9 +135,16 @@ public final class MambaBuilder extends BaseBuilder<MambaBuilder> {
 		try {
 			mamba.installMicromamba();
 
-			// Create environment from YAML.
-			// If envDir exists but isn't a conda dir, mamba will fail with clear error.
-			mamba.createWithYaml(envDir, sourceFile.getAbsolutePath());
+			// Two-step build: create empty env, write config, then update
+			// Step 1: Create empty environment
+			mamba.create(envDir);
+
+			// Step 2: Write environment.yml to envDir
+			File envYaml = new File(envDir, "environment.yml");
+			Files.write(envYaml.toPath(), configContent.getBytes(StandardCharsets.UTF_8));
+
+			// Step 3: Update environment from yml
+			mamba.update(envDir, envYaml);
 
 			return createEnvironment(envDir);
 		} catch (InterruptedException | URISyntaxException e) {
@@ -165,9 +169,9 @@ public final class MambaBuilder extends BaseBuilder<MambaBuilder> {
 	@Override
 	public String suggestEnvName() {
 		// Try to extract name from environment.yml
-		if (source != null) {
-			File sourceFile = new File(source);
-			if (sourceFile.exists()) {
+		if (sourceFile != null) {
+			File f = new File(sourceFile);
+			if (f.exists()) {
 				try (BufferedReader reader = new BufferedReader(new FileReader(sourceFile))) {
 					String line;
 					while ((line = reader.readLine()) != null) {

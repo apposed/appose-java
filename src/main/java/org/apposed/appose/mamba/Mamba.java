@@ -447,6 +447,44 @@ public class Mamba {
 	}
 
 	/**
+	 * Creates an empty conda environment at the specified directory.
+	 * This is useful for two-step builds: create empty, then update with environment.yml.
+	 *
+	 * @param envDir
+	 *            The directory where the environment will be created.
+	 * @throws IOException
+	 *             If an I/O error occurs.
+	 * @throws InterruptedException
+	 *             If the current thread is interrupted.
+	 * @throws IllegalStateException if Micromamba has not been installed
+	 */
+	public void create(final File envDir) throws IOException, InterruptedException
+	{
+		checkMambaInstalled();
+		runMamba("create", "--prefix", envDir.getAbsolutePath(), "-y", "--no-rc");
+	}
+
+	/**
+	 * Updates an existing conda environment from an environment.yml file.
+	 *
+	 * @param envDir
+	 *            The directory of the existing environment.
+	 * @param envYaml
+	 *            Path to the environment.yml file.
+	 * @throws IOException
+	 *             If an I/O error occurs.
+	 * @throws InterruptedException
+	 *             If the current thread is interrupted.
+	 * @throws IllegalStateException if Micromamba has not been installed
+	 */
+	public void update(final File envDir, final File envYaml) throws IOException, InterruptedException
+	{
+		checkMambaInstalled();
+		runMamba("env", "update", "-y", "--prefix",
+				envDir.getAbsolutePath(), "-f", envYaml.getAbsolutePath());
+	}
+
+	/**
 	 * Returns Conda version as a {@code String}.
 	 * 
 	 * @return The Conda version as a {@code String}.
