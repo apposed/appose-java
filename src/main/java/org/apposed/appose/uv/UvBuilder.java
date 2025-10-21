@@ -154,11 +154,6 @@ public final class UvBuilder extends BaseBuilder<UvBuilder> {
 				uv.pipInstallFromRequirements(envDir, sourceFile.getAbsolutePath());
 			} else {
 				// Programmatic package building
-				if (isUvVenv && packages.isEmpty()) {
-					// Already initialized with no new packages, just use it
-					return createEnvironment(envDir);
-				}
-
 				if (!isUvVenv) {
 					// Create virtual environment
 					uv.createVenv(envDir, pythonVersion);
