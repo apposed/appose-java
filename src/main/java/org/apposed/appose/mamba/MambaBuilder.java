@@ -64,7 +64,9 @@ public class MambaBuilder extends BaseBuilder {
 	}
 
 	@Override
-	public Environment build(File envDir) throws IOException {
+	public Environment build() throws IOException {
+		File envDir = envDir();
+
 		// Check for incompatible existing environments
 		if (new File(envDir, ".pixi").isDirectory()) {
 			throw new IOException("Cannot use MambaBuilder: environment already managed by Pixi at " + envDir);

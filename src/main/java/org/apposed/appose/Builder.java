@@ -29,10 +29,11 @@
 
 package org.apposed.appose;
 
-import org.apposed.appose.util.Builders;
-
 import java.io.File;
 import java.io.IOException;
+import java.util.Arrays;
+import java.util.List;
+import java.util.Map;
 import java.util.function.Consumer;
 
 /**
@@ -45,42 +46,87 @@ import java.util.function.Consumer;
  */
 public interface Builder {
 
-	// ===== CORE BUILDING METHODS =====
+	/**
+	 * Builds the environment. This is the terminator method for any fluid building chain.
+	 *
+	 * @return The newly constructed Appose {@link Environment}.
+	 * @throws IOException If something goes wrong building the environment.
+	 */
+	Environment build() throws IOException;
 
 	/**
-	 * Builds the environment at the specified directory.
+	 * Sets an environment variable to be passed to worker processes.
+	 *
+	 * @param key The environment variable name.
+	 * @param value The environment variable value.
+	 * @return This builder instance, for fluent-style programming.
+	 */
+	Builder env(String key, String value);
+
+	/**
+	 * Sets multiple environment variables to be passed to worker processes.
+	 *
+	 * @param vars Map of environment variable names to values.
+	 * @return This builder instance, for fluent-style programming.
+	 */
+	Builder env(Map<String, String> vars);
+
+	/**
+	 * Sets the name for the environment.
+	 * The environment will be created in the standard Appose environments directory with this name.
+	 *
+	 * @param envName The name for the environment.
+	 * @return This builder instance, for fluent-style programming.
+	 */
+	Builder name(String envName);
+
+	/**
+	 * Sets the base directory for the environment.
+	 * For many builders, this overrides any name specified via {@link #name(String)}.
 	 *
 	 * @param envDir The directory for the environment.
-	 * @return The newly constructed Appose {@link Environment}.
-	 * @throws IOException If something goes wrong building the environment.
+	 * @return This builder instance, for fluent-style programming.
 	 */
-	Environment build(File envDir) throws IOException;
-
-	/**
-	 * Builds the environment with the specified name.
-	 * Default implementation resolves the name to a directory and delegates to build(File).
-	 *
-	 * @param envName The name for the environment, or null to auto-generate.
-	 * @return The newly constructed Appose {@link Environment}.
-	 * @throws IOException If something goes wrong building the environment.
-	 */
-	default Environment build(String envName) throws IOException {
-		File envDir = Builders.determineEnvDir(this, envName);
-		return build(envDir);
+	default Builder base(String envDir) {
+		return base(new File(envDir));
 	}
 
 	/**
-	 * Builds the environment with an auto-generated name.
-	 * Default implementation calls build(String) with null.
+	 * Sets the base directory for the environment.
+	 * For many builders, this overrides any name specified via {@link #name(String)}.
 	 *
-	 * @return The newly constructed Appose {@link Environment}.
-	 * @throws IOException If something goes wrong building the environment.
+	 * @param envDir The directory for the environment.
+	 * @return This builder instance, for fluent-style programming.
 	 */
-	default Environment build() throws IOException {
-		return build((String) null);
+	Builder base(File envDir);
+
+	/**
+	 * Adds channels/repositories to search for packages.
+	 * The interpretation of channels is builder-specific; e.g.:
+	 * - Pixi/Mamba: conda channels (e.g., "conda-forge", "bioconda")
+	 * - UV: PyPI index URLs (e.g., custom package indexes)
+	 * - Maven: Maven repository URLs
+	 * - npm: npm registries
+	 *
+	 * @param channels Channel names or URLs to add.
+	 * @return This builder instance, for fluent-style programming.
+	 */
+	default Builder channels(String... channels) {
+		return channels(Arrays.asList(channels));
 	}
 
-	// ===== FLUENT CONFIGURATION METHODS =====
+	/**
+	 * Adds channels/repositories to search for packages.
+	 * The interpretation of channels is builder-specific: e.g.:
+	 * - Pixi/Mamba: conda channels (e.g., "conda-forge", "bioconda")
+	 * - UV: PyPI index URLs (e.g., custom package indexes)
+	 * - Maven: Maven repository URLs
+	 * - npm: npm registries
+	 *
+	 * @param channels List of channel names or URLs to add.
+	 * @return This builder instance, for fluent-style programming.
+	 */
+	Builder channels(List<String> channels);
 
 	/**
 	 * Registers a callback method to be invoked when progress happens during environment building.
@@ -88,7 +134,7 @@ public interface Builder {
 	 * @param subscriber Party to inform when build progress happens.
 	 * @return This builder instance, for fluent-style programming.
 	 */
-	Builder subscribeProgress(BaseBuilder.ProgressConsumer subscriber);
+	Builder subscribeProgress(ProgressConsumer subscriber);
 
 	/**
 	 * Registers a callback method to be invoked when output is generated during environment building.
@@ -115,16 +161,6 @@ public interface Builder {
 	default Builder logDebug() {
 		return subscribeOutput(System.err::println).subscribeError(System.err::println);
 	}
-
-	// ===== NAMING =====
-
-	/**
-	 * Suggests a name for the environment based on builder-specific logic.
-	 * Used when no explicit name is provided.
-	 *
-	 * @return A suggested environment name.
-	 */
-	String suggestEnvName();
 
 	/**
 	 * Functional interface for progress callbacks.

@@ -160,7 +160,8 @@ public class ApposeTest {
 			.conda("python>=3.8", "pip")
 			.pypi("cowsay==6.1")
 			.logDebug()
-			.build("appose-cowsay-builder");
+			.name("appose-cowsay-builder")
+			.build();
 		cowsayAndAssert(env, "ooh");
 	}
 
@@ -171,7 +172,8 @@ public class ApposeTest {
 			.file("src/test/resources/envs/cowsay.yml")
 			.builder("mamba")
 			.logDebug()
-			.build("appose-cowsay-mamba");
+			.name("appose-cowsay-mamba")
+			.build();
 
 		// Verify it's actually using mamba by checking for conda-meta directory
 		File envBase = new File(env.base());
@@ -197,7 +199,8 @@ public class ApposeTest {
 			.uv()
 			.include("cowsay==6.1")
 			.logDebug()
-			.build("appose-cowsay-uv");
+			.name("appose-cowsay-uv")
+			.build();
 		cowsayAndAssert(env, "fast");
 	}
 

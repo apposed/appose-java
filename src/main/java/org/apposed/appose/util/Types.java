@@ -90,7 +90,7 @@ public final class Types {
 	}
 
 
-	// == serialization =======================================================
+	// -- Serialization --
 
 	/*
 		SharedMemory is represented in JSON as
@@ -166,7 +166,7 @@ public final class Types {
 			})).build();
 
 
-	// == deserialization =====================================================
+	// -- Deserialization --
 
 	@SuppressWarnings("unchecked")
 	private static Map<String, Object> postProcess(Object parseResult) {

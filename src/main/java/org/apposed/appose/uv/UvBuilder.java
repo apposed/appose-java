@@ -32,12 +32,9 @@ package org.apposed.appose.uv;
 import org.apposed.appose.BaseBuilder;
 import org.apposed.appose.Environment;
 
-import java.io.BufferedReader;
 import java.io.File;
-import java.io.FileReader;
 import java.io.IOException;
 import java.net.URISyntaxException;
-import java.nio.file.Files;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -55,6 +52,7 @@ public class UvBuilder extends BaseBuilder {
 	private String scheme;
 	private String pythonVersion;
 	private final List<String> packages = new ArrayList<>();
+	private final List<String> indexes = new ArrayList<>();
 
 	public UvBuilder() {}
 
@@ -89,8 +87,23 @@ public class UvBuilder extends BaseBuilder {
 		return this;
 	}
 
+	/**
+	 * Adds PyPI index URLs for package discovery.
+	 * These are alternative or additional package indexes beyond the default pypi.org.
+	 *
+	 * @param indexes Index URLs (e.g., custom PyPI mirrors or private package repositories)
+	 * @return This builder instance, for fluent-style programming.
+	 */
 	@Override
-	public Environment build(File envDir) throws IOException {
+	public UvBuilder channels(String... indexes) {
+		this.indexes.addAll(Arrays.asList(indexes));
+		return this;
+	}
+
+	@Override
+	public Environment build() throws IOException {
+		File envDir = envDir();
+
 		// Check for incompatible existing environments
 		if (new File(envDir, ".pixi").isDirectory()) {
 			throw new IOException("Cannot use UvBuilder: environment already managed by Pixi at " + envDir);
@@ -197,7 +210,7 @@ public class UvBuilder extends BaseBuilder {
 	}
 
 	@Override
-	public String suggestEnvName() {
+	protected String suggestEnvName() {
 		// Try to extract name from requirements.txt if present
 		if (source != null) {
 			File sourceFile = new File(source);

@@ -33,6 +33,8 @@ import org.apposed.appose.util.Environments;
 
 import java.io.File;
 import java.io.IOException;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -50,9 +52,7 @@ public class SimpleBuilder extends BaseBuilder {
 
 	private final List<String> customBinPaths = new ArrayList<>();
 
-	public SimpleBuilder() {
-		// No default binPaths - user must configure explicitly
-	}
+	// -- SimpleBuilder methods --
 
 	/**
 	 * Appends additional binary paths to search for executables.
@@ -62,8 +62,7 @@ public class SimpleBuilder extends BaseBuilder {
 	 * @return This builder instance, for fluent-style programming.
 	 */
 	public SimpleBuilder binPaths(String... paths) {
-		customBinPaths.addAll(Arrays.asList(paths));
-		return this;
+		return binPaths(Arrays.asList(paths));
 	}
 
 	/**
@@ -116,29 +115,32 @@ public class SimpleBuilder extends BaseBuilder {
 		return this;
 	}
 
+	// -- Builder methods --
+
 	@Override
-	public Environment build(String envName) throws IOException {
+	public SimpleBuilder name(String envName) {
 		throw new UnsupportedOperationException(
 			"SimpleBuilder does not support named environments. " +
-			"Use build() or build(File) to specify the working directory.");
+			"Use base(File) to specify the working directory.");
+	}
+
+	@Override
+	public SimpleBuilder channels(List<String> channels) {
+		throw new UnsupportedOperationException(
+			"SimpleBuilder does not support package channels. " +
+			"It uses existing executables without package management.");
 	}
 
 	@Override
 	public Environment build() throws IOException {
-		return build(new File("."));
-	}
+		File base = envDir();
+		if (base == null) base = new File(".");
 
-	@Override
-	public Environment build(File envDir) throws IOException {
 		// Create directory if it doesn't exist
-		if (!envDir.exists() && !envDir.mkdirs()) {
-			throw new IOException("Failed to create base directory: " + envDir);
+		if (!base.exists() && !base.mkdirs()) {
+			throw new IOException("Failed to create base directory: " + base);
 		}
 
-		return createEnvironment(envDir);
-	}
-
-	private Environment createEnvironment(File base) {
 		String basePath = base.getAbsolutePath();
 		List<String> launchArgs = new ArrayList<>();
 		List<String> binPaths = new ArrayList<>();
@@ -167,5 +169,11 @@ public class SimpleBuilder extends BaseBuilder {
 		throw new UnsupportedOperationException(
 			"SimpleBuilder does not use named environments.");
 	}
-}
 
+	// -- Internal methods --
+
+	@Override
+	protected File envDir() {
+		return envDir != null ? envDir : new File(".");
+	}
+}

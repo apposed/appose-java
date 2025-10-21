@@ -30,7 +30,8 @@
 package org.apposed.appose;
 
 import java.io.File;
-import java.io.IOException;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -49,101 +50,84 @@ public abstract class BaseBuilder implements Builder {
 	public final List<Consumer<String>> outputSubscribers = new ArrayList<>();
 	public final List<Consumer<String>> errorSubscribers = new ArrayList<>();
 	public final Map<String, String> envVars = new HashMap<>();
+	public final List<String> channels = new ArrayList<>();
+	protected String envName;
+	protected File envDir;
 
-	/**
-	 * Registers a callback method to be invoked when progress happens during environment building.
-	 *
-	 * @param subscriber Party to inform when build progress happens.
-	 * @return This builder instance, for fluent-style programming.
-	 */
-	public BaseBuilder subscribeProgress(ProgressConsumer subscriber) {
+	// -- Builder methods --
+
+	@Override
+	public Builder subscribeProgress(ProgressConsumer subscriber) {
 		progressSubscribers.add(subscriber);
 		return this;
 	}
 
-	/**
-	 * Registers a callback method to be invoked when output is generated during environment building.
-	 *
-	 * @param subscriber Party to inform when build output happens.
-	 * @return This builder instance, for fluent-style programming.
-	 */
-	public BaseBuilder subscribeOutput(Consumer<String> subscriber) {
+	@Override
+	public Builder subscribeOutput(Consumer<String> subscriber) {
 		outputSubscribers.add(subscriber);
 		return this;
 	}
 
-	/**
-	 * Registers a callback method to be invoked when errors occur during environment building.
-	 *
-	 * @param subscriber Party to inform when build errors happen.
-	 * @return This builder instance, for fluent-style programming.
-	 */
-	public BaseBuilder subscribeError(Consumer<String> subscriber) {
+	@Override
+	public Builder subscribeError(Consumer<String> subscriber) {
 		errorSubscribers.add(subscriber);
 		return this;
 	}
 
-	/**
-	 * Convenience method to log debug output to stderr.
-	 *
-	 * @return This builder instance, for fluent-style programming.
-	 */
-	public BaseBuilder logDebug() {
-		return subscribeOutput(System.err::println).subscribeError(System.err::println);
-	}
-
-	/**
-	 * Sets an environment variable to be passed to worker processes.
-	 *
-	 * @param key The environment variable name.
-	 * @param value The environment variable value.
-	 * @return This builder instance, for fluent-style programming.
-	 */
+	@Override
 	public BaseBuilder env(String key, String value) {
 		envVars.put(key, value);
 		return this;
 	}
 
-	/**
-	 * Sets multiple environment variables to be passed to worker processes.
-	 *
-	 * @param vars Map of environment variable names to values.
-	 * @return This builder instance, for fluent-style programming.
-	 */
+	@Override
 	public BaseBuilder env(Map<String, String> vars) {
 		envVars.putAll(vars);
 		return this;
 	}
 
-	/**
-	 * Builds the environment with an auto-generated name.
-	 *
-	 * @return The newly constructed Appose {@link Environment}.
-	 * @throws IOException If something goes wrong building the environment.
-	 */
-	public Environment build() throws IOException {
-		return build((String) null);
+	@Override
+	public Builder name(String envName) {
+		this.envName = envName;
+		return this;
 	}
 
-	// ===== BUILDER INTERFACE IMPLEMENTATION =====
-
-	/**
-	 * Builds the environment at the specified directory.
-	 * Concrete builders must implement this method.
-	 *
-	 * @param envDir The directory for the environment.
-	 * @return The newly constructed Appose {@link Environment}.
-	 * @throws IOException If something goes wrong building the environment.
-	 */
 	@Override
-	public abstract Environment build(File envDir) throws IOException;
+	public Builder base(File envDir) {
+		this.envDir = envDir;
+		return this;
+	}
+
+	@Override
+	public Builder channels(List<String> channels) {
+		this.channels.addAll(channels);
+		return this;
+	}
+
+	// -- Internal methods --
 
 	/**
 	 * Suggests a name for the environment based on builder-specific logic.
-	 * Concrete builders must implement this method.
+	 * Used when no explicit name is provided.
 	 *
-	 * @return A suggested environment name.
+	 * @return A suggested environment name, never {@code null}.
 	 */
-	@Override
-	public abstract String suggestEnvName();
+	protected abstract String suggestEnvName();
+
+	protected String envName() {
+		return envName != null ? envName : suggestEnvName();
+	}
+
+	protected File envDir() {
+		if (envDir != null) return envDir;
+		String envsDirPath = System.getProperty("appose.envs-dir");
+		if (envsDirPath == null) {
+			String userHome = System.getProperty("user.home");
+			Path p = Paths.get(userHome, ".local", "share", "appose");
+			envsDirPath = p.toString();
+		}
+		String envDirName = envName == null ? suggestEnvName() : envName;
+		assert envDirName != null;
+		return Paths.get(envsDirPath, envDirName).toFile();
+	}
 }

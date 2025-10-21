@@ -29,6 +29,8 @@
 
 package org.apposed.appose;
 
+import java.io.File;
+
 /**
  * Factory interface for creating builder instances.
  * Implementations are discovered via ServiceLoader and provide
@@ -92,5 +94,5 @@ public interface BuilderFactory {
 	 * @param envDir The directory to check
 	 * @return true if this builder can wrap the directory
 	 */
-	boolean canWrap(java.io.File envDir);
+	boolean canWrap(File envDir);
 }

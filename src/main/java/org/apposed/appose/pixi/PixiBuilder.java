@@ -96,13 +96,16 @@ public class PixiBuilder extends BaseBuilder {
 	 * @param channels Channel names (e.g., "conda-forge", "bioconda")
 	 * @return This builder instance, for fluent-style programming.
 	 */
+	@Override
 	public PixiBuilder channels(String... channels) {
 		this.channels.addAll(Arrays.asList(channels));
 		return this;
 	}
 
 	@Override
-	public Environment build(File envDir) throws IOException {
+	public Environment build() throws IOException {
+		File envDir = envDir();
+
 		// Check for incompatible existing environments
 		if (new File(envDir, "conda-meta").exists() && !new File(envDir, ".pixi").exists()) {
 			throw new IOException("Cannot use PixiBuilder: environment already managed by Mamba/Conda at " + envDir);

@@ -29,12 +29,9 @@
 
 package org.apposed.appose.util;
 
-import org.apposed.appose.Builder;
 import org.apposed.appose.BuilderFactory;
 
 import java.io.File;
-import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.ServiceLoader;
@@ -118,18 +115,14 @@ public final class Builders {
 		return null;
 	}
 
-	/**
-	 * Determines the environment directory based on the name and builder type.
-	 *
-	 * @param builder The builder to get suggestions from.
-	 * @param envName The environment name, or null to use builder's suggestion.
-	 * @return The environment directory.
-	 */
-	public static File determineEnvDir(Builder builder, String envName) {
-		if (envName == null) {
-			envName = builder.suggestEnvName();
-		}
-		Path envPath = Paths.get(System.getProperty("user.home"), ".local", "share", "appose", envName);
-		return envPath.toFile();
+	public static BuilderFactory findFactoryBySource(String source) {
+		// FIXME: This logic needs to be extensible by factory.
+		// E.g. toml could be pyproject.toml or pixi.toml -- need to check inside it if name is not obvious.
+		// Maybe schemes should have their own plugin type... -_-
+		if (source == null) throw new NullPointerException("Cannot auto-detect scheme: no source specified");
+		if (source.endsWith(".toml")) return findFactoryByName("pixi");
+		if (source.endsWith(".yml") || source.endsWith(".yaml")) return findFactoryByName("pixi");
+		if (source.endsWith(".txt")) return findFactoryByName("uv");
+		throw new IllegalArgumentException("Cannot auto-detect scheme from: " + source);
 	}
 }

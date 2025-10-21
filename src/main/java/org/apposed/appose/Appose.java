@@ -248,7 +248,7 @@ import java.io.IOException;
  */
 public class Appose {
 
-	// ===== TYPE-SAFE BUILDERS =====
+	// -- Fluid Builder API access --
 
 	/**
 	 * Creates a Pixi-based environment builder.
@@ -310,8 +310,6 @@ public class Appose {
 		return new UvBuilder(source);
 	}
 
-	// ===== GENERIC AUTO-DETECTING BUILDER =====
-
 	/**
 	 * Creates a builder that auto-detects the appropriate handler
 	 * based on the source file extension.
@@ -323,7 +321,7 @@ public class Appose {
 		return new DynamicBuilder(source);
 	}
 
-	// ===== DIRECT ENVIRONMENT SHORTCUTS =====
+	// -- Direct Environment shortcuts --
 
 	/**
 	 * Wraps an existing environment directory, automatically detecting the environment type.
@@ -339,15 +337,15 @@ public class Appose {
 			throw new IOException("Environment directory does not exist: " + envDir);
 		}
 
-		// Find a builder factory that can wrap this directory
+		// Find a builder factory that can wrap this directory.
 		BuilderFactory factory = Builders.findFactoryForWrapping(envDir);
 
 		if (factory != null) {
-			return factory.createBuilder().build(envDir);
+			return factory.createBuilder().base(envDir).build();
 		}
 
-		// Default to simple builder (no special activation, just use binaries in directory)
-		return new SimpleBuilder().build(envDir);
+		// Default to simple builder (no special activation, just use binaries in directory).
+		return new SimpleBuilder().base(envDir).build();
 	}
 
 	/**

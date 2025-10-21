@@ -31,7 +31,6 @@ package org.apposed.appose;
 
 import org.apposed.appose.util.Builders;
 
-import java.io.File;
 import java.io.IOException;
 
 /**
@@ -45,12 +44,13 @@ public class DynamicBuilder extends BaseBuilder {
 	private final String source;
 	private String scheme;
 	private String builderName;
-	private BaseBuilder delegate;
 
 	// Package-private constructor for Appose class
 	DynamicBuilder(String source) {
 		this.source = source;
 	}
+
+	// -- DynamicBuilder methods --
 
 	/**
 	 * Specifies the scheme for the source file.
@@ -75,93 +75,55 @@ public class DynamicBuilder extends BaseBuilder {
 		return this;
 	}
 
-	@Override
-	public Environment build(File envDir) throws IOException {
-		if (delegate == null) {
-			delegate = resolveDelegate();
-			// Copy subscribers from dynamic builder to delegate
-			delegate.progressSubscribers.addAll(this.progressSubscribers);
-			delegate.outputSubscribers.addAll(this.outputSubscribers);
-			delegate.errorSubscribers.addAll(this.errorSubscribers);
-		}
-		return delegate.build(envDir);
-	}
-
-	private BaseBuilder resolveDelegate() {
-		// 1. Parse scheme:builder syntax if present
-		String actualScheme = scheme;
-		String actualBuilder = builderName;
-
-		if (scheme != null && scheme.contains(":")) {
-			String[] parts = scheme.split(":", 2);
-			actualScheme = parts[0];
-			if (actualBuilder == null) actualBuilder = parts[1];
-		}
-
-		// 2. Auto-detect scheme if needed
-		if (actualScheme == null) {
-			actualScheme = detectScheme(source);
-		}
-
-		// 3. Pick builder based on preference or scheme
-		if (actualBuilder != null) {
-			// Explicit builder requested
-			return createBuilder(actualBuilder, source, actualScheme);
-		}
-
-		// 4. Default builder selection by scheme
-		return selectDefaultBuilder(actualScheme, source);
-	}
-
-	private String detectScheme(String source) {
-		if (source == null) {
-			throw new IllegalArgumentException("Cannot auto-detect scheme: no source specified");
-		}
-		if (source.endsWith(".toml")) return "pixi.toml";
-		if (source.endsWith(".yml") || source.endsWith(".yaml")) return "environment.yml";
-		if (source.endsWith(".txt")) return "requirements.txt";
-		throw new IllegalArgumentException("Cannot auto-detect scheme from: " + source);
-	}
-
-	private BaseBuilder createBuilder(String builderName, String source, String scheme) {
-		// Find factory by name using ServiceLoader
-		BuilderFactory factory = Builders.findFactoryByName(builderName);
-		if (factory == null) {
-			throw new IllegalArgumentException("Unknown builder: " + builderName);
-		}
-
-		// Create builder instance via factory
-		Builder builder = factory.createBuilder(source, scheme);
-		if (!(builder instanceof BaseBuilder)) {
-			throw new IllegalArgumentException("Builder must extend BaseBuilder: " + builderName);
-		}
-
-		return (BaseBuilder) builder;
-	}
-
-	private BaseBuilder selectDefaultBuilder(String scheme, String source) {
-		// Find the highest-priority factory that supports this scheme
-		BuilderFactory factory = Builders.findFactoryByScheme(scheme);
-		if (factory == null) {
-			throw new IllegalArgumentException("No builder supports scheme: " + scheme);
-		}
-
-		// Create builder instance via factory
-		Builder builder = factory.createBuilder(source, scheme);
-		if (!(builder instanceof BaseBuilder)) {
-			throw new IllegalArgumentException("Builder must extend BaseBuilder for scheme: " + scheme);
-		}
-
-		return (BaseBuilder) builder;
-	}
+	// -- Builder methods --
 
 	@Override
-	public String suggestEnvName() {
-		// Delegate to the resolved builder
-		if (delegate == null) {
-			delegate = resolveDelegate();
+	public Environment build() throws IOException {
+		Builder delegate = createBuilder(builderName, source, scheme);
+
+		// Copy configuration from dynamic builder to delegate.
+		delegate.env(envVars);
+		if (envName != null) delegate.name(envName);
+		if (envDir != null) delegate.base(envDir);
+		delegate.channels(channels);
+		progressSubscribers.forEach(delegate::subscribeProgress);
+		outputSubscribers.forEach(delegate::subscribeOutput);
+		errorSubscribers.forEach(delegate::subscribeError);
+
+		return delegate.build();
+	}
+
+	// -- Internal methods --
+
+	@Override
+	protected String suggestEnvName() {
+		throw new UnsupportedOperationException();
+	}
+
+	// -- Helper methods --
+
+	private Builder createBuilder(String name, String source, String scheme) {
+		// Find the builder matching the specified name, if any.
+		if (name != null) {
+			BuilderFactory factory = Builders.findFactoryByName(name);
+			if (factory == null) throw new IllegalArgumentException("Unknown builder: " + name);
+			return factory.createBuilder(source, scheme);
 		}
-		return delegate.suggestEnvName();
+
+		// Find the highest-priority builder that supports this scheme.
+		if (scheme != null) {
+			BuilderFactory factory = Builders.findFactoryByScheme(scheme);
+			if (factory == null) throw new IllegalArgumentException("No builder supports scheme: " + scheme);
+			return factory.createBuilder(source, scheme);
+		}
+
+		// Find the highest-priority builder that supports this source.
+		if (source != null) {
+			BuilderFactory factory = Builders.findFactoryBySource(source);
+			if (factory == null) throw new IllegalArgumentException("No builder supports source: " + source);
+			return factory.createBuilder(source, scheme);
+		}
+
+		throw new IllegalArgumentException("At least one of builder name, source, and scheme must be non-null");
 	}
 }
-
