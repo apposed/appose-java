@@ -402,8 +402,8 @@ public class Appose {
 	 *   or {@code "<dev>"} if there is no enclosing JAR with
 	 *   appropriate manifest entries.
 	 */
-	public static String getVersion() {
-		String v = Versions.getVersion(Appose.class);
+	public static String version() {
+		String v = Versions.version(Appose.class);
 		return v == null ? "<dev>" : v;
 	}
 }

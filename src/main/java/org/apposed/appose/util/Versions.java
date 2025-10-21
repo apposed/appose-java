@@ -47,8 +47,8 @@ public final class Versions {
 	}
 
 	/** Gets the version of the resource (e.g. JAR file) containing the given class. */
-	public static String getVersion(Class<?> c) {
-		Manifest m = getManifest(c);
+	public static String version(Class<?> c) {
+		Manifest m = manifest(c);
 		if (m == null) return null;
 		Attributes mainAttrs = m.getMainAttributes();
 		String specVersion = mainAttrs.getValue("Specification-Version");
@@ -60,16 +60,16 @@ public final class Versions {
 	}
 
 	/** Gets the JAR manifest associated with the given class. */
-	private static Manifest getManifest(Class<?> c) {
+	private static Manifest manifest(Class<?> c) {
 		try {
-			return getManifest(new URL("jar:" + FilePaths.location(c) + "!/"));
+			return manifest(new URL("jar:" + FilePaths.location(c) + "!/"));
 		}
 		catch (IOException e) {
 			return null;
 		}
 	}
 
-	private static Manifest getManifest(URL jarURL) throws IOException {
+	private static Manifest manifest(URL jarURL) throws IOException {
 		JarURLConnection conn = (JarURLConnection) jarURL.openConnection();
 		return new Manifest(conn.getManifest());
 	}

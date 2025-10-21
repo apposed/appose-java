@@ -35,6 +35,7 @@ import org.apache.commons.compress.archivers.tar.TarArchiveEntry;
 import org.apache.commons.compress.archivers.tar.TarArchiveInputStream;
 import org.apache.commons.compress.compressors.bzip2.BZip2CompressorInputStream;
 import org.apache.commons.compress.compressors.gzip.GzipCompressorInputStream;
+import org.apposed.appose.Appose;
 
 import java.io.BufferedInputStream;
 import java.io.File;
@@ -244,8 +245,7 @@ public final class Downloads {
 		HttpURLConnection conn = null;
 		try {
 			conn = (HttpURLConnection) url.openConnection();
-			// TODO: Fix user agent.
-			conn.setRequestProperty("User-Agent", "Appose/0.1.0(" + System.getProperty("os.name") + "; Java " + System.getProperty("java.version"));
+			conn.setRequestProperty("User-Agent", userAgent());
 			if (conn.getResponseCode() >= 300 && conn.getResponseCode() <= 308)
 				return getFileSize(redirectedURL(url));
 			if (conn.getResponseCode() != 200)
@@ -261,5 +261,16 @@ public final class Downloads {
 			System.out.println(msg);
 			return 1;
 		}
+	}
+
+	private static String userAgent() {
+		final String javaVersion = System.getProperty("java.version");
+		final String osName = System.getProperty("os.name");
+		final String osVersion = System.getProperty("os.version");
+		final String osArch = System.getProperty("os.arch");
+		final String os = osName + "-" +
+			(osVersion != null ? osVersion + "-" : "") + osArch;
+		return "Appose/" + Appose.version() +
+			" (Java " + javaVersion + "/" + os + ")";
 	}
 }
