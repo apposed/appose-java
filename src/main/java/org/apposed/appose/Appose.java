@@ -386,8 +386,8 @@ public class Appose {
 	}
 
 	/**
-	 * Creates a custom simple environment builder with no defaults.
-	 * Use this when you need explicit control over binary paths and configuration.
+	 * Creates a custom simple environment builder with no defaults. Use this
+	 * when you need explicit control over binary paths and configuration.
 	 *
 	 * @return A new SimpleBuilder instance.
 	 * @see #wrap(File)
