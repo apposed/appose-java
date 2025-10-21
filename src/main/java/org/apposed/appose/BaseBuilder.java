@@ -29,8 +29,9 @@
 
 package org.apposed.appose;
 
+import org.apposed.appose.util.Environments;
+
 import java.io.File;
-import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -121,14 +122,8 @@ public abstract class BaseBuilder<T extends BaseBuilder<T>> implements Builder<T
 
 	protected File envDir() {
 		if (envDir != null) return envDir;
-		String envsDirPath = System.getProperty("appose.envs-dir");
-		if (envsDirPath == null) {
-			String userHome = System.getProperty("user.home");
-			Path p = Paths.get(userHome, ".local", "share", "appose");
-			envsDirPath = p.toString();
-		}
-		String envDirName = envName == null ? suggestEnvName() : envName;
-		assert envDirName != null;
-		return Paths.get(envsDirPath, envDirName).toFile();
+		// No explicit environment directory set; fall back to
+		// a subfolder of the Appose-managed environments directory.
+		return Paths.get(Environments.apposeEnvsDir(), envName()).toFile();
 	}
 }

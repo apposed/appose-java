@@ -30,6 +30,7 @@
 package org.apposed.appose.util;
 
 import java.io.File;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -80,5 +81,19 @@ public final class Environments {
 		}
 		String separator = File.pathSeparator;
 		return Arrays.asList(pathEnv.split(separator));
+	}
+
+	/**
+	 * Gets the top-level directory for Appose-managed environments.
+	 * Defaults to {@code ~/.local/share/appose} but can be overridden
+	 * by setting the {@code appose.envs-dir} system property.
+	 *
+	 * @return The directory housing all Appose-managed environments.
+	 */
+	public static String apposeEnvsDir() {
+		String envsDir = System.getProperty("appose.envs-dir");
+		if (envsDir != null) return envsDir;
+		String userHome = System.getProperty("user.home");
+		return Paths.get(userHome, ".local", "share", "appose").toString();
 	}
 }

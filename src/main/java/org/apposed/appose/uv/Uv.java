@@ -30,6 +30,7 @@
 package org.apposed.appose.uv;
 
 import org.apposed.appose.util.Downloads;
+import org.apposed.appose.util.Environments;
 import org.apposed.appose.util.FileDownloader;
 import org.apposed.appose.util.Platforms;
 import org.apposed.appose.util.Processes;
@@ -59,6 +60,7 @@ import java.util.stream.Collectors;
  * UV is a fast Python package installer and resolver written in Rust.
  *
  * @author Curtis Rueden
+ * @author Claude Code
  */
 public class Uv {
 
@@ -107,9 +109,9 @@ public class Uv {
 			Paths.get(".uv", "bin", "uv");
 
 	/**
-	 * Path where Appose installs UV by default
+	 * Path where Appose installs uv by default ({@code .uv} subdirectory thereof).
 	 */
-	final public static String BASE_PATH = Paths.get(System.getProperty("user.home"), ".local", "share", "appose").toString();
+	public static final String BASE_PATH = Environments.apposeEnvsDir();
 
 	/**
 	 * UV version to download

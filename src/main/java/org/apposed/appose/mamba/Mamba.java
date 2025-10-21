@@ -60,6 +60,7 @@
 package org.apposed.appose.mamba;
 
 import org.apposed.appose.util.Downloads;
+import org.apposed.appose.util.Environments;
 import org.apposed.appose.util.FileDownloader;
 import org.apposed.appose.util.Processes;
 
@@ -146,7 +147,7 @@ public class Mamba {
 	/**
 	 * Path where Appose installs Micromamba by default
 	 */
-	final public static String BASE_PATH = Paths.get(System.getProperty("user.home"), ".local", "share", "appose", "micromamba").toString();
+	public static final String BASE_PATH = Paths.get(Environments.apposeEnvsDir(), "micromamba").toString();
 
 	/**
 	 * URL from where Micromamba is downloaded to be installed

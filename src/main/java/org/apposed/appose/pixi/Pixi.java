@@ -30,6 +30,7 @@
 package org.apposed.appose.pixi;
 
 import org.apposed.appose.util.Downloads;
+import org.apposed.appose.util.Environments;
 import org.apposed.appose.util.FileDownloader;
 import org.apposed.appose.util.Platforms;
 import org.apposed.appose.util.Processes;
@@ -112,9 +113,9 @@ public class Pixi {
 			Paths.get(".pixi", "bin", "pixi");
 
 	/**
-	 * Path where Appose installs Pixi by default
+	 * Path where Appose installs Pixi by default ({@code .pixi} subdirectory thereof).
 	 */
-	final public static String BASE_PATH = Paths.get(System.getProperty("user.home"), ".local", "share", "appose").toString();
+	public static final String BASE_PATH = Environments.apposeEnvsDir();
 
 	/**
 	 * Pixi version to download
