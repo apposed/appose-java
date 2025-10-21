@@ -38,6 +38,7 @@ import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.net.URISyntaxException;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -51,19 +52,17 @@ import java.util.Map;
  */
 public final class PixiBuilder extends BaseBuilder<PixiBuilder> {
 
-	private String source;
-	private String scheme;
 	private final List<String> condaPackages = new ArrayList<>();
 	private final List<String> pypiPackages = new ArrayList<>();
 
 	public PixiBuilder() {}
 
 	public PixiBuilder(String source) {
-		this.source = source;
+		this.sourceFile = source;
 	}
 
 	public PixiBuilder(String source, String scheme) {
-		this.source = source;
+		this.sourceFile = source;
 		this.scheme = scheme;
 	}
 
@@ -120,34 +119,30 @@ public final class PixiBuilder extends BaseBuilder<PixiBuilder> {
 		try {
 			pixi.installPixi();
 
+			// Resolve configuration content (from file, content string, or null for programmatic)
+			String configContent = resolveConfigContent();
+
 			// Check if this is already a pixi project
 			boolean isPixiDir = new File(envDir, "pixi.toml").isFile() || new File(envDir, ".pixi").isDirectory();
 
-			if (isPixiDir && source == null && condaPackages.isEmpty() && pypiPackages.isEmpty()) {
+			if (isPixiDir && configContent == null && condaPackages.isEmpty() && pypiPackages.isEmpty()) {
 				// Environment already exists, just use it
 				return createEnvironment(pixi, envDir);
 			}
 
-			// Handle file-based source
-			if (source != null) {
-				File sourceFile = new File(source);
-				if (!sourceFile.exists()) {
-					throw new IOException("Source file not found: " + source);
-				}
-
+			// Handle source-based build (file or content)
+			if (configContent != null) {
 				if (isPixiDir) {
 					// Already initialized, just use it
 					return createEnvironment(pixi, envDir);
 				}
 
-				// Determine scheme if not specified
+				// Infer scheme if not explicitly set
 				if (scheme == null) {
-					if (source.endsWith(".toml")) {
-						scheme = "pixi.toml";
-					} else if (source.endsWith(".yml") || source.endsWith(".yaml")) {
-						scheme = "environment.yml";
+					if (sourceFile != null) {
+						scheme = inferSchemeFromFilename(new File(sourceFile).getName());
 					} else {
-						throw new IllegalArgumentException("Cannot determine scheme from file: " + source);
+						scheme = inferSchemeFromContent(configContent);
 					}
 				}
 
@@ -156,16 +151,13 @@ public final class PixiBuilder extends BaseBuilder<PixiBuilder> {
 				}
 
 				if ("pixi.toml".equals(scheme)) {
-					// Copy pixi.toml and let pixi install
+					// Write pixi.toml to envDir
 					File pixiTomlFile = new File(envDir, "pixi.toml");
-					Files.copy(sourceFile.toPath(), pixiTomlFile.toPath());
+					Files.write(pixiTomlFile.toPath(), configContent.getBytes(StandardCharsets.UTF_8));
 				} else if ("environment.yml".equals(scheme)) {
 					// Write environment.yml and import
 					File environmentYamlFile = new File(envDir, "environment.yml");
-					String content = new String(Files.readAllBytes(sourceFile.toPath()));
-					try (FileWriter fout = new FileWriter(environmentYamlFile)) {
-						fout.write(content);
-					}
+					Files.write(environmentYamlFile.toPath(), configContent.getBytes(StandardCharsets.UTF_8));
 					pixi.runPixi("init", "--import", environmentYamlFile.getAbsolutePath(), envDir.getAbsolutePath());
 				}
 
@@ -234,9 +226,9 @@ public final class PixiBuilder extends BaseBuilder<PixiBuilder> {
 	@Override
 	protected String suggestEnvName() {
 		// Try to extract name from pixi.toml or environment.yml content
-		if (source != null) {
-			File sourceFile = new File(source);
-			if (sourceFile.exists()) {
+		if (sourceFile != null) {
+			File f = new File(sourceFile);
+			if (f.exists()) {
 				try (BufferedReader reader = new BufferedReader(new FileReader(sourceFile))) {
 					String line;
 					while ((line = reader.readLine()) != null) {

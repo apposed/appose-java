@@ -32,6 +32,10 @@ package org.apposed.appose;
 import org.apposed.appose.util.Environments;
 
 import java.io.File;
+import java.io.IOException;
+import java.net.URL;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -55,6 +59,9 @@ public abstract class BaseBuilder<T extends BaseBuilder<T>> implements Builder<T
 	public final List<String> channels = new ArrayList<>();
 	protected String envName;
 	protected File envDir;
+	protected String sourceFile;    // Path to configuration file
+	protected String sourceContent;  // Configuration file content
+	protected String scheme;         // Explicit scheme (e.g., "pixi.toml", "environment.yml")
 
 	// -- Builder methods --
 
@@ -125,5 +132,153 @@ public abstract class BaseBuilder<T extends BaseBuilder<T>> implements Builder<T
 		// No explicit environment directory set; fall back to
 		// a subfolder of the Appose-managed environments directory.
 		return Paths.get(Environments.apposeEnvsDir(), envName()).toFile();
+	}
+
+	// -- Source handling methods --
+
+	/**
+	 * Specifies a configuration file path to build from.
+	 *
+	 * @param path Path to configuration file (e.g., "pixi.toml", "environment.yml")
+	 * @return This builder instance, for fluent-style programming.
+	 */
+	public T file(String path) {
+		this.sourceFile = path;
+		return (T) this;
+	}
+
+	/**
+	 * Specifies configuration file content to build from.
+	 * The scheme will be auto-detected from content syntax.
+	 *
+	 * @param content Configuration file content
+	 * @return This builder instance, for fluent-style programming.
+	 */
+	public T content(String content) {
+		this.sourceContent = content;
+		return (T) this;
+	}
+
+	/**
+	 * Specifies a URL to fetch configuration content from.
+	 *
+	 * @param url URL to configuration file
+	 * @return This builder instance, for fluent-style programming.
+	 * @throws IOException If the URL cannot be read
+	 */
+	public T url(URL url) throws IOException {
+		// Read URL content (Java 8 compatible)
+		java.io.InputStream is = url.openStream();
+		java.io.ByteArrayOutputStream buffer = new java.io.ByteArrayOutputStream();
+		byte[] data = new byte[4096];
+		int nRead;
+		while ((nRead = is.read(data, 0, data.length)) != -1) {
+			buffer.write(data, 0, nRead);
+		}
+		buffer.flush();
+		this.sourceContent = new String(buffer.toByteArray(), StandardCharsets.UTF_8);
+		return (T) this;
+	}
+
+	/**
+	 * Explicitly specifies the scheme for the configuration.
+	 * This overrides auto-detection.
+	 *
+	 * @param scheme The scheme (e.g., "pixi.toml", "environment.yml", "requirements.txt")
+	 * @return This builder instance, for fluent-style programming.
+	 */
+	public T scheme(String scheme) {
+		this.scheme = scheme;
+		return (T) this;
+	}
+
+	/**
+	 * Resolves configuration content from file path or content string.
+	 *
+	 * @return Configuration content, or null if no source specified
+	 * @throws IOException If file cannot be read
+	 */
+	protected String resolveConfigContent() throws IOException {
+		if (sourceContent != null) {
+			// Content provided directly
+			return sourceContent;
+		}
+		else if (sourceFile != null) {
+			// File path provided - read it
+			File f = new File(sourceFile);
+			if (!f.exists()) {
+				throw new IOException("Source file not found: " + sourceFile);
+			}
+			return new String(Files.readAllBytes(f.toPath()), StandardCharsets.UTF_8);
+		}
+		else {
+			// No source (programmatic build)
+			return null;
+		}
+	}
+
+	/**
+	 * Infers the scheme from configuration file content.
+	 *
+	 * @param content Configuration file content
+	 * @return Inferred scheme
+	 * @throws IllegalArgumentException If scheme cannot be inferred
+	 */
+	protected String inferSchemeFromContent(String content) {
+		String trimmed = content.trim();
+
+		// TOML detection (pixi.toml)
+		if (trimmed.contains("[project]") ||
+		    trimmed.contains("[dependencies]") ||
+		    trimmed.matches("(?s).*\\[.*\\].*")) {
+			return "pixi.toml";
+		}
+
+		// YAML detection (environment.yml)
+		if (trimmed.startsWith("name:") ||
+		    trimmed.startsWith("channels:") ||
+		    trimmed.startsWith("dependencies:") ||
+		    trimmed.matches("(?s)^[a-z_]+:\\s*.*")) {
+			return "environment.yml";
+		}
+
+		// Plain text list (requirements.txt)
+		if (trimmed.matches("(?s)^[a-zA-Z0-9_-]+(==|>=|<=|~=|!=)?.*")) {
+			return "requirements.txt";
+		}
+
+		throw new IllegalArgumentException(
+			"Cannot infer scheme from content. Please specify explicitly with .scheme()");
+	}
+
+	/**
+	 * Infers the scheme from a filename.
+	 *
+	 * @param filename The filename
+	 * @return Inferred scheme
+	 * @throws IllegalArgumentException If scheme cannot be inferred
+	 */
+	protected String inferSchemeFromFilename(String filename) {
+		if (filename.endsWith("pixi.toml")) return "pixi.toml";
+		if (filename.endsWith(".yml") || filename.endsWith(".yaml")) return "environment.yml";
+		if (filename.endsWith(".txt") || filename.equals("requirements.txt")) return "requirements.txt";
+
+		throw new IllegalArgumentException(
+			"Cannot infer scheme from filename: " + filename);
+	}
+
+	/**
+	 * Gets the appropriate filename for a given scheme.
+	 *
+	 * @param scheme The scheme
+	 * @return Filename for that scheme
+	 */
+	protected String getFilenameForScheme(String scheme) {
+		switch (scheme) {
+			case "pixi.toml": return "pixi.toml";
+			case "environment.yml": return "environment.yml";
+			case "requirements.txt": return "requirements.txt";
+			default: throw new IllegalArgumentException("Unknown scheme: " + scheme);
+		}
 	}
 }
