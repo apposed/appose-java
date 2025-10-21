@@ -37,14 +37,23 @@ import java.util.Map;
 import java.util.function.Consumer;
 
 /**
- * Interface for environment builders.
+ * Base interface for all Appose environment builders.
  * <p>
  * Builders are responsible for creating and configuring Appose environments.
  * </p>
+ * <p>
+ * The recursive type parameter {@code T extends Builder<T>} enables fluent
+ * method chaining to return the concrete builder type without requiring
+ * subclasses to override every method. This allows natural chains like:
+ * </p>
+ * <pre>
+ * Appose.custom().env("DEBUG", "true").appendSystemPath().build()
+ * </pre>
  *
+ * @param <T> The concrete builder type (self-type parameter).
  * @author Curtis Rueden
  */
-public interface Builder {
+public interface Builder<T extends Builder<T>> {
 
 	/**
 	 * Builds the environment. This is the terminator method for any fluid building chain.
@@ -61,7 +70,7 @@ public interface Builder {
 	 * @param value The environment variable value.
 	 * @return This builder instance, for fluent-style programming.
 	 */
-	Builder env(String key, String value);
+	T env(String key, String value);
 
 	/**
 	 * Sets multiple environment variables to be passed to worker processes.
@@ -69,7 +78,7 @@ public interface Builder {
 	 * @param vars Map of environment variable names to values.
 	 * @return This builder instance, for fluent-style programming.
 	 */
-	Builder env(Map<String, String> vars);
+	T env(Map<String, String> vars);
 
 	/**
 	 * Sets the name for the environment.
@@ -78,7 +87,7 @@ public interface Builder {
 	 * @param envName The name for the environment.
 	 * @return This builder instance, for fluent-style programming.
 	 */
-	Builder name(String envName);
+	T name(String envName);
 
 	/**
 	 * Sets the base directory for the environment.
@@ -87,7 +96,7 @@ public interface Builder {
 	 * @param envDir The directory for the environment.
 	 * @return This builder instance, for fluent-style programming.
 	 */
-	default Builder base(String envDir) {
+	default T base(String envDir) {
 		return base(new File(envDir));
 	}
 
@@ -98,7 +107,7 @@ public interface Builder {
 	 * @param envDir The directory for the environment.
 	 * @return This builder instance, for fluent-style programming.
 	 */
-	Builder base(File envDir);
+	T base(File envDir);
 
 	/**
 	 * Adds channels/repositories to search for packages.
@@ -111,7 +120,7 @@ public interface Builder {
 	 * @param channels Channel names or URLs to add.
 	 * @return This builder instance, for fluent-style programming.
 	 */
-	default Builder channels(String... channels) {
+	default T channels(String... channels) {
 		return channels(Arrays.asList(channels));
 	}
 
@@ -126,7 +135,7 @@ public interface Builder {
 	 * @param channels List of channel names or URLs to add.
 	 * @return This builder instance, for fluent-style programming.
 	 */
-	Builder channels(List<String> channels);
+	T channels(List<String> channels);
 
 	/**
 	 * Registers a callback method to be invoked when progress happens during environment building.
@@ -134,7 +143,7 @@ public interface Builder {
 	 * @param subscriber Party to inform when build progress happens.
 	 * @return This builder instance, for fluent-style programming.
 	 */
-	Builder subscribeProgress(ProgressConsumer subscriber);
+	T subscribeProgress(ProgressConsumer subscriber);
 
 	/**
 	 * Registers a callback method to be invoked when output is generated during environment building.
@@ -142,7 +151,7 @@ public interface Builder {
 	 * @param subscriber Party to inform when build output happens.
 	 * @return This builder instance, for fluent-style programming.
 	 */
-	Builder subscribeOutput(Consumer<String> subscriber);
+	T subscribeOutput(Consumer<String> subscriber);
 
 	/**
 	 * Registers a callback method to be invoked when errors occur during environment building.
@@ -150,7 +159,7 @@ public interface Builder {
 	 * @param subscriber Party to inform when build errors happen.
 	 * @return This builder instance, for fluent-style programming.
 	 */
-	Builder subscribeError(Consumer<String> subscriber);
+	T subscribeError(Consumer<String> subscriber);
 
 	/**
 	 * Convenience method to log debug output to stderr.
@@ -158,7 +167,7 @@ public interface Builder {
 	 *
 	 * @return This builder instance, for fluent-style programming.
 	 */
-	default Builder logDebug() {
+	default T logDebug() {
 		return subscribeOutput(System.err::println).subscribeError(System.err::println);
 	}
 

@@ -42,9 +42,10 @@ import java.util.function.Consumer;
  * Base class for environment builders.
  * Provides common implementation for the Builder interface.
  *
+ * @param <T> The concrete builder type (self-type parameter).
  * @author Curtis Rueden
  */
-public abstract class BaseBuilder implements Builder {
+public abstract class BaseBuilder<T extends BaseBuilder<T>> implements Builder<T> {
 
 	public final List<ProgressConsumer> progressSubscribers = new ArrayList<>();
 	public final List<Consumer<String>> outputSubscribers = new ArrayList<>();
@@ -57,51 +58,51 @@ public abstract class BaseBuilder implements Builder {
 	// -- Builder methods --
 
 	@Override
-	public Builder subscribeProgress(ProgressConsumer subscriber) {
+	public T subscribeProgress(ProgressConsumer subscriber) {
 		progressSubscribers.add(subscriber);
-		return this;
+		return (T) this;
 	}
 
 	@Override
-	public Builder subscribeOutput(Consumer<String> subscriber) {
+	public T subscribeOutput(Consumer<String> subscriber) {
 		outputSubscribers.add(subscriber);
-		return this;
+		return (T) this;
 	}
 
 	@Override
-	public Builder subscribeError(Consumer<String> subscriber) {
+	public T subscribeError(Consumer<String> subscriber) {
 		errorSubscribers.add(subscriber);
-		return this;
+		return (T) this;
 	}
 
 	@Override
-	public BaseBuilder env(String key, String value) {
+	public T env(String key, String value) {
 		envVars.put(key, value);
-		return this;
+		return (T) this;
 	}
 
 	@Override
-	public BaseBuilder env(Map<String, String> vars) {
+	public T env(Map<String, String> vars) {
 		envVars.putAll(vars);
-		return this;
+		return (T) this;
 	}
 
 	@Override
-	public Builder name(String envName) {
+	public T name(String envName) {
 		this.envName = envName;
-		return this;
+		return (T) this;
 	}
 
 	@Override
-	public Builder base(File envDir) {
+	public T base(File envDir) {
 		this.envDir = envDir;
-		return this;
+		return (T) this;
 	}
 
 	@Override
-	public Builder channels(List<String> channels) {
+	public T channels(List<String> channels) {
 		this.channels.addAll(channels);
-		return this;
+		return (T) this;
 	}
 
 	// -- Internal methods --

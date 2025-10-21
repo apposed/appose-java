@@ -49,7 +49,7 @@ import java.util.Map;
  *
  * @author Curtis Rueden
  */
-public class PixiBuilder extends BaseBuilder {
+public final class PixiBuilder extends BaseBuilder<PixiBuilder> {
 
 	private String source;
 	private String scheme;

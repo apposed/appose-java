@@ -33,8 +33,6 @@ import org.apposed.appose.util.Environments;
 
 import java.io.File;
 import java.io.IOException;
-import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -48,7 +46,7 @@ import java.util.Map;
  *
  * @author Curtis Rueden
  */
-public class SimpleBuilder extends BaseBuilder {
+public final class SimpleBuilder extends BaseBuilder<SimpleBuilder> {
 
 	private final List<String> customBinPaths = new ArrayList<>();
 

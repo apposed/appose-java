@@ -47,7 +47,7 @@ import java.util.Map;
  *
  * @author Curtis Rueden
  */
-public class MambaBuilder extends BaseBuilder {
+public final class MambaBuilder extends BaseBuilder<MambaBuilder> {
 
 	private String source;
 	private String scheme;

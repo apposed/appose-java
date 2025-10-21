@@ -46,7 +46,7 @@ import java.util.Map;
  *
  * @author Curtis Rueden
  */
-public class UvBuilder extends BaseBuilder {
+public final class UvBuilder extends BaseBuilder<UvBuilder> {
 
 	private String source;
 	private String scheme;

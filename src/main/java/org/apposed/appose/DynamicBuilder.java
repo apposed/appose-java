@@ -39,7 +39,7 @@ import java.io.IOException;
  *
  * @author Curtis Rueden
  */
-public class DynamicBuilder extends BaseBuilder {
+public final class DynamicBuilder extends BaseBuilder<DynamicBuilder> {
 
 	private final String source;
 	private String scheme;
@@ -79,7 +79,7 @@ public class DynamicBuilder extends BaseBuilder {
 
 	@Override
 	public Environment build() throws IOException {
-		Builder delegate = createBuilder(builderName, source, scheme);
+		Builder<?> delegate = createBuilder(builderName, source, scheme);
 
 		// Copy configuration from dynamic builder to delegate.
 		delegate.env(envVars);
@@ -102,7 +102,7 @@ public class DynamicBuilder extends BaseBuilder {
 
 	// -- Helper methods --
 
-	private Builder createBuilder(String name, String source, String scheme) {
+	private Builder<?> createBuilder(String name, String source, String scheme) {
 		// Find the builder matching the specified name, if any.
 		if (name != null) {
 			BuilderFactory factory = Builders.findFactoryByName(name);
@@ -121,7 +121,7 @@ public class DynamicBuilder extends BaseBuilder {
 		if (source != null) {
 			BuilderFactory factory = Builders.findFactoryBySource(source);
 			if (factory == null) throw new IllegalArgumentException("No builder supports source: " + source);
-			return factory.createBuilder(source, scheme);
+			return factory.createBuilder(source);
 		}
 
 		throw new IllegalArgumentException("At least one of builder name, source, and scheme must be non-null");
