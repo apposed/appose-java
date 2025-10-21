@@ -481,6 +481,30 @@ public class ApposeTest {
 	}
 
 	@Test
+	public void testContentAPI() throws IOException, InterruptedException {
+		// Test building environment from content string
+		String pixiToml =
+			"[project]\n" +
+			"name = \"content-test\"\n" +
+			"channels = [\"conda-forge\"]\n" +
+			"platforms = [\"linux-64\", \"osx-64\", \"osx-arm64\", \"win-64\"]\n" +
+			"\n" +
+			"[dependencies]\n" +
+			"python = \">=3.8\"\n" +
+			"appose = \"*\"\n" +
+			"\n" +
+			"[pypi-dependencies]\n" +
+			"cowsay = \"==6.1\"\n";
+
+		Environment env = Appose.pixi()
+			.content(pixiToml)
+			.logDebug()
+			.build();
+
+		cowsayAndAssert(env, "content!");
+	}
+
+	@Test
 	public void testCustom() throws IOException, InterruptedException {
 		// Test fluent chaining from base Builder methods to SimpleBuilder methods.
 		// This verifies that the recursive generics enable natural method chaining.
