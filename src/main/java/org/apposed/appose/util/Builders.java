@@ -44,7 +44,11 @@ import java.util.ServiceLoader;
  *
  * @author Curtis Rueden
  */
-public class Builders {
+public final class Builders {
+
+	private Builders() {
+		// Prevent instantiation of utility class.
+	}
 
 	private static List<BuilderFactory> cachedFactories;
 

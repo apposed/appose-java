@@ -43,10 +43,16 @@ import java.util.function.BiConsumer;
 
 import static org.apposed.appose.NDArray.Shape.Order.C_ORDER;
 
+/**
+ * Utility class for type conversion and JSON wrangling.
+ *
+ * @author Curtis Rueden
+ * @author Tobias Pietzsch
+ */
 public final class Types {
 
 	private Types() {
-		// NB: Prevent instantiation of utility class.
+		// Prevent instantiation of utility class.
 	}
 
 	/**
@@ -130,18 +136,18 @@ public final class Types {
 	 * @return a new converter
 	 * @param <T> object type handled by this converter
 	 */
-	private static <T> JsonGenerator.Converter convert(final Class<T> clz, final String appose_type, final BiConsumer<Map<String, Object>, T> converter) {
+	private static <T> JsonGenerator.Converter convert(Class<T> clz, String appose_type, BiConsumer<Map<String, Object>, T> converter) {
 		return new JsonGenerator.Converter() {
 
 			@Override
-			public boolean handles(final Class<?> type) {
+			public boolean handles(Class<?> type) {
 				return clz.isAssignableFrom(type);
 			}
 
 			@SuppressWarnings("unchecked")
 			@Override
-			public Object convert(final Object value, final String key) {
-				final Map<String, Object> map = new LinkedHashMap<>();
+			public Object convert(Object value, String key) {
+				Map<String, Object> map = new LinkedHashMap<>();
 				map.put("appose_type", appose_type);
 				converter.accept(map, (T) value);
 				return map;
@@ -175,19 +181,19 @@ public final class Types {
 	@SuppressWarnings("unchecked")
 	private static Object processValue(Object value) {
 		if (value instanceof Map) {
-			final Map<String, Object> map = processMap((Map<String, Object>) value);
-			final Object v = map.get("appose_type");
+			Map<String, Object> map = processMap((Map<String, Object>) value);
+			Object v = map.get("appose_type");
 			if (v instanceof String) {
-				final String appose_type = (String) v;
+				String appose_type = (String) v;
 				switch (appose_type) {
 					case "shm":
-						final String name = (String) map.get("name");
-						final long rsize = ((Number) map.get("rsize")).longValue();
+						String name = (String) map.get("name");
+						long rsize = ((Number) map.get("rsize")).longValue();
 						return SharedMemory.attach(name, rsize);
 					case "ndarray":
-						final NDArray.DType dType = toDType((String) map.get("dtype"));
-						final NDArray.Shape shape = toShape((List<Integer>) map.get("shape"));
-						final SharedMemory shm = (SharedMemory) map.get("shm");
+						NDArray.DType dType = toDType((String) map.get("dtype"));
+						NDArray.Shape shape = toShape((List<Integer>) map.get("shape"));
+						SharedMemory shm = (SharedMemory) map.get("shm");
 						return new NDArray(dType, shape, shm);
 					default:
 						System.err.println("unknown appose_type \"" + appose_type + "\"");
@@ -199,12 +205,12 @@ public final class Types {
 		}
 	}
 
-	private static NDArray.DType toDType(final String dtype) {
+	private static NDArray.DType toDType(String dtype) {
 		return NDArray.DType.fromLabel(dtype);
 	}
 
-	private static NDArray.Shape toShape(final List<Integer> shape) {
-		final int[] ints = new int[shape.size()];
+	private static NDArray.Shape toShape(List<Integer> shape) {
+		int[] ints = new int[shape.size()];
 		Arrays.setAll(ints, shape::get);
 		return new NDArray.Shape(C_ORDER, ints);
 	}
