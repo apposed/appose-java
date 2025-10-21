@@ -35,6 +35,8 @@ import org.apposed.appose.Environment;
 import java.io.File;
 import java.io.IOException;
 import java.net.URISyntaxException;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -48,19 +50,17 @@ import java.util.Map;
  */
 public final class UvBuilder extends BaseBuilder<UvBuilder> {
 
-	private String source;
-	private String scheme;
 	private String pythonVersion;
 	private final List<String> packages = new ArrayList<>();
 
 	public UvBuilder() {}
 
 	public UvBuilder(String source) {
-		this.source = source;
+		this.sourceFile = source;
 	}
 
 	public UvBuilder(String source, String scheme) {
-		this.source = source;
+		this.sourceFile = source;
 		this.scheme = scheme;
 	}
 
@@ -125,27 +125,25 @@ public final class UvBuilder extends BaseBuilder<UvBuilder> {
 		try {
 			uv.installUv();
 
+			// Resolve configuration content (from file, content string, or null for programmatic)
+			String configContent = resolveConfigContent();
+
 			// Check if this is already a UV virtual environment
 			boolean isUvVenv = new File(envDir, "pyvenv.cfg").isFile();
 
-			if (isUvVenv && source == null && packages.isEmpty()) {
-				// Environment already exists, just use it
+			if (isUvVenv && configContent == null && packages.isEmpty()) {
+				// Environment already exists and no new config/packages, just use it
 				return createEnvironment(envDir);
 			}
 
-			// Handle file-based source
-			if (source != null) {
-				File sourceFile = new File(source);
-				if (!sourceFile.exists()) {
-					throw new IOException("Source file not found: " + source);
-				}
-
-				// Determine scheme if not specified
+			// Handle source-based build (file or content)
+			if (configContent != null) {
+				// Infer scheme if not explicitly set
 				if (scheme == null) {
-					if (source.endsWith(".txt")) {
-						scheme = "requirements.txt";
+					if (sourceFile != null) {
+						scheme = inferSchemeFromFilename(new File(sourceFile).getName());
 					} else {
-						throw new IllegalArgumentException("Cannot determine scheme from file: " + source);
+						scheme = inferSchemeFromContent(configContent);
 					}
 				}
 
@@ -158,8 +156,12 @@ public final class UvBuilder extends BaseBuilder<UvBuilder> {
 					uv.createVenv(envDir, pythonVersion);
 				}
 
+				// Write requirements.txt to envDir
+				File reqsFile = new File(envDir, "requirements.txt");
+				Files.write(reqsFile.toPath(), configContent.getBytes(StandardCharsets.UTF_8));
+
 				// Install packages from requirements.txt
-				uv.pipInstallFromRequirements(envDir, sourceFile.getAbsolutePath());
+				uv.pipInstallFromRequirements(envDir, reqsFile.getAbsolutePath());
 			} else {
 				// Programmatic package building
 				if (!isUvVenv) {
@@ -201,12 +203,12 @@ public final class UvBuilder extends BaseBuilder<UvBuilder> {
 	@Override
 	protected String suggestEnvName() {
 		// Try to extract name from requirements.txt if present
-		if (source != null) {
-			File sourceFile = new File(source);
-			if (sourceFile.exists() && sourceFile.getName().equals("requirements.txt")) {
+		if (sourceFile != null) {
+			File f = new File(sourceFile);
+			if (f.exists() && f.getName().equals("requirements.txt")) {
 				// Use parent directory name as env name
-				String parentName = sourceFile.getParentFile() != null ?
-					sourceFile.getParentFile().getName() : null;
+				String parentName = f.getParentFile() != null ?
+					f.getParentFile().getName() : null;
 				if (parentName != null && !parentName.isEmpty()) {
 					return "appose-" + parentName;
 				}
