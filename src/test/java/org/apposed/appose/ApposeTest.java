@@ -480,6 +480,70 @@ public class ApposeTest {
 		}
 	}
 
+	@Test
+	public void testCustom() throws IOException, InterruptedException {
+		// Test fluent chaining from base Builder methods to SimpleBuilder methods.
+		// This verifies that the recursive generics enable natural method chaining.
+		Environment env = Appose.custom()
+			.env("CUSTOM_VAR", "test_value")  // Base Builder method
+			.inheritRunningJava()              // SimpleBuilder method
+			.appendSystemPath()                // SimpleBuilder method
+			.build();
+
+		assertNotNull(env);
+		assertNotNull(env.binPaths());
+		assertFalse(env.binPaths().isEmpty(), "Custom environment should have binary paths configured");
+		assertTrue(env.launchArgs().isEmpty(), "Custom environment should have no special launcher");
+
+		// Verify environment variables are propagated
+		assertNotNull(env.envVars());
+		assertEquals("test_value", env.envVars().get("CUSTOM_VAR"));
+
+		// Verify inheritRunningJava() sets JAVA_HOME
+		String javaHome = System.getProperty("java.home");
+		if (javaHome != null) {
+			assertEquals(javaHome, env.envVars().get("JAVA_HOME"));
+			// Verify Java bin directory is in binPaths
+			String javaBin = new File(javaHome, "bin").getAbsolutePath();
+			assertTrue(env.binPaths().contains(javaBin),
+				"Java bin directory should be in binPaths");
+		}
+
+		// Verify that the custom environment can execute Python tasks
+		try (Service service = env.python()) {
+			maybeDebug(service);
+			Task task = service.task("task.outputs['result'] = 2 + 2");
+			task.waitFor();
+			assertComplete(task);
+			Number result = (Number) task.outputs.get("result");
+			assertEquals(4, result.intValue());
+		}
+
+		// Test custom environment with specific base directory
+		File customDir = new File("target/test-custom");
+		customDir.mkdirs();
+		try {
+			Environment customEnv = Appose.custom()
+				.base(customDir)
+				.appendSystemPath()
+				.build();
+
+			assertEquals(customDir.getAbsolutePath(), customEnv.base());
+			assertNotNull(customEnv.binPaths());
+		} finally {
+			customDir.delete();
+		}
+
+		// Test custom environment with specific binary paths
+		Environment pathEnv = Appose.custom()
+			.binPaths("/usr/bin", "/usr/local/bin")
+			.build();
+
+		List<String> binPaths = pathEnv.binPaths();
+		assertTrue(binPaths.contains("/usr/bin"), "Custom binPaths should include /usr/bin");
+		assertTrue(binPaths.contains("/usr/local/bin"), "Custom binPaths should include /usr/local/bin");
+	}
+
 	public void executeAndAssert(Service service, String script)
 		throws IOException, InterruptedException
 	{
