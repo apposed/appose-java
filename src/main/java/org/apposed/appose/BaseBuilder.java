@@ -66,24 +66,6 @@ public abstract class BaseBuilder<T extends BaseBuilder<T>> implements Builder<T
 	// -- Builder methods --
 
 	@Override
-	public T subscribeProgress(ProgressConsumer subscriber) {
-		progressSubscribers.add(subscriber);
-		return (T) this;
-	}
-
-	@Override
-	public T subscribeOutput(Consumer<String> subscriber) {
-		outputSubscribers.add(subscriber);
-		return (T) this;
-	}
-
-	@Override
-	public T subscribeError(Consumer<String> subscriber) {
-		errorSubscribers.add(subscriber);
-		return (T) this;
-	}
-
-	@Override
 	public T env(String key, String value) {
 		envVars.put(key, value);
 		return (T) this;
@@ -113,6 +95,57 @@ public abstract class BaseBuilder<T extends BaseBuilder<T>> implements Builder<T
 		return (T) this;
 	}
 
+	@Override
+	public T file(String path) {
+		this.sourceFile = path;
+		return (T) this;
+	}
+
+	@Override
+	public T content(String content) {
+		this.sourceContent = content;
+		return (T) this;
+	}
+
+	@Override
+	public T url(URL url) throws IOException {
+		// Read URL content (Java 8 compatible)
+		java.io.InputStream is = url.openStream();
+		java.io.ByteArrayOutputStream buffer = new java.io.ByteArrayOutputStream();
+		byte[] data = new byte[4096];
+		int nRead;
+		while ((nRead = is.read(data, 0, data.length)) != -1) {
+			buffer.write(data, 0, nRead);
+		}
+		buffer.flush();
+		this.sourceContent = new String(buffer.toByteArray(), StandardCharsets.UTF_8);
+		return (T) this;
+	}
+
+	@Override
+	public T scheme(String scheme) {
+		this.scheme = scheme;
+		return (T) this;
+	}
+
+	@Override
+	public T subscribeProgress(ProgressConsumer subscriber) {
+		progressSubscribers.add(subscriber);
+		return (T) this;
+	}
+
+	@Override
+	public T subscribeOutput(Consumer<String> subscriber) {
+		outputSubscribers.add(subscriber);
+		return (T) this;
+	}
+
+	@Override
+	public T subscribeError(Consumer<String> subscriber) {
+		errorSubscribers.add(subscriber);
+		return (T) this;
+	}
+
 	// -- Internal methods --
 
 	/**
@@ -135,62 +168,6 @@ public abstract class BaseBuilder<T extends BaseBuilder<T>> implements Builder<T
 	}
 
 	// -- Source handling methods --
-
-	/**
-	 * Specifies a configuration file path to build from.
-	 *
-	 * @param path Path to configuration file (e.g., "pixi.toml", "environment.yml")
-	 * @return This builder instance, for fluent-style programming.
-	 */
-	public T file(String path) {
-		this.sourceFile = path;
-		return (T) this;
-	}
-
-	/**
-	 * Specifies configuration file content to build from.
-	 * The scheme will be auto-detected from content syntax.
-	 *
-	 * @param content Configuration file content
-	 * @return This builder instance, for fluent-style programming.
-	 */
-	public T content(String content) {
-		this.sourceContent = content;
-		return (T) this;
-	}
-
-	/**
-	 * Specifies a URL to fetch configuration content from.
-	 *
-	 * @param url URL to configuration file
-	 * @return This builder instance, for fluent-style programming.
-	 * @throws IOException If the URL cannot be read
-	 */
-	public T url(URL url) throws IOException {
-		// Read URL content (Java 8 compatible)
-		java.io.InputStream is = url.openStream();
-		java.io.ByteArrayOutputStream buffer = new java.io.ByteArrayOutputStream();
-		byte[] data = new byte[4096];
-		int nRead;
-		while ((nRead = is.read(data, 0, data.length)) != -1) {
-			buffer.write(data, 0, nRead);
-		}
-		buffer.flush();
-		this.sourceContent = new String(buffer.toByteArray(), StandardCharsets.UTF_8);
-		return (T) this;
-	}
-
-	/**
-	 * Explicitly specifies the scheme for the configuration.
-	 * This overrides auto-detection.
-	 *
-	 * @param scheme The scheme (e.g., "pixi.toml", "environment.yml", "requirements.txt")
-	 * @return This builder instance, for fluent-style programming.
-	 */
-	public T scheme(String scheme) {
-		this.scheme = scheme;
-		return (T) this;
-	}
 
 	/**
 	 * Resolves configuration content from file path or content string.

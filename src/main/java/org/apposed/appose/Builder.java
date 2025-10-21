@@ -31,6 +31,8 @@ package org.apposed.appose;
 
 import java.io.File;
 import java.io.IOException;
+import java.net.URL;
+import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
@@ -136,6 +138,41 @@ public interface Builder<T extends Builder<T>> {
 	 * @return This builder instance, for fluent-style programming.
 	 */
 	T channels(List<String> channels);
+
+	/**
+	 * Specifies a configuration file path to build from.
+	 *
+	 * @param path Path to configuration file (e.g., "pixi.toml", "environment.yml")
+	 * @return This builder instance, for fluent-style programming.
+	 */
+	T file(String path);
+
+	/**
+	 * Specifies configuration file content to build from.
+	 * The scheme will be auto-detected from content syntax.
+	 *
+	 * @param content Configuration file content
+	 * @return This builder instance, for fluent-style programming.
+	 */
+	T content(String content);
+
+	/**
+	 * Specifies a URL to fetch configuration content from.
+	 *
+	 * @param url URL to configuration file
+	 * @return This builder instance, for fluent-style programming.
+	 * @throws IOException If the URL cannot be read
+	 */
+	T url(URL url) throws IOException;
+
+	/**
+	 * Explicitly specifies the scheme for the configuration.
+	 * This overrides auto-detection.
+	 *
+	 * @param scheme The scheme (e.g., "pixi.toml", "environment.yml", "requirements.txt")
+	 * @return This builder instance, for fluent-style programming.
+	 */
+	T scheme(String scheme);
 
 	/**
 	 * Registers a callback method to be invoked when progress happens during environment building.
