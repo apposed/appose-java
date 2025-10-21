@@ -168,6 +168,11 @@ public final class PixiBuilder extends BaseBuilder<PixiBuilder> {
 					}
 					pixi.runPixi("init", "--import", environmentYamlFile.getAbsolutePath(), envDir.getAbsolutePath());
 				}
+
+				// Add any programmatic channels to augment source file
+				if (!channels.isEmpty()) {
+					pixi.addChannels(envDir, channels.toArray(new String[0]));
+				}
 			} else {
 				// Programmatic package building
 				if (isPixiDir) {

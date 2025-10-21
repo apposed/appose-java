@@ -92,7 +92,7 @@ public final class Builders {
 	 */
 	public static BuilderFactory findFactoryByScheme(String scheme) {
 		for (BuilderFactory factory : discoverFactories()) {
-			if (factory.supports(scheme)) {
+			if (factory.supportsScheme(scheme)) {
 				return factory;
 			}
 		}
@@ -115,14 +115,22 @@ public final class Builders {
 		return null;
 	}
 
+	/**
+	 * Finds the first factory that can build from the given source file.
+	 * Factories are checked in priority order (highest priority first).
+	 *
+	 * @param source The source file path to find a factory for.
+	 * @return The first factory that can build from the source, or null if none found.
+	 */
 	public static BuilderFactory findFactoryBySource(String source) {
-		// FIXME: This logic needs to be extensible by factory.
-		// E.g. toml could be pyproject.toml or pixi.toml -- need to check inside it if name is not obvious.
-		// Maybe schemes should have their own plugin type... -_-
-		if (source == null) throw new NullPointerException("Cannot auto-detect scheme: no source specified");
-		if (source.endsWith(".toml")) return findFactoryByName("pixi");
-		if (source.endsWith(".yml") || source.endsWith(".yaml")) return findFactoryByName("pixi");
-		if (source.endsWith(".txt")) return findFactoryByName("uv");
-		throw new IllegalArgumentException("Cannot auto-detect scheme from: " + source);
+		if (source == null) throw new NullPointerException("Cannot auto-detect builder: no source specified");
+
+		for (BuilderFactory factory : discoverFactories()) {
+			if (factory.supportsSource(source)) {
+				return factory;
+			}
+		}
+
+		throw new IllegalArgumentException("No builder supports source file: " + source);
 	}
 }

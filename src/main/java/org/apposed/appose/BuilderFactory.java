@@ -76,7 +76,16 @@ public interface BuilderFactory {
 	 * @param scheme The scheme to check (e.g., "environment.yml", "conda", "pypi")
 	 * @return true if this builder supports the scheme
 	 */
-	boolean supports(String scheme);
+	boolean supportsScheme(String scheme);
+
+	/**
+	 * Checks if this builder can build from the given source file.
+	 * This allows builders to inspect file extensions or content to determine compatibility.
+	 *
+	 * @param source The source file path to check
+	 * @return true if this builder can build from the source
+	 */
+	boolean supportsSource(String source);
 
 	/**
 	 * Returns the priority of this builder for scheme resolution.

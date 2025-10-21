@@ -59,7 +59,7 @@ public class UvBuilderFactory implements BuilderFactory {
 	}
 
 	@Override
-	public boolean supports(String scheme) {
+	public boolean supportsScheme(String scheme) {
 		switch (scheme) {
 			case "requirements.txt":
 			case "pypi":
@@ -67,6 +67,12 @@ public class UvBuilderFactory implements BuilderFactory {
 			default:
 				return false;
 		}
+	}
+
+	@Override
+	public boolean supportsSource(String source) {
+		// Support requirements.txt files
+		return source.endsWith("requirements.txt") || source.endsWith(".txt");
 	}
 
 	@Override

@@ -114,6 +114,14 @@ public final class UvBuilder extends BaseBuilder<UvBuilder> {
 		// Pass along intended build configuration.
 		uv.setEnvVars(envVars);
 
+		// Check for unsupported features
+		if (!channels.isEmpty()) {
+			throw new UnsupportedOperationException(
+				"UvBuilder does not yet support programmatic index configuration. " +
+				"Please specify custom indices in your requirements.txt file using " +
+				"'--index-url' or '--extra-index-url' directives.");
+		}
+
 		try {
 			uv.installUv();
 
@@ -158,8 +166,6 @@ public final class UvBuilder extends BaseBuilder<UvBuilder> {
 					// Create virtual environment
 					uv.createVenv(envDir, pythonVersion);
 				}
-
-				// FIXME: assign channels/indices to uv object here?
 
 				// Install packages
 				if (!packages.isEmpty()) {

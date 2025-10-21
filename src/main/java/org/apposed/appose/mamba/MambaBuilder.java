@@ -127,7 +127,13 @@ public final class MambaBuilder extends BaseBuilder<MambaBuilder> {
 
 		// Pass along intended build configuration.
 		mamba.setEnvVars(envVars);
-		// FIXME: assign channels to mamba object?
+
+		// Check for unsupported features
+		if (!channels.isEmpty()) {
+			throw new UnsupportedOperationException(
+				"MambaBuilder does not yet support programmatic channel configuration. " +
+				"Please specify channels in your environment.yml file.");
+		}
 
 		try {
 			mamba.installMicromamba();

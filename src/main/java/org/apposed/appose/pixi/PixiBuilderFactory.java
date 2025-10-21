@@ -59,7 +59,7 @@ public class PixiBuilderFactory implements BuilderFactory {
 	}
 
 	@Override
-	public boolean supports(String scheme) {
+	public boolean supportsScheme(String scheme) {
 		switch (scheme) {
 			case "pixi.toml":
 			case "environment.yml":
@@ -69,6 +69,14 @@ public class PixiBuilderFactory implements BuilderFactory {
 			default:
 				return false;
 		}
+	}
+
+	@Override
+	public boolean supportsSource(String source) {
+		// Support pixi.toml and YAML environment files
+		return source.endsWith("pixi.toml") ||
+		       source.endsWith(".yml") ||
+		       source.endsWith(".yaml");
 	}
 
 	@Override

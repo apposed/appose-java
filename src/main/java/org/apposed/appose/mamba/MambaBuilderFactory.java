@@ -59,8 +59,14 @@ public class MambaBuilderFactory implements BuilderFactory {
 	}
 
 	@Override
-	public boolean supports(String scheme) {
+	public boolean supportsScheme(String scheme) {
 		return "environment.yml".equals(scheme);
+	}
+
+	@Override
+	public boolean supportsSource(String source) {
+		// Support YAML environment files
+		return source.endsWith(".yml") || source.endsWith(".yaml");
 	}
 
 	@Override
