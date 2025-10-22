@@ -198,4 +198,27 @@ public final class FilePaths {
 			throw new IOException("Failed to rename file:" + srcFile + " -> " + backupFile);
 		}
 	}
+
+	/**
+	 * Deletes a directory and all its contents recursively.
+	 *
+	 * @param dir The directory to delete
+	 * @throws IOException If deletion fails
+	 */
+	public static void deleteRecursively(File dir) throws IOException {
+		if (!dir.exists()) return;
+
+		if (dir.isDirectory()) {
+			File[] files = dir.listFiles();
+			if (files != null) {
+				for (File file : files) {
+					deleteRecursively(file);
+				}
+			}
+		}
+
+		if (!dir.delete()) {
+			throw new IOException("Failed to delete: " + dir.getAbsolutePath());
+		}
+	}
 }
