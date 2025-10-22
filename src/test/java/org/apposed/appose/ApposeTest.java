@@ -140,6 +140,7 @@ public class ApposeTest {
 		Environment env = Appose
 			.file("src/test/resources/envs/cowsay.yml")
 			.logDebug()
+			.base("target/envs/conda-cowsay")
 			.build();
 		cowsayAndAssert(env, "moo");
 	}
@@ -149,6 +150,7 @@ public class ApposeTest {
 		Environment env = Appose
 			.pixi("src/test/resources/envs/cowsay-pixi.toml")
 			.logDebug()
+			.base("target/envs/pixi-cowsay")
 			.build();
 		cowsayAndAssert(env, "baa");
 	}
@@ -160,7 +162,7 @@ public class ApposeTest {
 			.conda("python>=3.8", "pip")
 			.pypi("cowsay==6.1")
 			.logDebug()
-			.name("appose-cowsay-builder")
+			.base("target/envs/pixi-cowsay-builder")
 			.build();
 		cowsayAndAssert(env, "ooh");
 	}
@@ -172,7 +174,7 @@ public class ApposeTest {
 			.file("src/test/resources/envs/cowsay.yml")
 			.builder("mamba")
 			.logDebug()
-			.name("appose-cowsay-mamba")
+			.base("target/envs/mamba-cowsay")
 			.build();
 
 		// Verify it's actually using mamba by checking for conda-meta directory
@@ -189,6 +191,7 @@ public class ApposeTest {
 		Environment env = Appose
 			.uv("src/test/resources/envs/cowsay-requirements.txt")
 			.logDebug()
+			.base("target/envs/uv-cowsay")
 			.build();
 		cowsayAndAssert(env, "uv");
 	}
@@ -199,7 +202,7 @@ public class ApposeTest {
 			.uv()
 			.include("cowsay==6.1")
 			.logDebug()
-			.name("appose-cowsay-uv")
+			.base("target/envs/uv-cowsay-builder")
 			.build();
 		cowsayAndAssert(env, "fast");
 	}
@@ -500,6 +503,7 @@ public class ApposeTest {
 		Environment env = Appose.pixi()
 			.content(pixiToml)
 			.logDebug()
+			.base("target/envs/pixi-content-test")
 			.build();
 
 		cowsayAndAssert(env, "content!");
