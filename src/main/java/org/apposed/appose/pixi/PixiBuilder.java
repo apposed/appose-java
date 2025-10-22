@@ -32,6 +32,7 @@ package org.apposed.appose.pixi;
 import org.apposed.appose.BaseBuilder;
 import org.apposed.appose.Builder;
 import org.apposed.appose.Environment;
+import org.apposed.appose.util.FilePaths;
 
 import java.io.BufferedReader;
 import java.io.File;
@@ -218,12 +219,7 @@ public final class PixiBuilder extends BaseBuilder<PixiBuilder> {
 
 	@Override
 	public Environment wrap(File envDir) throws IOException {
-		if (!envDir.exists()) {
-			throw new IOException("Environment directory does not exist: " + envDir);
-		}
-		if (!envDir.isDirectory()) {
-			throw new IOException("Not a directory: " + envDir);
-		}
+		FilePaths.ensureDirectory(envDir);
 
 		// Look for pixi.toml configuration file
 		File pixiToml = new File(envDir, "pixi.toml");

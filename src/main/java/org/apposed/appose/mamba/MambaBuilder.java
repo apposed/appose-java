@@ -32,6 +32,7 @@ package org.apposed.appose.mamba;
 import org.apposed.appose.BaseBuilder;
 import org.apposed.appose.Builder;
 import org.apposed.appose.Environment;
+import org.apposed.appose.util.FilePaths;
 
 import java.io.BufferedReader;
 import java.io.File;
@@ -151,12 +152,7 @@ public final class MambaBuilder extends BaseBuilder<MambaBuilder> {
 
 	@Override
 	public Environment wrap(File envDir) throws IOException {
-		if (!envDir.exists()) {
-			throw new IOException("Environment directory does not exist: " + envDir);
-		}
-		if (!envDir.isDirectory()) {
-			throw new IOException("Not a directory: " + envDir);
-		}
+		FilePaths.ensureDirectory(envDir);
 
 		// Look for environment.yml configuration file
 		File envYaml = new File(envDir, "environment.yml");

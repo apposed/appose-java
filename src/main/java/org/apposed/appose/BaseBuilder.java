@@ -77,12 +77,7 @@ public abstract class BaseBuilder<T extends BaseBuilder<T>> implements Builder<T
 
 	@Override
 	public Environment wrap(File envDir) throws IOException {
-		if (!envDir.exists()) {
-			throw new IOException("Environment directory does not exist: " + envDir);
-		}
-		if (!envDir.isDirectory()) {
-			throw new IOException("Not a directory: " + envDir);
-		}
+		FilePaths.ensureDirectory(envDir);
 		// Set the base directory and build (which will detect existing env)
 		base(envDir);
 		return build();

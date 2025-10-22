@@ -101,8 +101,8 @@ public final class FilePaths {
 	 * @param overwrite If true, overwrite existing destination files; if false, back up source files instead.
 	 */
 	public static void moveDirectory(File srcDir, File destDir, boolean overwrite) throws IOException {
-		if (!srcDir.isDirectory()) throw new IllegalArgumentException("Not a directory: " + srcDir);
-		if (!destDir.isDirectory()) throw new IllegalArgumentException("Not a directory: " + destDir);
+		ensureDirectory(srcDir);
+		ensureDirectory(destDir);
 		try (DirectoryStream<Path> stream = Files.newDirectoryStream(srcDir.toPath())) {
 			for (Path srcPath : stream) moveFile(srcPath.toFile(), destDir, overwrite);
 		}
@@ -219,6 +219,21 @@ public final class FilePaths {
 
 		if (!dir.delete()) {
 			throw new IOException("Failed to delete: " + dir.getAbsolutePath());
+		}
+	}
+
+	/**
+	 * Checks that the given file is an existing directory, throwing an exception if not.
+	 *
+	 * @param envDir The file to check.
+	 * @throws IOException If the given file does not exist, or is not a directory.
+	 */
+	public static void ensureDirectory(File envDir) throws IOException {
+		if (!envDir.exists()) {
+			throw new IOException("Environment directory does not exist: " + envDir);
+		}
+		if (!envDir.isDirectory()) {
+			throw new IOException("Not a directory: " + envDir);
 		}
 	}
 }
