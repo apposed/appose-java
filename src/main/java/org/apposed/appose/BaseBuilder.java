@@ -68,10 +68,23 @@ public abstract class BaseBuilder<T extends BaseBuilder<T>> implements Builder<T
 
 	@Override
 	public Environment rebuild() throws IOException {
-	File dir = envDir();
+		File dir = envDir();
 		if (dir.exists()) {
 			FilePaths.deleteRecursively(dir);
 		}
+		return build();
+	}
+
+	@Override
+	public Environment wrap(File envDir) throws IOException {
+		if (!envDir.exists()) {
+			throw new IOException("Environment directory does not exist: " + envDir);
+		}
+		if (!envDir.isDirectory()) {
+			throw new IOException("Not a directory: " + envDir);
+		}
+		// Set the base directory and build (which will detect existing env)
+		base(envDir);
 		return build();
 	}
 

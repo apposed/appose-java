@@ -341,11 +341,11 @@ public class Appose {
 		BuilderFactory factory = Builders.findFactoryForWrapping(envDir);
 
 		if (factory != null) {
-			return factory.createBuilder().base(envDir).build();
+			return factory.createBuilder().wrap(envDir);
 		}
 
 		// Default to simple builder (no special activation, just use binaries in directory).
-		return new SimpleBuilder().base(envDir).build();
+		return new SimpleBuilder().wrap(envDir);
 	}
 
 	/**

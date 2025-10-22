@@ -216,6 +216,27 @@ public final class PixiBuilder extends BaseBuilder<PixiBuilder> {
 		}
 	}
 
+	@Override
+	public Environment wrap(File envDir) throws IOException {
+		if (!envDir.exists()) {
+			throw new IOException("Environment directory does not exist: " + envDir);
+		}
+		if (!envDir.isDirectory()) {
+			throw new IOException("Not a directory: " + envDir);
+		}
+
+		// Look for pixi.toml configuration file
+		File pixiToml = new File(envDir, "pixi.toml");
+		if (pixiToml.exists() && pixiToml.isFile()) {
+			// Populate sourceFile so rebuild() will work
+			sourceFile = pixiToml.getAbsolutePath();
+		}
+
+		// Set the base directory and build (which will detect existing env)
+		base(envDir);
+		return build();
+	}
+
 	/**
 	 * Adds conda channels to search for packages.
 	 *

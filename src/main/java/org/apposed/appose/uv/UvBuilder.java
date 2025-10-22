@@ -192,6 +192,13 @@ public final class UvBuilder extends BaseBuilder<UvBuilder> {
 		}
 	}
 
+	@Override
+	public Environment wrap(File envDir) throws IOException {
+		throw new UnsupportedOperationException(
+			"UvBuilder.wrap() is not yet implemented. " +
+			"This will be added once pyproject.toml support is implemented.");
+	}
+
 	/**
 	 * Adds PyPI index URLs for package discovery.
 	 * These are alternative or additional package indexes beyond the default pypi.org.

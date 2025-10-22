@@ -86,6 +86,22 @@ public interface Builder<T extends Builder<T>> {
 	Environment rebuild() throws IOException;
 
 	/**
+	 * Wraps an existing environment directory, detecting and using any
+	 * configuration files present for future rebuild() calls.
+	 * <p>
+	 * This method examines the directory for known configuration files
+	 * (e.g., pixi.toml, environment.yml, requirements.txt) and populates
+	 * the builder's configuration accordingly. If a configuration file is
+	 * found, it will be used when rebuild() is called later.
+	 * </p>
+	 *
+	 * @param envDir The existing environment directory to wrap
+	 * @return The wrapped {@link Environment}
+	 * @throws IOException If the directory doesn't exist or can't be wrapped
+	 */
+	Environment wrap(File envDir) throws IOException;
+
+	/**
 	 * Sets an environment variable to be passed to worker processes.
 	 *
 	 * @param key The environment variable name.

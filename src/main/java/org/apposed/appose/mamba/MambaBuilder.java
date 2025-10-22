@@ -149,6 +149,27 @@ public final class MambaBuilder extends BaseBuilder<MambaBuilder> {
 		}
 	}
 
+	@Override
+	public Environment wrap(File envDir) throws IOException {
+		if (!envDir.exists()) {
+			throw new IOException("Environment directory does not exist: " + envDir);
+		}
+		if (!envDir.isDirectory()) {
+			throw new IOException("Not a directory: " + envDir);
+		}
+
+		// Look for environment.yml configuration file
+		File envYaml = new File(envDir, "environment.yml");
+		if (envYaml.exists() && envYaml.isFile()) {
+			// Populate sourceFile so rebuild() will work
+			sourceFile = envYaml.getAbsolutePath();
+		}
+
+		// Set the base directory and build (which will detect existing env)
+		base(envDir);
+		return build();
+	}
+
 	/**
 	 * Adds conda channels to search for packages.
 	 *
