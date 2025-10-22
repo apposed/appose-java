@@ -30,6 +30,7 @@
 package org.apposed.appose;
 
 import org.apposed.appose.util.Environments;
+import org.apposed.appose.util.FilePaths;
 
 import java.io.File;
 import java.io.IOException;
@@ -64,6 +65,15 @@ public abstract class BaseBuilder<T extends BaseBuilder<T>> implements Builder<T
 	protected String scheme;         // Explicit scheme (e.g., "pixi.toml", "environment.yml")
 
 	// -- Builder methods --
+
+	@Override
+	public Environment rebuild() throws IOException {
+	File dir = envDir();
+		if (dir.exists()) {
+			FilePaths.deleteRecursively(dir);
+		}
+		return build();
+	}
 
 	@Override
 	public T env(String key, String value) {

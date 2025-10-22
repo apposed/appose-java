@@ -76,6 +76,18 @@ public interface Environment {
 	}
 
 	/**
+	 * Rebuilds this environment from scratch.
+	 * This deletes the existing environment directory and rebuilds it using the
+	 * current builder configuration.
+	 *
+	 * @return The newly rebuilt environment.
+	 * @throws IOException If something goes wrong during rebuild.
+	 */
+	default Environment rebuild() throws IOException {
+		return builder().rebuild();
+	}
+
+	/**
 	 * Creates a Python script service.
 	 * <p>
 	 * This is a <b>high level</b> way to create a service, enabling execution of

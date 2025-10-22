@@ -73,6 +73,19 @@ public interface Builder<T extends Builder<T>> {
 	Environment build() throws IOException;
 
 	/**
+	 * Rebuilds the environment from scratch.
+	 * <p>
+	 * Deletes the existing environment directory (if it exists) and rebuilds it
+	 * using the current builder configuration. This is more robust than trying to
+	 * update an existing environment in place.
+	 * </p>
+	 *
+	 * @return The newly rebuilt {@link Environment}.
+	 * @throws IOException If something goes wrong during rebuild.
+	 */
+	Environment rebuild() throws IOException;
+
+	/**
 	 * Sets an environment variable to be passed to worker processes.
 	 *
 	 * @param key The environment variable name.
