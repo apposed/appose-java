@@ -93,6 +93,11 @@ public final class PixiBuilder extends BaseBuilder<PixiBuilder> {
 	// -- Builder methods --
 
 	@Override
+	public String name() {
+		return "pixi";
+	}
+
+	@Override
 	public Environment build() throws IOException {
 		File envDir = envDir();
 

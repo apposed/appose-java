@@ -58,6 +58,13 @@ import java.util.function.Consumer;
 public interface Builder<T extends Builder<T>> {
 
 	/**
+	 * Returns the name of this builder (e.g., "pixi", "mamba", "uv", "system").
+	 *
+	 * @return The builder name.
+	 */
+	String name();
+
+	/**
 	 * Builds the environment. This is the terminator method for any fluid building chain.
 	 *
 	 * @return The newly constructed Appose {@link Environment}.

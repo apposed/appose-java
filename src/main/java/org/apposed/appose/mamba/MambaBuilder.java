@@ -62,6 +62,13 @@ public final class MambaBuilder extends BaseBuilder<MambaBuilder> {
 		this.scheme = scheme;
 	}
 
+	// -- Builder methods --
+
+	@Override
+	public String name() {
+		return "mamba";
+	}
+
 	/**
 	 * Adds conda channels to search for packages.
 	 *

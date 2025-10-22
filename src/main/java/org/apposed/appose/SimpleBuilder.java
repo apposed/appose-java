@@ -116,6 +116,11 @@ public final class SimpleBuilder extends BaseBuilder<SimpleBuilder> {
 	// -- Builder methods --
 
 	@Override
+	public String name() {
+		return "custom";
+	}
+
+	@Override
 	public SimpleBuilder name(String envName) {
 		throw new UnsupportedOperationException(
 			"SimpleBuilder does not support named environments. " +

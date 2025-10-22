@@ -77,6 +77,11 @@ public final class DynamicBuilder extends BaseBuilder<DynamicBuilder> {
 	// -- Builder methods --
 
 	@Override
+	public String name() {
+		return "dynamic";
+	}
+
+	@Override
 	public Environment build() throws IOException {
 		Builder<?> delegate = createBuilder(builderName, source, scheme);
 

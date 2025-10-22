@@ -91,6 +91,11 @@ public final class UvBuilder extends BaseBuilder<UvBuilder> {
 	// -- Builder methods --
 
 	@Override
+	public String name() {
+		return "uv";
+	}
+
+	@Override
 	public Environment build() throws IOException {
 		File envDir = envDir();
 
