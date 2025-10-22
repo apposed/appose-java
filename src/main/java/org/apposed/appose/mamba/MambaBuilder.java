@@ -87,8 +87,8 @@ public final class MambaBuilder extends BaseBuilder<MambaBuilder> {
 
 		// Is this envDir an already-existing conda directory?
 		boolean isCondaDir = new File(envDir, "conda-meta").isDirectory();
-		if (isCondaDir && configContent == null) {
-			// Environment already exists and no new config, just wrap it
+		if (isCondaDir) {
+			// Environment already exists, just wrap it
 			return createEnvironment(envDir);
 		}
 
