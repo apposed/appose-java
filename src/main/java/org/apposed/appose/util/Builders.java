@@ -133,4 +133,27 @@ public final class Builders {
 
 		throw new IllegalArgumentException("No builder supports source file: " + source);
 	}
+
+	/**
+	 * Checks if the given directory can be wrapped as a known environment type.
+	 * This is a convenience method equivalent to {@code findFactoryForWrapping(envDir) != null}.
+	 *
+	 * @param envDir The directory to check.
+	 * @return true if the directory can be wrapped by any known builder, false otherwise.
+	 */
+	public static boolean canWrap(File envDir) {
+		return findFactoryForWrapping(envDir) != null;
+	}
+
+	/**
+	 * Returns the environment type name for the given directory.
+	 * This is a convenience method equivalent to {@code findFactoryForWrapping(envDir).name()}.
+	 *
+	 * @param envDir The directory to check.
+	 * @return The environment type name (e.g., "pixi", "mamba", "uv"), or null if not a known environment.
+	 */
+	public static String envType(File envDir) {
+		BuilderFactory factory = findFactoryForWrapping(envDir);
+		return factory != null ? factory.name() : null;
+	}
 }
