@@ -186,7 +186,7 @@ public class Pixi {
 	 * </pre>
 	 */
 	public Pixi() {
-		this(BASE_PATH);
+		this(null);
 	}
 
 	/**

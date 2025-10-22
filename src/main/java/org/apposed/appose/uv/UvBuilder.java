@@ -102,7 +102,7 @@ public final class UvBuilder extends BaseBuilder<UvBuilder> {
 			throw new IOException("Cannot use UvBuilder: environment already managed by Mamba/Conda at " + envDir);
 		}
 
-		Uv uv = new Uv(Uv.BASE_PATH);
+		Uv uv = new Uv();
 
 		// Set up progress/output consumers.
 		uv.setOutputConsumer(msg -> outputSubscribers.forEach(sub -> sub.accept(msg)));

@@ -182,7 +182,7 @@ public class Uv {
 	 * </pre>
 	 */
 	public Uv() {
-		this(BASE_PATH);
+		this(null);
 	}
 
 	/**

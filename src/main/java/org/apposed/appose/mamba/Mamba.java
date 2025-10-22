@@ -147,7 +147,7 @@ public class Mamba {
 	/**
 	 * Path where Appose installs Micromamba by default
 	 */
-	public static final String BASE_PATH = Paths.get(Environments.apposeEnvsDir(), "micromamba").toString();
+	public static final String BASE_PATH = Paths.get(Environments.apposeEnvsDir(), ".mamba").toString();
 
 	/**
 	 * URL from where Micromamba is downloaded to be installed
@@ -227,7 +227,7 @@ public class Mamba {
 	 * </pre>
 	 */
 	public Mamba() {
-		this(BASE_PATH);
+		this(null);
 	}
 
 	/**
@@ -252,10 +252,7 @@ public class Mamba {
 	 *  The root dir for Mamba installation.
 	 */
 	public Mamba(final String rootdir) {
-		if (rootdir == null)
-			this.rootdir = BASE_PATH;
-		else
-			this.rootdir = rootdir;
+		this.rootdir = rootdir == null ? BASE_PATH : rootdir;
 		this.mambaCommand = Paths.get(this.rootdir).resolve(MICROMAMBA_RELATIVE_PATH).toAbsolutePath().toString();
 	}
 

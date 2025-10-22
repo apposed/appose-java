@@ -104,7 +104,7 @@ public final class PixiBuilder extends BaseBuilder<PixiBuilder> {
 			throw new IOException("Cannot use PixiBuilder: environment already managed by uv/venv at " + envDir);
 		}
 
-		Pixi pixi = new Pixi(Pixi.BASE_PATH);
+		Pixi pixi = new Pixi();
 
 		// Set up progress/output consumers.
 		pixi.setOutputConsumer(msg -> outputSubscribers.forEach(sub -> sub.accept(msg)));

@@ -113,7 +113,7 @@ public final class MambaBuilder extends BaseBuilder<MambaBuilder> {
 			throw new IllegalArgumentException("MambaBuilder only supports environment.yml scheme, got: " + scheme);
 		}
 
-		Mamba mamba = new Mamba(Mamba.BASE_PATH);
+		Mamba mamba = new Mamba();
 
 		// Set up progress/output consumers.
 		mamba.setOutputConsumer(msg -> outputSubscribers.forEach(sub -> sub.accept(msg)));
@@ -153,7 +153,7 @@ public final class MambaBuilder extends BaseBuilder<MambaBuilder> {
 	}
 
 	private Environment createEnvironment(File envDir) {
-		Mamba mamba = new Mamba(Mamba.BASE_PATH);
+		Mamba mamba = new Mamba();
 		String base = envDir.getAbsolutePath();
 		List<String> launchArgs = Arrays.asList(mamba.mambaCommand, "run", "-p", base);
 		List<String> binPaths = Collections.singletonList(envDir.toPath().resolve("bin").toString());
