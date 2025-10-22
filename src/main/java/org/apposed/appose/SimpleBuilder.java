@@ -121,20 +121,6 @@ public final class SimpleBuilder extends BaseBuilder<SimpleBuilder> {
 	}
 
 	@Override
-	public SimpleBuilder name(String envName) {
-		throw new UnsupportedOperationException(
-			"SimpleBuilder does not support named environments. " +
-			"Use base(File) to specify the working directory.");
-	}
-
-	@Override
-	public SimpleBuilder channels(List<String> channels) {
-		throw new UnsupportedOperationException(
-			"SimpleBuilder does not support package channels. " +
-			"It uses existing executables without package management.");
-	}
-
-	@Override
 	public Environment build() throws IOException {
 		File base = envDir();
 		if (base == null) base = new File(".");
@@ -166,6 +152,20 @@ public final class SimpleBuilder extends BaseBuilder<SimpleBuilder> {
 			@Override public Map<String, String> envVars() { return environmentVars; }
 			@Override public Builder<?> builder() { return SimpleBuilder.this; }
 		};
+	}
+
+	@Override
+	public SimpleBuilder name(String envName) {
+		throw new UnsupportedOperationException(
+			"SimpleBuilder does not support named environments. " +
+			"Use base(File) to specify the working directory.");
+	}
+
+	@Override
+	public SimpleBuilder channels(List<String> channels) {
+		throw new UnsupportedOperationException(
+			"SimpleBuilder does not support package channels. " +
+			"It uses existing executables without package management.");
 	}
 
 	@Override

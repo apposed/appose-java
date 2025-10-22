@@ -70,17 +70,6 @@ public final class MambaBuilder extends BaseBuilder<MambaBuilder> {
 		return "mamba";
 	}
 
-	/**
-	 * Adds conda channels to search for packages.
-	 *
-	 * @param channels Channel names (e.g., "conda-forge", "bioconda")
-	 * @return This builder instance, for fluent-style programming.
-	 */
-	@Override
-	public MambaBuilder channels(String... channels) {
-		return super.channels(channels);
-	}
-
 	@Override
 	public Environment build() throws IOException {
 		File envDir = envDir();
@@ -158,6 +147,17 @@ public final class MambaBuilder extends BaseBuilder<MambaBuilder> {
 		} catch (InterruptedException | URISyntaxException e) {
 			throw new IOException(e);
 		}
+	}
+
+	/**
+	 * Adds conda channels to search for packages.
+	 *
+	 * @param channels Channel names (e.g., "conda-forge", "bioconda")
+	 * @return This builder instance, for fluent-style programming.
+	 */
+	@Override
+	public MambaBuilder channels(String... channels) {
+		return super.channels(channels);
 	}
 
 	private Environment createEnvironment(File envDir) {
