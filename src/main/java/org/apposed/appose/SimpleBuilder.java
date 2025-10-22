@@ -155,6 +155,13 @@ public final class SimpleBuilder extends BaseBuilder<SimpleBuilder> {
 	}
 
 	@Override
+	public Environment rebuild() throws IOException {
+		throw new UnsupportedOperationException(
+			"SimpleBuilder does not support rebuild(). " +
+			"Custom environments do not manage packages and cannot be rebuilt.");
+	}
+
+	@Override
 	public SimpleBuilder name(String envName) {
 		throw new UnsupportedOperationException(
 			"SimpleBuilder does not support named environments. " +

@@ -84,17 +84,15 @@ public final class DynamicBuilder extends BaseBuilder<DynamicBuilder> {
 	@Override
 	public Environment build() throws IOException {
 		Builder<?> delegate = createBuilder(builderName, source, scheme);
-
-		// Copy configuration from dynamic builder to delegate.
-		delegate.env(envVars);
-		if (envName != null) delegate.name(envName);
-		if (envDir != null) delegate.base(envDir);
-		delegate.channels(channels);
-		progressSubscribers.forEach(delegate::subscribeProgress);
-		outputSubscribers.forEach(delegate::subscribeOutput);
-		errorSubscribers.forEach(delegate::subscribeError);
-
+		copyConfigToDelegate(delegate);
 		return delegate.build();
+	}
+
+	@Override
+	public Environment rebuild() throws IOException {
+		Builder<?> delegate = createBuilder(builderName, source, scheme);
+		copyConfigToDelegate(delegate);
+		return delegate.rebuild();
 	}
 
 	// -- Internal methods --
@@ -105,6 +103,17 @@ public final class DynamicBuilder extends BaseBuilder<DynamicBuilder> {
 	}
 
 	// -- Helper methods --
+
+	private void copyConfigToDelegate(Builder<?> delegate) {
+		// Copy configuration from dynamic builder to delegate.
+		delegate.env(envVars);
+		if (envName != null) delegate.name(envName);
+		if (envDir != null) delegate.base(envDir);
+		delegate.channels(channels);
+		progressSubscribers.forEach(delegate::subscribeProgress);
+		outputSubscribers.forEach(delegate::subscribeOutput);
+		errorSubscribers.forEach(delegate::subscribeError);
+	}
 
 	private Builder<?> createBuilder(String name, String source, String scheme) {
 		// Find the builder matching the specified name, if any.
