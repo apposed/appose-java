@@ -32,6 +32,7 @@ package org.apposed.appose.uv;
 import org.apposed.appose.BaseBuilder;
 import org.apposed.appose.Builder;
 import org.apposed.appose.Environment;
+import org.apposed.appose.util.FilePaths;
 
 import java.io.File;
 import java.io.IOException;
@@ -194,9 +195,19 @@ public final class UvBuilder extends BaseBuilder<UvBuilder> {
 
 	@Override
 	public Environment wrap(File envDir) throws IOException {
-		throw new UnsupportedOperationException(
-			"UvBuilder.wrap() is not yet implemented. " +
-			"This will be added once pyproject.toml support is implemented.");
+		FilePaths.ensureDirectory(envDir);
+
+		// Look for requirements.txt configuration file
+		// TODO: When pyproject.toml support is added, check for it first
+		File requirementsTxt = new File(envDir, "requirements.txt");
+		if (requirementsTxt.exists() && requirementsTxt.isFile()) {
+			// Populate sourceFile so rebuild() will work
+			sourceFile = requirementsTxt.getAbsolutePath();
+		}
+
+		// Set the base directory and build (which will detect existing env)
+		base(envDir);
+		return build();
 	}
 
 	/**
