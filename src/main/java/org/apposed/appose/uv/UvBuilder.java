@@ -30,6 +30,7 @@
 package org.apposed.appose.uv;
 
 import org.apposed.appose.BaseBuilder;
+import org.apposed.appose.Builder;
 import org.apposed.appose.Environment;
 
 import java.io.File;
@@ -241,6 +242,7 @@ public final class UvBuilder extends BaseBuilder<UvBuilder> {
 			@Override public List<String> binPaths() { return binPaths; }
 			@Override public List<String> launchArgs() { return launchArgs; }
 			@Override public Map<String, String> envVars() { return UvBuilder.this.envVars; }
+			@Override public Builder<?> builder() { return UvBuilder.this; }
 		};
 	}
 }

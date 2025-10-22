@@ -30,6 +30,7 @@
 package org.apposed.appose.mamba;
 
 import org.apposed.appose.BaseBuilder;
+import org.apposed.appose.Builder;
 import org.apposed.appose.Environment;
 
 import java.io.BufferedReader;
@@ -170,6 +171,7 @@ public final class MambaBuilder extends BaseBuilder<MambaBuilder> {
 			@Override public List<String> binPaths() { return binPaths; }
 			@Override public List<String> launchArgs() { return launchArgs; }
 			@Override public Map<String, String> envVars() { return MambaBuilder.this.envVars; }
+			@Override public Builder<?> builder() { return MambaBuilder.this; }
 		};
 	}
 

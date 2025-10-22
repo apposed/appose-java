@@ -164,6 +164,7 @@ public final class SimpleBuilder extends BaseBuilder<SimpleBuilder> {
 			@Override public List<String> binPaths() { return binPaths; }
 			@Override public List<String> launchArgs() { return launchArgs; }
 			@Override public Map<String, String> envVars() { return environmentVars; }
+			@Override public Builder<?> builder() { return SimpleBuilder.this; }
 		};
 	}
 

@@ -30,6 +30,7 @@
 package org.apposed.appose.pixi;
 
 import org.apposed.appose.BaseBuilder;
+import org.apposed.appose.Builder;
 import org.apposed.appose.Environment;
 
 import java.io.BufferedReader;
@@ -275,6 +276,7 @@ public final class PixiBuilder extends BaseBuilder<PixiBuilder> {
 			@Override public List<String> binPaths() { return binPaths; }
 			@Override public List<String> launchArgs() { return launchArgs; }
 			@Override public Map<String, String> envVars() { return PixiBuilder.this.envVars; }
+			@Override public Builder<?> builder() { return PixiBuilder.this; }
 		};
 	}
 }

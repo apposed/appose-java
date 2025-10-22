@@ -298,6 +298,7 @@ public class ApposeTest {
 			@Override public String base() { return tempDir.getAbsolutePath(); }
 			@Override public List<String> binPaths() { return new ArrayList<>(); }
 			@Override public List<String> launchArgs() { return new ArrayList<>(); }
+			@Override public Builder<?> builder() { return null; }
 		};
 		try (Service service = env.python()) {
 			String info = "";

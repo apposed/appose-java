@@ -58,6 +58,24 @@ public interface Environment {
 	}
 
 	/**
+	 * Returns the builder that created this environment.
+	 * This enables re-configuration and rebuilding of the environment.
+	 *
+	 * @return The builder instance.
+	 */
+	Builder<?> builder();
+
+	/**
+	 * Returns the type of this environment (e.g., "pixi", "mamba", "uv", "system").
+	 * By default, delegates to the builder's name.
+	 *
+	 * @return The environment type name.
+	 */
+	default String type() {
+		return builder().name();
+	}
+
+	/**
 	 * Creates a Python script service.
 	 * <p>
 	 * This is a <b>high level</b> way to create a service, enabling execution of
