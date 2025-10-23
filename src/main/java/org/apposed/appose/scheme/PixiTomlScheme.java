@@ -47,6 +47,12 @@ public class PixiTomlScheme implements Scheme {
 	}
 
 	@Override
+	public double priority() {
+		// Lower priority than pyproject.toml but higher than plain text
+		return 50;
+	}
+
+	@Override
 	public String envName(String content) {
 		if (content == null) return null;
 
@@ -68,7 +74,7 @@ public class PixiTomlScheme implements Scheme {
 	}
 
 	@Override
-	public boolean supports(String content) {
+	public boolean supportsContent(String content) {
 		if (content == null) return false;
 
 		String trimmed = content.trim();
@@ -79,5 +85,10 @@ public class PixiTomlScheme implements Scheme {
 		// Pixi-specific markers: top-level dependencies sections
 		return trimmed.contains("[dependencies]") ||
 		       trimmed.contains("[pypi-dependencies]");
+	}
+
+	@Override
+	public boolean supportsFilename(String filename) {
+		return filename.endsWith("pixi.toml");
 	}
 }

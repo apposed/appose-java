@@ -175,12 +175,6 @@ public final class SimpleBuilder extends BaseBuilder<SimpleBuilder> {
 			"It uses existing executables without package management.");
 	}
 
-	@Override
-	public String suggestEnvName() {
-		throw new UnsupportedOperationException(
-			"SimpleBuilder does not use named environments.");
-	}
-
 	// -- Internal methods --
 
 	@Override

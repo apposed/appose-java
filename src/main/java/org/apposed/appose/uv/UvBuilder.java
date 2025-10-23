@@ -33,6 +33,7 @@ import org.apposed.appose.BaseBuilder;
 import org.apposed.appose.Builder;
 import org.apposed.appose.Environment;
 import org.apposed.appose.util.FilePaths;
+import org.apposed.appose.util.Schemes;
 
 import java.io.File;
 import java.io.IOException;
@@ -143,9 +144,7 @@ public final class UvBuilder extends BaseBuilder<UvBuilder> {
 			// Handle source-based build (file or content)
 			if (sourceContent != null) {
 				// Infer scheme if not explicitly set
-				if (scheme == null) {
-					scheme = inferSchemeFromContent(sourceContent);
-				}
+				if (scheme == null) scheme = Schemes.fromContent(sourceContent).name();
 
 				if (!"requirements.txt".equals(scheme) && !"pyproject.toml".equals(scheme)) {
 					throw new IllegalArgumentException("UvBuilder only supports requirements.txt and pyproject.toml schemes, got: " + scheme);
@@ -237,25 +236,6 @@ public final class UvBuilder extends BaseBuilder<UvBuilder> {
 	@Override
 	public UvBuilder channels(String... indexes) {
 		return super.channels(indexes);
-	}
-
-	// -- Internal methods --
-
-	@Override
-	protected String suggestEnvName() {
-		// Try to extract name from configuration content
-		if (sourceContent != null) {
-			try {
-				org.apposed.appose.Scheme detectedScheme = org.apposed.appose.Schemes.fromContent(sourceContent);
-				String name = detectedScheme.envName(sourceContent);
-				if (name != null) return name;
-			} catch (IllegalArgumentException e) {
-				// Content doesn't match any known scheme, fall through to default
-			}
-		}
-		// requirements.txt doesn't contain environment name metadata
-		// Users should specify name explicitly with .name() if needed
-		return "appose-uv-env";
 	}
 
 	// -- Helper methods --

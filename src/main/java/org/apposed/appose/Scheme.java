@@ -35,6 +35,9 @@ package org.apposed.appose;
  * Each scheme encapsulates format-specific knowledge about a configuration file type
  * (e.g., pixi.toml, pyproject.toml, environment.yml, requirements.txt).
  * </p>
+ * <p>
+ * Scheme implementations are discovered via {@link java.util.ServiceLoader}.
+ * </p>
  *
  * @author Curtis Rueden
  */
@@ -46,6 +49,18 @@ public interface Scheme {
 	 * @return The scheme name (e.g., "pixi.toml", "environment.yml")
 	 */
 	String name();
+
+	/**
+	 * Gets the priority of this scheme for detection ordering.
+	 * <p>
+	 * Higher priority schemes are tested first. This ensures more specific
+	 * schemes (e.g., pyproject.toml) are checked before less specific ones
+	 * (e.g., generic pixi.toml).
+	 * </p>
+	 *
+	 * @return Priority value (higher = earlier detection)
+	 */
+	double priority();
 
 	/**
 	 * Extracts the environment name from configuration content.
@@ -67,5 +82,16 @@ public interface Scheme {
 	 * @param content Configuration file content
 	 * @return {@code true} if this scheme supports the content format
 	 */
-	boolean supports(String content);
+	boolean supportsContent(String content);
+
+	/**
+	 * Tests whether this scheme can handle a file with the given filename.
+	 * <p>
+	 * Implementations should check file extensions or exact names.
+	 * </p>
+	 *
+	 * @param filename The filename to test
+	 * @return {@code true} if this scheme supports files with this name
+	 */
+	boolean supportsFilename(String filename);
 }

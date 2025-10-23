@@ -47,13 +47,19 @@ public class RequirementsTxtScheme implements Scheme {
 	}
 
 	@Override
+	public double priority() {
+		// TODO
+		return 0;
+	}
+
+	@Override
 	public String envName(String content) {
 		// requirements.txt does not contain environment name metadata
 		return null;
 	}
 
 	@Override
-	public boolean supports(String content) {
+	public boolean supportsContent(String content) {
 		if (content == null) return false;
 
 		String trimmed = content.trim();
@@ -62,5 +68,10 @@ public class RequirementsTxtScheme implements Scheme {
 		// Must start with package name (alphanumeric, underscore, or hyphen)
 		// Optionally followed by version specifiers
 		return trimmed.matches("(?s)^[a-zA-Z0-9_-]+(==|>=|<=|~=|!=)?.*");
+	}
+
+	@Override
+	public boolean supportsFilename(String filename) {
+		return filename.endsWith("requirements.txt");
 	}
 }

@@ -44,6 +44,12 @@ public class EnvironmentYmlScheme implements Scheme {
 	}
 
 	@Override
+	public double priority() {
+		// TODO
+		return 0;
+	}
+
+	@Override
 	public String envName(String content) {
 		if (content == null) return null;
 
@@ -62,15 +68,21 @@ public class EnvironmentYmlScheme implements Scheme {
 	}
 
 	@Override
-	public boolean supports(String content) {
+	public boolean supportsContent(String content) {
 		if (content == null) return false;
 
 		String trimmed = content.trim();
 
 		// YAML format detection: starts with common conda keys or has key: value pattern
 		return trimmed.startsWith("name:") ||
-		       trimmed.startsWith("channels:") ||
-		       trimmed.startsWith("dependencies:") ||
-		       trimmed.matches("(?s)^[a-z_]+:\\s*.*");
+			trimmed.startsWith("channels:") ||
+			trimmed.startsWith("dependencies:") ||
+			trimmed.matches("(?s)^[a-z_]+:\\s*.*");
+	}
+
+	@Override
+	public boolean supportsFilename(String filename) {
+		// TODO
+		return false;
 	}
 }

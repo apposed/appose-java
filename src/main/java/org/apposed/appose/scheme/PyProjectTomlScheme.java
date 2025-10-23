@@ -48,6 +48,12 @@ public class PyProjectTomlScheme implements Scheme {
 	}
 
 	@Override
+	public double priority() {
+		// Higher priority than pixi.toml since pyproject.toml is more specific
+		return 100;
+	}
+
+	@Override
 	public String envName(String content) {
 		if (content == null) return null;
 
@@ -78,7 +84,7 @@ public class PyProjectTomlScheme implements Scheme {
 	}
 
 	@Override
-	public boolean supports(String content) {
+	public boolean supportsContent(String content) {
 		if (content == null) return false;
 
 		String trimmed = content.trim();
@@ -95,5 +101,10 @@ public class PyProjectTomlScheme implements Scheme {
 		return trimmed.contains("[tool.pixi.") ||
 		       trimmed.contains("[project.dependencies]") ||
 		       trimmed.matches("(?s).*\\[project\\].*dependencies\\s*=.*");
+	}
+
+	@Override
+	public boolean supportsFilename(String filename) {
+		return filename.endsWith("pyproject.toml");
 	}
 }

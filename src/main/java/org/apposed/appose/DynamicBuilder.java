@@ -95,13 +95,6 @@ public final class DynamicBuilder extends BaseBuilder<DynamicBuilder> {
 		return delegate.rebuild();
 	}
 
-	// -- Internal methods --
-
-	@Override
-	protected String suggestEnvName() {
-		throw new UnsupportedOperationException();
-	}
-
 	// -- Helper methods --
 
 	private void copyConfigToDelegate(Builder<?> delegate) {

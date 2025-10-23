@@ -33,6 +33,7 @@ import org.apposed.appose.BaseBuilder;
 import org.apposed.appose.Builder;
 import org.apposed.appose.Environment;
 import org.apposed.appose.util.FilePaths;
+import org.apposed.appose.util.Schemes;
 
 import java.io.File;
 import java.io.IOException;
@@ -94,9 +95,7 @@ public final class MambaBuilder extends BaseBuilder<MambaBuilder> {
 		}
 
 		// Infer scheme if not explicitly set
-		if (scheme == null) {
-			scheme = inferSchemeFromContent(sourceContent);
-		}
+		if (scheme == null) scheme = Schemes.fromContent(sourceContent).name();
 
 		if (!"environment.yml".equals(scheme)) {
 			throw new IllegalArgumentException("MambaBuilder only supports environment.yml scheme, got: " + scheme);
@@ -181,20 +180,5 @@ public final class MambaBuilder extends BaseBuilder<MambaBuilder> {
 			@Override public Map<String, String> envVars() { return MambaBuilder.this.envVars; }
 			@Override public Builder<?> builder() { return MambaBuilder.this; }
 		};
-	}
-
-	@Override
-	public String suggestEnvName() {
-		// Try to extract name from configuration content
-		if (sourceContent != null) {
-			try {
-				org.apposed.appose.Scheme detectedScheme = org.apposed.appose.Schemes.fromContent(sourceContent);
-				String name = detectedScheme.envName(sourceContent);
-				if (name != null) return name;
-			} catch (IllegalArgumentException e) {
-				// Content doesn't match any known scheme, fall through to default
-			}
-		}
-		return "appose-mamba-env";
 	}
 }

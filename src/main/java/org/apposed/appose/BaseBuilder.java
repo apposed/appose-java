@@ -31,6 +31,7 @@ package org.apposed.appose;
 
 import org.apposed.appose.util.Environments;
 import org.apposed.appose.util.FilePaths;
+import org.apposed.appose.util.Schemes;
 
 import java.io.File;
 import java.io.IOException;
@@ -141,16 +142,11 @@ public abstract class BaseBuilder<T extends BaseBuilder<T>> implements Builder<T
 
 	// -- Internal methods --
 
-	/**
-	 * Suggests a name for the environment based on builder-specific logic.
-	 * Used when no explicit name is provided.
-	 *
-	 * @return A suggested environment name, never {@code null}.
-	 */
-	protected abstract String suggestEnvName();
-
 	protected String envName() {
-		return envName != null ? envName : suggestEnvName();
+		return envName != null ? envName :
+			// No explicit environment name set;
+			// extract name from the source content.
+			scheme().envName(sourceContent);
 	}
 
 	protected File envDir() {
@@ -160,43 +156,8 @@ public abstract class BaseBuilder<T extends BaseBuilder<T>> implements Builder<T
 		return Paths.get(Environments.apposeEnvsDir(), envName()).toFile();
 	}
 
-	// -- Source handling methods --
-
-	/**
-	 * Infers the scheme from configuration file content.
-	 *
-	 * @param content Configuration file content
-	 * @return Inferred scheme
-	 * @throws IllegalArgumentException If scheme cannot be inferred
-	 */
-	protected String inferSchemeFromContent(String content) {
-		return Schemes.fromContent(content).name();
-	}
-
-	/**
-	 * Infers the scheme from a filename.
-	 *
-	 * @param filename The filename
-	 * @return Inferred scheme
-	 * @throws IllegalArgumentException If scheme cannot be inferred
-	 */
-	protected String inferSchemeFromFilename(String filename) {
-		return Schemes.fromFilename(filename).name();
-	}
-
-	/**
-	 * Gets the appropriate filename for a given scheme.
-	 *
-	 * @param scheme The scheme
-	 * @return Filename for that scheme
-	 */
-	protected String getFilenameForScheme(String scheme) {
-		switch (scheme) {
-			case "pixi.toml": return "pixi.toml";
-			case "pyproject.toml": return "pyproject.toml";
-			case "environment.yml": return "environment.yml";
-			case "requirements.txt": return "requirements.txt";
-			default: throw new IllegalArgumentException("Unknown scheme: " + scheme);
-		}
+	protected Scheme scheme() {
+		return scheme != null ?
+			Schemes.fromName(scheme) : Schemes.fromContent(sourceContent);
 	}
 }

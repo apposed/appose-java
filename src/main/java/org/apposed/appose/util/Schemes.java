@@ -27,15 +27,15 @@
  * #L%
  */
 
-package org.apposed.appose;
+package org.apposed.appose.util;
 
+import org.apposed.appose.Scheme;
 import org.apposed.appose.scheme.EnvironmentYmlScheme;
-import org.apposed.appose.scheme.PixiTomlScheme;
-import org.apposed.appose.scheme.PyProjectTomlScheme;
-import org.apposed.appose.scheme.RequirementsTxtScheme;
 
-import java.util.Arrays;
+import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
+import java.util.ServiceLoader;
 
 /**
  * Utility class for discovering and working with configuration file schemes.
@@ -52,12 +52,8 @@ public final class Schemes {
 	 * both are TOML files but pyproject.toml has more specific markers.
 	 * </p>
 	 */
-	private static final List<Scheme> ALL = Arrays.asList(
-		new PyProjectTomlScheme(),  // Most specific TOML
-		new PixiTomlScheme(),        // Generic pixi TOML
-		new EnvironmentYmlScheme(),  // YAML format
-		new RequirementsTxtScheme()  // Plain text (least specific)
-	);
+	private static final List<Scheme> ALL = singletons(Scheme.class,
+		(a, b) -> Double.compare(b.priority(), a.priority()));
 
 	private Schemes() {
 		// Prevent instantiation
@@ -71,13 +67,10 @@ public final class Schemes {
 	 * @throws IllegalArgumentException If no scheme can handle the content
 	 */
 	public static Scheme fromContent(String content) {
-		for (Scheme scheme : ALL) {
-			if (scheme.supports(content)) {
-				return scheme;
-			}
-		}
-		throw new IllegalArgumentException(
-			"Cannot infer scheme from content. Please specify explicitly with .scheme()");
+		return ALL.stream()
+			.filter(scheme -> scheme.supportsContent(content))
+			.findFirst().orElseThrow(() -> new IllegalArgumentException(
+				"Cannot infer scheme from content. Please specify explicitly with .scheme()"));
 	}
 
 	/**
@@ -88,12 +81,10 @@ public final class Schemes {
 	 * @throws IllegalArgumentException If no scheme matches the name
 	 */
 	public static Scheme fromName(String name) {
-		for (Scheme scheme : ALL) {
-			if (scheme.name().equals(name)) {
-				return scheme;
-			}
-		}
-		throw new IllegalArgumentException("Unknown scheme: " + name);
+		return ALL.stream()
+			.filter(scheme -> scheme.name().equals(name))
+			.findFirst().orElseThrow(() -> new IllegalArgumentException(
+				"Unknown scheme: " + name));
 	}
 
 	/**
@@ -104,11 +95,21 @@ public final class Schemes {
 	 * @throws IllegalArgumentException If scheme cannot be inferred from filename
 	 */
 	public static Scheme fromFilename(String filename) {
-		if (filename.endsWith("pixi.toml")) return fromName("pixi.toml");
-		if (filename.endsWith("pyproject.toml")) return fromName("pyproject.toml");
-		if (filename.endsWith(".yml") || filename.endsWith(".yaml")) return fromName("environment.yml");
-		if (filename.endsWith(".txt") || filename.equals("requirements.txt")) return fromName("requirements.txt");
+		return Plugins.find(ALL, scheme -> scheme.supportsFilename(filename),
+				"Cannot infer scheme from filename: " + filename);
+	}
 
-		throw new IllegalArgumentException("Cannot infer scheme from filename: " + filename);
+	/**
+	 * Discovers all available implementations of an interface via ServiceLoader.
+	 * Instances are sorted according to the given comparator function.
+	 *
+	 * @return List of discovered instances.
+	 */
+	private static <T> List<T> singletons(Class<T> iface, Comparator<T> comparator) {
+		ServiceLoader<T> loader = ServiceLoader.load(iface);
+		List<T> singletons = new ArrayList<>();
+		loader.forEach(singletons::add);
+		if (comparator != null) singletons.sort(comparator);
+		return singletons;
 	}
 }

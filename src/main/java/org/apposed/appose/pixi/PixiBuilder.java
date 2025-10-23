@@ -33,11 +33,9 @@ import org.apposed.appose.BaseBuilder;
 import org.apposed.appose.Builder;
 import org.apposed.appose.Environment;
 import org.apposed.appose.util.FilePaths;
+import org.apposed.appose.util.Schemes;
 
-import java.io.BufferedReader;
 import java.io.File;
-import java.io.FileReader;
-import java.io.FileWriter;
 import java.io.IOException;
 import java.net.URISyntaxException;
 import java.nio.charset.StandardCharsets;
@@ -144,9 +142,7 @@ public final class PixiBuilder extends BaseBuilder<PixiBuilder> {
 				}
 
 				// Infer scheme if not explicitly set
-				if (scheme == null) {
-					scheme = inferSchemeFromContent(sourceContent);
-				}
+				if (scheme == null) scheme = Schemes.fromContent(sourceContent).name();
 
 				if (!envDir.exists() && !envDir.mkdirs()) {
 					throw new IOException("Failed to create environment directory: " + envDir);
@@ -250,23 +246,6 @@ public final class PixiBuilder extends BaseBuilder<PixiBuilder> {
 	@Override
 	public PixiBuilder channels(String... channels) {
 		return super.channels(channels);
-	}
-
-	// -- Internal methods --
-
-	@Override
-	protected String suggestEnvName() {
-		// Try to extract name from configuration content
-		if (sourceContent != null) {
-			try {
-				org.apposed.appose.Scheme detectedScheme = org.apposed.appose.Schemes.fromContent(sourceContent);
-				String name = detectedScheme.envName(sourceContent);
-				if (name != null) return name;
-			} catch (IllegalArgumentException e) {
-				// Content doesn't match any known scheme, fall through to default
-			}
-		}
-		return "appose-pixi-env";
 	}
 
 	// -- Helper methods --
