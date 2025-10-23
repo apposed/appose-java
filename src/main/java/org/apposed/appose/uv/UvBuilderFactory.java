@@ -32,6 +32,8 @@ package org.apposed.appose.uv;
 import org.apposed.appose.Builder;
 import org.apposed.appose.BuilderFactory;
 
+import java.io.IOException;
+
 /**
  * Factory for creating UvBuilder instances.
  *
@@ -44,12 +46,12 @@ public class UvBuilderFactory implements BuilderFactory {
 	}
 
 	@Override
-	public Builder<?> createBuilder(String source) {
+	public Builder<?> createBuilder(String source) throws IOException {
 		return new UvBuilder(source);
 	}
 
 	@Override
-	public Builder<?> createBuilder(String source, String scheme) {
+	public Builder<?> createBuilder(String source, String scheme) throws IOException {
 		return new UvBuilder(source, scheme);
 	}
 

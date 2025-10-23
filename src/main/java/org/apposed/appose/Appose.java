@@ -266,7 +266,7 @@ public class Appose {
 	 * @param source Path to pixi.toml or environment.yml file.
 	 * @return A new PixiBuilder instance.
 	 */
-	public static PixiBuilder pixi(String source) {
+	public static PixiBuilder pixi(String source) throws IOException {
 		return new PixiBuilder(source);
 	}
 
@@ -286,7 +286,7 @@ public class Appose {
 	 * @param source Path to environment.yml file.
 	 * @return A new MambaBuilder instance.
 	 */
-	public static MambaBuilder mamba(String source) {
+	public static MambaBuilder mamba(String source) throws IOException {
 		return new MambaBuilder(source);
 	}
 
@@ -306,7 +306,7 @@ public class Appose {
 	 * @param source Path to requirements.txt file.
 	 * @return A new UvBuilder instance.
 	 */
-	public static UvBuilder uv(String source) {
+	public static UvBuilder uv(String source) throws IOException {
 		return new UvBuilder(source);
 	}
 

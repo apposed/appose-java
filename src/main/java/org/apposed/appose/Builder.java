@@ -177,11 +177,20 @@ public interface Builder<T extends Builder<T>> {
 
 	/**
 	 * Specifies a configuration file path to build from.
+	 * Reads the file content immediately and delegates to {@link #content(String)}.
 	 *
 	 * @param path Path to configuration file (e.g., "pixi.toml", "environment.yml")
 	 * @return This builder instance, for fluent-style programming.
+	 * @throws IOException If the file cannot be read
 	 */
-	T file(String path);
+	default T file(String path) throws IOException {
+		java.nio.file.Path filePath = java.nio.file.Paths.get(path);
+		String fileContent = new String(
+			java.nio.file.Files.readAllBytes(filePath),
+			java.nio.charset.StandardCharsets.UTF_8
+		);
+		return content(fileContent);
+	}
 
 	/**
 	 * Specifies configuration file content to build from.
@@ -194,12 +203,27 @@ public interface Builder<T extends Builder<T>> {
 
 	/**
 	 * Specifies a URL to fetch configuration content from.
+	 * Reads the URL content immediately and delegates to {@link #content(String)}.
 	 *
 	 * @param url URL to configuration file
 	 * @return This builder instance, for fluent-style programming.
 	 * @throws IOException If the URL cannot be read
 	 */
-	T url(URL url) throws IOException;
+	default T url(URL url) throws IOException {
+		java.io.InputStream stream = url.openStream();
+		try {
+			java.io.ByteArrayOutputStream result = new java.io.ByteArrayOutputStream();
+			byte[] buffer = new byte[8192];
+			int length;
+			while ((length = stream.read(buffer)) != -1) {
+				result.write(buffer, 0, length);
+			}
+			String urlContent = result.toString(java.nio.charset.StandardCharsets.UTF_8.name());
+			return content(urlContent);
+		} finally {
+			stream.close();
+		}
+	}
 
 	/**
 	 * Explicitly specifies the scheme for the configuration.

@@ -60,7 +60,6 @@ public abstract class BaseBuilder<T extends BaseBuilder<T>> implements Builder<T
 	public final List<String> channels = new ArrayList<>();
 	protected String envName;
 	protected File envDir;
-	protected String sourceFile;    // Path to configuration file
 	protected String sourceContent;  // Configuration file content
 	protected String scheme;         // Explicit scheme (e.g., "pixi.toml", "environment.yml")
 
@@ -114,29 +113,8 @@ public abstract class BaseBuilder<T extends BaseBuilder<T>> implements Builder<T
 	}
 
 	@Override
-	public T file(String path) {
-		this.sourceFile = path;
-		return (T) this;
-	}
-
-	@Override
 	public T content(String content) {
 		this.sourceContent = content;
-		return (T) this;
-	}
-
-	@Override
-	public T url(URL url) throws IOException {
-		// Read URL content (Java 8 compatible)
-		java.io.InputStream is = url.openStream();
-		java.io.ByteArrayOutputStream buffer = new java.io.ByteArrayOutputStream();
-		byte[] data = new byte[4096];
-		int nRead;
-		while ((nRead = is.read(data, 0, data.length)) != -1) {
-			buffer.write(data, 0, nRead);
-		}
-		buffer.flush();
-		this.sourceContent = new String(buffer.toByteArray(), StandardCharsets.UTF_8);
 		return (T) this;
 	}
 
@@ -188,28 +166,12 @@ public abstract class BaseBuilder<T extends BaseBuilder<T>> implements Builder<T
 	// -- Source handling methods --
 
 	/**
-	 * Resolves configuration content from file path or content string.
+	 * Returns the configuration content.
 	 *
 	 * @return Configuration content, or null if no source specified
-	 * @throws IOException If file cannot be read
 	 */
-	protected String resolveConfigContent() throws IOException {
-		if (sourceContent != null) {
-			// Content provided directly
-			return sourceContent;
-		}
-		else if (sourceFile != null) {
-			// File path provided - read it
-			File f = new File(sourceFile);
-			if (!f.exists()) {
-				throw new IOException("Source file not found: " + sourceFile);
-			}
-			return new String(Files.readAllBytes(f.toPath()), StandardCharsets.UTF_8);
-		}
-		else {
-			// No source (programmatic build)
-			return null;
-		}
+	protected String resolveConfigContent() {
+		return sourceContent;
 	}
 
 	/**

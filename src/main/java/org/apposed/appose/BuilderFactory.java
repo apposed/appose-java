@@ -30,6 +30,7 @@
 package org.apposed.appose;
 
 import java.io.File;
+import java.io.IOException;
 
 /**
  * Factory interface for creating builder instances.
@@ -52,7 +53,7 @@ public interface BuilderFactory {
 	 * @param source The source file path
 	 * @return A new configured builder instance
 	 */
-	Builder<?> createBuilder(String source);
+	Builder<?> createBuilder(String source) throws IOException;
 
 	/**
 	 * Creates a new builder instance configured with a source file and scheme.
@@ -61,7 +62,7 @@ public interface BuilderFactory {
 	 * @param scheme The scheme (e.g., "environment.yml", "pixi.toml")
 	 * @return A new configured builder instance
 	 */
-	Builder<?> createBuilder(String source, String scheme);
+	Builder<?> createBuilder(String source, String scheme) throws IOException;
 
 	/**
 	 * Returns the name of this builder (e.g., "pixi", "mamba", "system").

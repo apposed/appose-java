@@ -34,9 +34,7 @@ import org.apposed.appose.Builder;
 import org.apposed.appose.Environment;
 import org.apposed.appose.util.FilePaths;
 
-import java.io.BufferedReader;
 import java.io.File;
-import java.io.FileReader;
 import java.io.IOException;
 import java.net.URISyntaxException;
 import java.nio.charset.StandardCharsets;
@@ -55,12 +53,12 @@ public final class MambaBuilder extends BaseBuilder<MambaBuilder> {
 
 	public MambaBuilder() {}
 
-	public MambaBuilder(String source) {
-		this.sourceFile = source;
+	public MambaBuilder(String source) throws IOException {
+		file(source);
 	}
 
-	public MambaBuilder(String source, String scheme) {
-		this.sourceFile = source;
+	public MambaBuilder(String source, String scheme) throws IOException {
+		file(source);
 		this.scheme = scheme;
 	}
 
@@ -100,11 +98,7 @@ public final class MambaBuilder extends BaseBuilder<MambaBuilder> {
 
 		// Infer scheme if not explicitly set
 		if (scheme == null) {
-			if (sourceFile != null) {
-				scheme = inferSchemeFromFilename(new File(sourceFile).getName());
-			} else {
-				scheme = inferSchemeFromContent(configContent);
-			}
+			scheme = inferSchemeFromContent(configContent);
 		}
 
 		if (!"environment.yml".equals(scheme)) {
@@ -194,21 +188,14 @@ public final class MambaBuilder extends BaseBuilder<MambaBuilder> {
 
 	@Override
 	public String suggestEnvName() {
-		// Try to extract name from environment.yml
-		if (sourceFile != null) {
-			File f = new File(sourceFile);
-			if (f.exists()) {
-				try (BufferedReader reader = new BufferedReader(new FileReader(sourceFile))) {
-					String line;
-					while ((line = reader.readLine()) != null) {
-						line = line.trim();
-						if (line.startsWith("name:")) {
-							String value = line.substring(5).trim().replace("\"", "");
-							if (!value.isEmpty()) return value;
-						}
-					}
-				} catch (IOException e) {
-					// Fall through to default
+		// Try to extract name from environment.yml content
+		if (sourceContent != null) {
+			String[] lines = sourceContent.split("\n");
+			for (String line : lines) {
+				line = line.trim();
+				if (line.startsWith("name:")) {
+					String value = line.substring(5).trim().replace("\"", "");
+					if (!value.isEmpty()) return value;
 				}
 			}
 		}

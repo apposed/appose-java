@@ -59,12 +59,12 @@ public final class PixiBuilder extends BaseBuilder<PixiBuilder> {
 
 	public PixiBuilder() {}
 
-	public PixiBuilder(String source) {
-		this.sourceFile = source;
+	public PixiBuilder(String source) throws IOException {
+		file(source);
 	}
 
-	public PixiBuilder(String source, String scheme) {
-		this.sourceFile = source;
+	public PixiBuilder(String source, String scheme) throws IOException {
+		file(source);
 		this.scheme = scheme;
 	}
 
@@ -146,11 +146,7 @@ public final class PixiBuilder extends BaseBuilder<PixiBuilder> {
 
 				// Infer scheme if not explicitly set
 				if (scheme == null) {
-					if (sourceFile != null) {
-						scheme = inferSchemeFromFilename(new File(sourceFile).getName());
-					} else {
-						scheme = inferSchemeFromContent(configContent);
-					}
+					scheme = inferSchemeFromContent(configContent);
 				}
 
 				if (!envDir.exists() && !envDir.mkdirs()) {
@@ -249,27 +245,20 @@ public final class PixiBuilder extends BaseBuilder<PixiBuilder> {
 	@Override
 	protected String suggestEnvName() {
 		// Try to extract name from pixi.toml or environment.yml content
-		if (sourceFile != null) {
-			File f = new File(sourceFile);
-			if (f.exists()) {
-				try (BufferedReader reader = new BufferedReader(new FileReader(sourceFile))) {
-					String line;
-					while ((line = reader.readLine()) != null) {
-						line = line.trim();
-						if (line.startsWith("name") && line.contains("=")) {
-							// pixi.toml format: name = "foo"
-							int equalsIndex = line.indexOf('=');
-							String value = line.substring(equalsIndex + 1).trim();
-							value = value.replaceAll("^[\"']|[\"']$", "");
-							if (!value.isEmpty()) return value;
-						} else if (line.startsWith("name:")) {
-							// environment.yml format: name: foo
-							String value = line.substring(5).trim().replace("\"", "");
-							if (!value.isEmpty()) return value;
-						}
-					}
-				} catch (IOException e) {
-					// Fall through to default
+		if (sourceContent != null) {
+			String[] lines = sourceContent.split("\n");
+			for (String line : lines) {
+				line = line.trim();
+				if (line.startsWith("name") && line.contains("=")) {
+					// pixi.toml format: name = "foo"
+					int equalsIndex = line.indexOf('=');
+					String value = line.substring(equalsIndex + 1).trim();
+					value = value.replaceAll("^[\"']|[\"']$", "");
+					if (!value.isEmpty()) return value;
+				} else if (line.startsWith("name:")) {
+					// environment.yml format: name: foo
+					String value = line.substring(5).trim().replace("\"", "");
+					if (!value.isEmpty()) return value;
 				}
 			}
 		}

@@ -115,7 +115,7 @@ public final class DynamicBuilder extends BaseBuilder<DynamicBuilder> {
 		errorSubscribers.forEach(delegate::subscribeError);
 	}
 
-	private Builder<?> createBuilder(String name, String source, String scheme) {
+	private Builder<?> createBuilder(String name, String source, String scheme) throws IOException {
 		// Find the builder matching the specified name, if any.
 		if (name != null) {
 			BuilderFactory factory = Builders.findFactoryByName(name);

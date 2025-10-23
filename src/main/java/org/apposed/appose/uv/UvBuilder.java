@@ -57,12 +57,12 @@ public final class UvBuilder extends BaseBuilder<UvBuilder> {
 
 	public UvBuilder() {}
 
-	public UvBuilder(String source) {
-		this.sourceFile = source;
+	public UvBuilder(String source) throws IOException {
+		file(source);
 	}
 
-	public UvBuilder(String source, String scheme) {
-		this.sourceFile = source;
+	public UvBuilder(String source, String scheme) throws IOException {
+		file(source);
 		this.scheme = scheme;
 	}
 
@@ -147,11 +147,7 @@ public final class UvBuilder extends BaseBuilder<UvBuilder> {
 			if (configContent != null) {
 				// Infer scheme if not explicitly set
 				if (scheme == null) {
-					if (sourceFile != null) {
-						scheme = inferSchemeFromFilename(new File(sourceFile).getName());
-					} else {
-						scheme = inferSchemeFromContent(configContent);
-					}
+					scheme = inferSchemeFromContent(configContent);
 				}
 
 				if (!"requirements.txt".equals(scheme)) {
@@ -226,18 +222,8 @@ public final class UvBuilder extends BaseBuilder<UvBuilder> {
 
 	@Override
 	protected String suggestEnvName() {
-		// Try to extract name from requirements.txt if present
-		if (sourceFile != null) {
-			File f = new File(sourceFile);
-			if (f.exists() && f.getName().equals("requirements.txt")) {
-				// Use parent directory name as env name
-				String parentName = f.getParentFile() != null ?
-					f.getParentFile().getName() : null;
-				if (parentName != null && !parentName.isEmpty()) {
-					return "appose-" + parentName;
-				}
-			}
-		}
+		// requirements.txt doesn't contain environment name metadata
+		// Users should specify name explicitly with .name() if needed
 		return "appose-uv-env";
 	}
 
