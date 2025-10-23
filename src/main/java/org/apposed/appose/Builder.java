@@ -210,8 +210,7 @@ public interface Builder<T extends Builder<T>> {
 	 * @throws IOException If the URL cannot be read
 	 */
 	default T url(URL url) throws IOException {
-		java.io.InputStream stream = url.openStream();
-		try {
+		try (java.io.InputStream stream = url.openStream()) {
 			java.io.ByteArrayOutputStream result = new java.io.ByteArrayOutputStream();
 			byte[] buffer = new byte[8192];
 			int length;
@@ -220,8 +219,6 @@ public interface Builder<T extends Builder<T>> {
 			}
 			String urlContent = result.toString(java.nio.charset.StandardCharsets.UTF_8.name());
 			return content(urlContent);
-		} finally {
-			stream.close();
 		}
 	}
 
