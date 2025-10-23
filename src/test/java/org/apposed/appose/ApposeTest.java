@@ -168,6 +168,16 @@ public class ApposeTest {
 	}
 
 	@Test
+	public void testPixiPyproject() throws IOException, InterruptedException {
+		Environment env = Appose
+			.pixi("src/test/resources/envs/cowsay-pixi-pyproject.toml")
+			.logDebug()
+			.base("target/envs/pixi-cowsay-pyproject")
+			.build();
+		cowsayAndAssert(env, "pixi-pyproject");
+	}
+
+	@Test
 	public void testExplicitMambaBuilder() throws IOException, InterruptedException {
 		// Test explicit mamba builder selection using .builder() method
 		Environment env = Appose
@@ -205,6 +215,16 @@ public class ApposeTest {
 			.base("target/envs/uv-cowsay-builder")
 			.build();
 		cowsayAndAssert(env, "fast");
+	}
+
+	@Test
+	public void testUvPyproject() throws IOException, InterruptedException {
+		Environment env = Appose
+			.uv("src/test/resources/envs/cowsay-pyproject.toml")
+			.logDebug()
+			.base("target/envs/uv-cowsay-pyproject")
+			.build();
+		cowsayAndAssert(env, "pyproject");
 	}
 
 	@Test

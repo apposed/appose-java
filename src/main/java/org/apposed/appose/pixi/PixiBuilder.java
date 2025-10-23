@@ -127,7 +127,9 @@ public final class PixiBuilder extends BaseBuilder<PixiBuilder> {
 			pixi.installPixi();
 
 			// Check if this is already a pixi project
-			boolean isPixiDir = new File(envDir, "pixi.toml").isFile() || new File(envDir, ".pixi").isDirectory();
+			boolean isPixiDir = new File(envDir, "pixi.toml").isFile() ||
+			                    new File(envDir, "pyproject.toml").isFile() ||
+			                    new File(envDir, ".pixi").isDirectory();
 
 			if (isPixiDir && sourceContent == null && condaPackages.isEmpty() && pypiPackages.isEmpty()) {
 				// Environment already exists, just use it
@@ -154,6 +156,10 @@ public final class PixiBuilder extends BaseBuilder<PixiBuilder> {
 					// Write pixi.toml to envDir
 					File pixiTomlFile = new File(envDir, "pixi.toml");
 					Files.write(pixiTomlFile.toPath(), sourceContent.getBytes(StandardCharsets.UTF_8));
+				} else if ("pyproject.toml".equals(scheme)) {
+					// Write pyproject.toml to envDir (Pixi natively supports it)
+					File pyprojectTomlFile = new File(envDir, "pyproject.toml");
+					Files.write(pyprojectTomlFile.toPath(), sourceContent.getBytes(StandardCharsets.UTF_8));
 				} else if ("environment.yml".equals(scheme)) {
 					// Write environment.yml and import
 					File environmentYamlFile = new File(envDir, "environment.yml");
@@ -214,11 +220,20 @@ public final class PixiBuilder extends BaseBuilder<PixiBuilder> {
 	public Environment wrap(File envDir) throws IOException {
 		FilePaths.ensureDirectory(envDir);
 
-		// Look for pixi.toml configuration file
+		// Look for pixi.toml configuration file first
 		File pixiToml = new File(envDir, "pixi.toml");
 		if (pixiToml.exists() && pixiToml.isFile()) {
 			// Read the content so rebuild() will work even after directory is deleted
 			sourceContent = new String(Files.readAllBytes(pixiToml.toPath()), StandardCharsets.UTF_8);
+			scheme = "pixi.toml";
+		} else {
+			// Check for pyproject.toml
+			File pyprojectToml = new File(envDir, "pyproject.toml");
+			if (pyprojectToml.exists() && pyprojectToml.isFile()) {
+				// Read the content so rebuild() will work even after directory is deleted
+				sourceContent = new String(Files.readAllBytes(pyprojectToml.toPath()), StandardCharsets.UTF_8);
+				scheme = "pyproject.toml";
+			}
 		}
 
 		// Set the base directory and build (which will detect existing env)
@@ -266,9 +281,14 @@ public final class PixiBuilder extends BaseBuilder<PixiBuilder> {
 
 	private Environment createEnvironment(Pixi pixi, File envDir) {
 		String base = envDir.getAbsolutePath();
+		// Check which manifest file exists (pyproject.toml takes precedence)
+		File manifestFile = new File(envDir, "pyproject.toml");
+		if (!manifestFile.exists()) {
+			manifestFile = new File(envDir, "pixi.toml");
+		}
 		List<String> launchArgs = Arrays.asList(
 				pixi.pixiCommand, "run", "--manifest-path",
-				new File(envDir, "pixi.toml").getAbsolutePath()
+				manifestFile.getAbsolutePath()
 		);
 		List<String> binPaths = Arrays.asList(
 				envDir.toPath().resolve(".pixi").resolve("envs").resolve("default").resolve("bin").toString()

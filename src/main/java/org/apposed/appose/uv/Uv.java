@@ -414,6 +414,85 @@ public class Uv {
 	}
 
 	/**
+	 * Synchronize a project's dependencies from pyproject.toml.
+	 * Creates a virtual environment at projectDir/.venv and installs dependencies.
+	 *
+	 * @param projectDir The project directory containing pyproject.toml.
+	 * @param pythonVersion Optional Python version (e.g., "3.11"). Can be null for default.
+	 * @throws IOException If an I/O error occurs.
+	 * @throws InterruptedException If the current thread is interrupted.
+	 * @throws IllegalStateException if UV has not been installed
+	 */
+	public void sync(final File projectDir, String pythonVersion) throws IOException, InterruptedException {
+		checkUvInstalled();
+
+		List<String> args = new ArrayList<>();
+		args.add("sync");
+		if (pythonVersion != null && !pythonVersion.isEmpty()) {
+			args.add("--python");
+			args.add(pythonVersion);
+		}
+
+		// Run uv sync with working directory set to projectDir
+		runUvInDirectory(projectDir, args.toArray(new String[0]));
+	}
+
+	/**
+	 * Run a UV command with the specified arguments in a specific directory.
+	 *
+	 * @param workingDir The working directory for the command.
+	 * @param args Command arguments for uv.
+	 * @throws IOException If an I/O error occurs.
+	 * @throws InterruptedException If the current thread is interrupted.
+	 * @throws IllegalStateException if UV has not been installed
+	 */
+	public void runUvInDirectory(final File workingDir, final String... args) throws IOException, InterruptedException {
+		checkUvInstalled();
+		final List<String> cmd = getBaseCommand();
+		cmd.add(uvCommand);
+		cmd.addAll(Arrays.asList(args));
+
+		final ProcessBuilder builder = Processes.builder(workingDir, envVars, false);
+		builder.command(cmd);
+		final Process process = builder.start();
+
+		// Read output
+		Thread stdoutThread = new Thread(() -> {
+			try (BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()))) {
+				String line;
+				while ((line = reader.readLine()) != null) {
+					updateOutputConsumer(line);
+				}
+			} catch (IOException e) {
+				updateErrorConsumer("Error reading stdout: " + e.getMessage());
+			}
+		});
+
+		// Read errors
+		Thread stderrThread = new Thread(() -> {
+			try (BufferedReader reader = new BufferedReader(new InputStreamReader(process.getErrorStream()))) {
+				String line;
+				while ((line = reader.readLine()) != null) {
+					updateErrorConsumer(line);
+				}
+			} catch (IOException e) {
+				updateErrorConsumer("Error reading stderr: " + e.getMessage());
+			}
+		});
+
+		stdoutThread.start();
+		stderrThread.start();
+
+		int exitCode = process.waitFor();
+		stdoutThread.join();
+		stderrThread.join();
+
+		if (exitCode != 0) {
+			throw new IOException("UV command failed with exit code " + exitCode + ": " + String.join(" ", args));
+		}
+	}
+
+	/**
 	 * Run a UV command with the specified arguments.
 	 *
 	 * @param args Command arguments for uv.

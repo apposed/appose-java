@@ -172,10 +172,24 @@ public abstract class BaseBuilder<T extends BaseBuilder<T>> implements Builder<T
 	protected String inferSchemeFromContent(String content) {
 		String trimmed = content.trim();
 
-		// TOML detection (pixi.toml)
-		if (trimmed.contains("[project]") ||
-		    trimmed.contains("[dependencies]") ||
-		    trimmed.matches("(?s).*\\[.*\\].*")) {
+		// TOML detection - distinguish between pyproject.toml and pixi.toml
+		if (trimmed.matches("(?s).*\\[.*\\].*")) {
+			// Check for pyproject.toml markers (both standard and Pixi-flavored)
+			// Standard PEP 621: [project] with [project.dependencies]
+			// Pixi pyproject.toml: [project] with [tool.pixi.*]
+			if (trimmed.contains("[project]")) {
+				if (trimmed.contains("[tool.pixi.") ||
+				    trimmed.contains("[project.dependencies]") ||
+				    trimmed.matches("(?s).*\\[project\\].*dependencies\\s*=.*")) {
+					return "pyproject.toml";
+				}
+			}
+			// Check for pixi.toml markers (top-level dependencies sections)
+			if (trimmed.contains("[dependencies]") ||
+			     trimmed.contains("[pypi-dependencies]")) {
+				return "pixi.toml";
+			}
+			// Default TOML to pixi.toml for backward compatibility
 			return "pixi.toml";
 		}
 
@@ -205,6 +219,7 @@ public abstract class BaseBuilder<T extends BaseBuilder<T>> implements Builder<T
 	 */
 	protected String inferSchemeFromFilename(String filename) {
 		if (filename.endsWith("pixi.toml")) return "pixi.toml";
+		if (filename.endsWith("pyproject.toml")) return "pyproject.toml";
 		if (filename.endsWith(".yml") || filename.endsWith(".yaml")) return "environment.yml";
 		if (filename.endsWith(".txt") || filename.equals("requirements.txt")) return "requirements.txt";
 
@@ -221,6 +236,7 @@ public abstract class BaseBuilder<T extends BaseBuilder<T>> implements Builder<T
 	protected String getFilenameForScheme(String scheme) {
 		switch (scheme) {
 			case "pixi.toml": return "pixi.toml";
+			case "pyproject.toml": return "pyproject.toml";
 			case "environment.yml": return "environment.yml";
 			case "requirements.txt": return "requirements.txt";
 			default: throw new IllegalArgumentException("Unknown scheme: " + scheme);

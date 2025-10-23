@@ -147,21 +147,37 @@ public final class UvBuilder extends BaseBuilder<UvBuilder> {
 					scheme = inferSchemeFromContent(sourceContent);
 				}
 
-				if (!"requirements.txt".equals(scheme)) {
-					throw new IllegalArgumentException("UvBuilder only supports requirements.txt scheme, got: " + scheme);
+				if (!"requirements.txt".equals(scheme) && !"pyproject.toml".equals(scheme)) {
+					throw new IllegalArgumentException("UvBuilder only supports requirements.txt and pyproject.toml schemes, got: " + scheme);
 				}
 
-				// Create virtual environment if it doesn't exist
-				if (!isUvVenv) {
-					uv.createVenv(envDir, pythonVersion);
+				if ("pyproject.toml".equals(scheme)) {
+					// Handle pyproject.toml - uses uv sync
+					// Create envDir if it doesn't exist
+					if (!envDir.exists() && !envDir.mkdirs()) {
+						throw new IOException("Failed to create environment directory: " + envDir);
+					}
+
+					// Write pyproject.toml to envDir
+					File pyprojectFile = new File(envDir, "pyproject.toml");
+					Files.write(pyprojectFile.toPath(), sourceContent.getBytes(StandardCharsets.UTF_8));
+
+					// Run uv sync to create .venv and install dependencies
+					uv.sync(envDir, pythonVersion);
+				} else {
+					// Handle requirements.txt - traditional venv + pip install
+					// Create virtual environment if it doesn't exist
+					if (!isUvVenv) {
+						uv.createVenv(envDir, pythonVersion);
+					}
+
+					// Write requirements.txt to envDir
+					File reqsFile = new File(envDir, "requirements.txt");
+					Files.write(reqsFile.toPath(), sourceContent.getBytes(StandardCharsets.UTF_8));
+
+					// Install packages from requirements.txt
+					uv.pipInstallFromRequirements(envDir, reqsFile.getAbsolutePath());
 				}
-
-				// Write requirements.txt to envDir
-				File reqsFile = new File(envDir, "requirements.txt");
-				Files.write(reqsFile.toPath(), sourceContent.getBytes(StandardCharsets.UTF_8));
-
-				// Install packages from requirements.txt
-				uv.pipInstallFromRequirements(envDir, reqsFile.getAbsolutePath());
 			} else {
 				// Programmatic package building
 				if (!isUvVenv) {
@@ -190,12 +206,20 @@ public final class UvBuilder extends BaseBuilder<UvBuilder> {
 	public Environment wrap(File envDir) throws IOException {
 		FilePaths.ensureDirectory(envDir);
 
-		// Look for requirements.txt configuration file
-		// TODO: When pyproject.toml support is added, check for it first
-		File requirementsTxt = new File(envDir, "requirements.txt");
-		if (requirementsTxt.exists() && requirementsTxt.isFile()) {
+		// Check for pyproject.toml first (preferred for UV projects)
+		File pyprojectToml = new File(envDir, "pyproject.toml");
+		if (pyprojectToml.exists() && pyprojectToml.isFile()) {
 			// Read the content so rebuild() will work even after directory is deleted
-			sourceContent = new String(Files.readAllBytes(requirementsTxt.toPath()), StandardCharsets.UTF_8);
+			sourceContent = new String(Files.readAllBytes(pyprojectToml.toPath()), StandardCharsets.UTF_8);
+			scheme = "pyproject.toml";
+		} else {
+			// Fall back to requirements.txt
+			File requirementsTxt = new File(envDir, "requirements.txt");
+			if (requirementsTxt.exists() && requirementsTxt.isFile()) {
+				// Read the content so rebuild() will work even after directory is deleted
+				sourceContent = new String(Files.readAllBytes(requirementsTxt.toPath()), StandardCharsets.UTF_8);
+				scheme = "requirements.txt";
+			}
 		}
 
 		// Set the base directory and build (which will detect existing env)
@@ -229,10 +253,16 @@ public final class UvBuilder extends BaseBuilder<UvBuilder> {
 	private Environment createEnvironment(File envDir) {
 		String base = envDir.getAbsolutePath();
 
+		// Determine venv location based on project structure
+		// If .venv exists, it's a pyproject.toml-managed project (uv sync)
+		// Otherwise, envDir itself is the venv (uv venv + pip install)
+		File venvDir = new File(envDir, ".venv");
+		File actualVenvDir = venvDir.exists() ? venvDir : envDir;
+
 		// UV virtual environments use standard venv structure
 		String binDir = System.getProperty("os.name").toLowerCase().contains("windows") ? "Scripts" : "bin";
 		List<String> binPaths = Collections.singletonList(
-				envDir.toPath().resolve(binDir).toString()
+				actualVenvDir.toPath().resolve(binDir).toString()
 		);
 
 		// No special launch args needed - executables are directly in bin/Scripts
