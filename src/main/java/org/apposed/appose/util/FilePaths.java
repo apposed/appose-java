@@ -201,25 +201,25 @@ public final class FilePaths {
 
 	/**
 	 * Deletes a directory and all its contents recursively.
+	 * Properly handles symlinks including broken ones.
 	 *
 	 * @param dir The directory to delete
 	 * @throws IOException If deletion fails
 	 */
 	public static void deleteRecursively(File dir) throws IOException {
-		if (!dir.exists()) return;
+		Path path = dir.toPath();
+		if (!Files.exists(path) && !Files.isSymbolicLink(path)) return;
 
-		if (dir.isDirectory()) {
-			File[] files = dir.listFiles();
-			if (files != null) {
-				for (File file : files) {
-					deleteRecursively(file);
+		if (Files.isDirectory(path)) {
+			try (DirectoryStream<Path> stream = Files.newDirectoryStream(path)) {
+				for (Path entry : stream) {
+					deleteRecursively(entry.toFile());
 				}
 			}
 		}
 
-		if (!dir.delete()) {
-			throw new IOException("Failed to delete: " + dir.getAbsolutePath());
-		}
+		// Use Files.delete() instead of File.delete() to properly handle symlinks
+		Files.delete(path);
 	}
 
 	/**
