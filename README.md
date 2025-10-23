@@ -2,6 +2,13 @@
 
 [![Build Status](https://github.com/apposed/appose-java/actions/workflows/build.yml/badge.svg)](https://github.com/apposed/appose-java/actions/workflows/build.yml)
 
+|   |
+|---|
+| <span style="font-size: 3em; vertical-align: middle"> 🏗️ </span> **Build environments** based on community standards ![](img/pixi.png) ![](img/mamba.png) ![](img/uv.png) |
+| <span style="font-size: 3em; vertical-align: middle"> 📝 </span> **Run scripts** in those environments as worker processes |
+| <span style="font-size: 3em; vertical-align: middle"> 🫶 </span> **Share memory** between processes to avoid copying data |
+|   |
+
 ## What is Appose?
 
 Appose is a library for interprocess cooperation with shared memory.
