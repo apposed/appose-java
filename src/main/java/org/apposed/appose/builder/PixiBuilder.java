@@ -70,7 +70,7 @@ public final class PixiBuilder extends BaseBuilder<PixiBuilder> {
 	/**
 	 * Adds conda packages to the environment.
 	 *
-	 * @param packages Conda package specifications (e.g., "numpy", "python>=3.8")
+	 * @param packages Conda package specifications (e.g.: {@code "numpy", "python>=3.8"})
 	 * @return This builder instance, for fluent-style programming.
 	 */
 	public PixiBuilder conda(String... packages) {
@@ -81,7 +81,7 @@ public final class PixiBuilder extends BaseBuilder<PixiBuilder> {
 	/**
 	 * Adds PyPI packages to the environment.
 	 *
-	 * @param packages PyPI package specifications (e.g., "matplotlib", "requests==2.28.0")
+	 * @param packages PyPI package specifications (e.g.: {@code "matplotlib", "requests==2.28.0"})
 	 * @return This builder instance, for fluent-style programming.
 	 */
 	public PixiBuilder pypi(String... packages) {
@@ -239,7 +239,7 @@ public final class PixiBuilder extends BaseBuilder<PixiBuilder> {
 	/**
 	 * Adds conda channels to search for packages.
 	 *
-	 * @param channels Channel names (e.g., "conda-forge", "bioconda")
+	 * @param channels Channel names (e.g.: {@code "conda-forge", "bioconda"})
 	 * @return This builder instance, for fluent-style programming.
 	 */
 	@Override

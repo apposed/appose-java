@@ -94,11 +94,11 @@ public final class SimpleBuilder extends BaseBuilder<SimpleBuilder> {
 	 * environment variable, ensuring worker processes use the same JVM version.
 	 * <p>
 	 * This is a convenience method equivalent to:
+	 * </p>
 	 * <pre>
 	 * binPaths(new File(System.getProperty("java.home"), "bin").getPath())
 	 *     .env("JAVA_HOME", System.getProperty("java.home"))
 	 * </pre>
-	 * </p>
 	 *
 	 * @return This builder instance, for fluent-style programming.
 	 */

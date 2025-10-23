@@ -213,7 +213,7 @@ public class Mamba {
 	 * Create a new {@link Mamba} object. The root dir for the Micromamba installation
 	 * will be the default base path defined at {@link #BASE_PATH}
 	 * If there is no Micromamba found at the base path {@link #BASE_PATH}, an {@link IllegalStateException} will be thrown
-	 * <p></p>
+	 * <p>
 	 * It is expected that the Micromamba installation has executable commands as shown below:
 	 * </p>
 	 * <pre>
