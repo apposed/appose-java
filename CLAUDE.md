@@ -7,7 +7,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 Appose is a Java library for interprocess cooperation with shared memory. It enables easy execution of Python-based deep learning from Java without copying tensors, though its utility extends beyond that use case.
 
 **Key concepts:**
-- **Builder**: Type-safe classes for creating environments (`PixiBuilder`, `MambaBuilder`, `SystemBuilder`, `DynamicBuilder`)
+- **Builder**: Type-safe classes for creating environments (`PixiBuilder`, `MambaBuilder`, `UvBuilder`, `SimpleBuilder`, `DynamicBuilder`)
 - **Environment**: A configured environment with executables and dependencies (created by builders)
 - **Service**: Provides access to a worker process running in a separate process
 - **Task**: Asynchronous operation performed by a service (analogous to a Future)
@@ -43,33 +43,71 @@ mvn clean package
 ## Architecture
 
 ### Core API Flow
-1. **Builder** → `Environment`: Use `Appose.{pixi|mamba|file|system|wrap}()...build()` to construct environments
+1. **Builder** → `Environment`: Use `Appose.{pixi|mamba|file|custom|wrap}()...build()` to construct environments
 2. **Environment** → `Service`: Call `env.python()`, `env.groovy()`, or `env.service()` to launch worker processes
 3. **Service** → `Task`: Create tasks with `service.task(script)` to execute code asynchronously
 4. **Task** → Results: Tasks provide status updates via `listen()` callbacks and outputs via `outputs` map
 
 ### Directory Structure
-- `org.apposed.appose` - Main API classes (`Appose`, `Environment`, `Service`, `Builder`)
-- `org.apposed.appose.mamba` - Micromamba/conda environment builder
-- `org.apposed.appose.pixi` - Pixi environment builder
-- `org.apposed.appose.shm` - Platform-specific shared memory implementations (Linux, macOS, Windows)
-- `org.apposed.appose.util` - Utility classes for file paths, downloads, type conversion
+- `org.apposed.appose` - Core API interfaces and main entry point (`Appose`, `Environment`, `Service`, `Builder`, `BuilderFactory`, `Scheme`, `SharedMemory`)
+- `org.apposed.appose.builder` - All environment builder implementations and builder discovery utilities
+  - `PixiBuilder`, `MambaBuilder`, `UvBuilder` - Type-safe builder implementations
+  - `SimpleBuilder` - System PATH-based builder
+  - `DynamicBuilder` - Auto-detecting builder
+  - `Builders` - Builder discovery and management utility
+- `org.apposed.appose.scheme` - Configuration file format schemes (`PixiTomlScheme`, `EnvironmentYmlScheme`, `PyProjectTomlScheme`, `RequirementsTxtScheme`)
+- `org.apposed.appose.shm` - Platform-specific shared memory implementations and utilities
+  - `ShmLinux`, `ShmMacOS`, `ShmWindows` - Platform implementations
+  - `Shms` - Shared memory utility and factory methods
+- `org.apposed.appose.util` - Cross-cutting utility classes (`Plugins`, `Schemes`, `FilePaths`, `Processes`, `Types`, etc.)
 
 ### Key Interfaces
-- **Builder**: Interface for environment builders
-  - Discovered via `BuilderFactory` ServiceLoader
-  - Implementations: `PixiBuilder`, `MambaBuilder`, `SystemBuilder`, `DynamicBuilder`
-  - Core methods: `build(File)`, `build(String)`, `build()`
-  - Subscription methods: `subscribeProgress()`, `subscribeOutput()`, `subscribeError()`, `logDebug()`
-- **BuilderFactory**: Factory for creating and discovering builders
-  - Factory methods: `createBuilder()`, `createBuilder(source)`, `createBuilder(source, scheme)`
-  - Discovery methods: `name()`, `supports(scheme)`, `canWrap(File)`, `priority()`
 - **Environment**: Interface representing a configured environment
   - Core methods: `base()`, `binPaths()`, `launchArgs()`
   - Worker creation: `python()`, `groovy()`, `java()`, `service()`
+- **Builder**: Interface for environment builders
+  - Implementations: `PixiBuilder`, `MambaBuilder`, `UvBuilder`, `SimpleBuilder`, `DynamicBuilder`
+  - Core terminator method: `build()`
+  - Subscription methods: `subscribeProgress()`, `subscribeOutput()`, `subscribeError()`, `logDebug()`
+- **BuilderFactory**: Factory for creating and discovering builders
+  - Factory methods: `createBuilder()`, `createBuilder(source)`, `createBuilder(source, scheme)`
+  - Discovery methods: `name()`, `supportsScheme(scheme)`, `canWrap(File)`, `priority()`
+  - Implementations discovered via ServiceLoader and managed by `Builders` utility class
+- **Scheme**: Interface for configuration file format detection and parsing
+  - Implementations: `PixiTomlScheme`, `EnvironmentYmlScheme`, `PyProjectTomlScheme`, `RequirementsTxtScheme`
+  - Methods: `name()`, `supportsFilename(filename)`, `supportsContent(content)`, `priority()`
+  - Implementations discovered via ServiceLoader and managed by `Schemes` utility class
 - **SharedMemory**: Platform-agnostic shared memory interface
-  - Factory discovered via `ShmFactory` ServiceLoader
-  - Platform implementations in `org.apposed.appose.shm` package
+  - Platform implementations: `ShmLinux`, `ShmMacOS`, `ShmWindows`
+  - Factory methods provided by `Shms` utility class
+  - Implementations discovered via `ShmFactory` ServiceLoader
+
+### Plugin Architecture
+
+The project uses Java's ServiceLoader mechanism for extensibility, with utility classes managing discovery:
+
+- **Plugins** (`org.apposed.appose.util.Plugins`) - Core ServiceLoader abstraction
+  - `discover()` - Load and optionally sort all implementations of an interface
+  - `find()` - Find first implementation matching a predicate
+  - `create()` - Try factories until one produces a result
+  - Used by all other plugin utilities for consistent discovery patterns
+
+- **Builders** (`org.apposed.appose.builder.Builders`) - Builder discovery and management
+  - `findFactoryByName(name)` - Find builder by name (e.g., "pixi", "mamba")
+  - `findFactoryByScheme(scheme)` - Find builder supporting a scheme (e.g., "pixi-toml", "conda")
+  - `findFactoryBySource(source)` - Auto-detect builder from file path
+  - `findFactoryForWrapping(envDir)` - Detect builder for existing environment
+  - Factories cached and sorted by priority
+
+- **Schemes** (`org.apposed.appose.util.Schemes`) - Configuration file format detection
+  - `fromFilename(filename)` - Detect scheme from filename (e.g., "pixi.toml" → PixiTomlScheme)
+  - `fromContent(content)` - Detect scheme from file contents
+  - `fromName(name)` - Get scheme by name (e.g., "pixi-toml")
+  - Schemes sorted by priority for correct detection order
+
+- **Shms** (`org.apposed.appose.shm.Shms`) - Shared memory utilities and factory
+  - `create(name, create, rsize)` - Create platform-appropriate shared memory
+  - Platform-specific utilities for shared memory implementations
 
 ### Environment Building
 Builders are type-safe and builder-specific:
@@ -117,7 +155,7 @@ The `Appose` class provides static factory methods for creating environments:
 - Shared memory implementations are platform-specific; changes should be tested on Linux, macOS, and Windows
 - Worker scripts must be single expressions for task results, or must populate `task.outputs["result"]` explicitly
 - Builder classes are type-safe and builder-specific (no generic `include()` / `channel()` methods on base `Builder` interface)
-- The plugin architecture uses ServiceLoader with `BuilderFactory` for discovery
+- The plugin architecture uses ServiceLoader for extensibility, with discovery managed by utility classes (`Plugins`, `Builders`, `Schemes`, `Shms`)
 
 ## Builders
 
@@ -154,11 +192,12 @@ The project provides type-safe builder classes for different environment types:
 - Uses ServiceLoader discovery with builder priorities
 - Location: `org.apposed.appose.builder.DynamicBuilder`
 
-**SystemBuilder** - Uses system PATH without installing packages
-- Created via `Appose.system()` or `Appose.system(directory)`
+**SimpleBuilder** - Uses an existing working directory without installing packages
+- Created via `Appose.system()` or `Appose.custom().base("/path/to/cwd").build()`
 - No package installation; uses whatever executables are on the system
 - Method: `useSystemPath(boolean)` to control PATH inclusion
-- Location: `org.apposed.appose.SystemBuilder`
+- Method: `inheritRunningJava()` to add running JVM's bin folder to binPaths
+- Location: `org.apposed.appose.builder.SimpleBuilder`
 
 ### API Examples
 
@@ -203,12 +242,12 @@ Environment env = Appose.system();
 
 ### Builder Discovery
 
-Builders are discovered via ServiceLoader using `BuilderFactory`:
-- Each builder implements `supports(scheme)` to declare supported file types and package schemes
-- Each builder implements `canWrap(File)` to declare if it can wrap an existing environment directory
-- Builders have priorities for conflict resolution when multiple support the same scheme
-- `DynamicBuilder` uses this system to automatically select the appropriate builder
-- `Appose.wrap()` uses `canWrap()` to auto-detect environment type (pixi, conda, or fallback to system)
+Builders are discovered via `BuilderFactory` implementations managed by the `Builders` utility:
+- Each factory implements `supportsScheme(scheme)` to declare supported file types and package schemes
+- Each factory implements `canWrap(File)` to declare if it can wrap an existing environment directory
+- Factories have priorities for conflict resolution when multiple support the same scheme
+- `DynamicBuilder` uses `Builders.findFactoryBySource()` to automatically select the appropriate builder
+- `Appose.wrap()` uses `Builders.findFactoryForWrapping()` to auto-detect environment type
 
 ### Environment Configuration
 Builders create environments with three key properties:

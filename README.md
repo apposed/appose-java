@@ -105,7 +105,7 @@ task.outputs["numer"] = current
 task.outputs["denom"] = previous
 """;
 
-Environment env = Appose.mamba("/path/to/environment.yml").build();
+Environment env = Appose.file("/path/to/environment.yml").build();
 try (Service python = env.python()) {
     Task task = python.task(goldenRatioInPython);
     task.listen(event -> {
