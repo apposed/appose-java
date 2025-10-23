@@ -44,7 +44,7 @@ public interface BuilderFactory {
 	 *
 	 * @return A new builder instance
 	 */
-	Builder createBuilder();
+	Builder<?> createBuilder();
 
 	/**
 	 * Creates a new builder instance configured with a source file.
@@ -52,7 +52,7 @@ public interface BuilderFactory {
 	 * @param source The source file path
 	 * @return A new configured builder instance
 	 */
-	Builder createBuilder(String source);
+	Builder<?> createBuilder(String source);
 
 	/**
 	 * Creates a new builder instance configured with a source file and scheme.
@@ -61,7 +61,7 @@ public interface BuilderFactory {
 	 * @param scheme The scheme (e.g., "environment.yml", "pixi.toml")
 	 * @return A new configured builder instance
 	 */
-	Builder createBuilder(String source, String scheme);
+	Builder<?> createBuilder(String source, String scheme);
 
 	/**
 	 * Returns the name of this builder (e.g., "pixi", "mamba", "system").

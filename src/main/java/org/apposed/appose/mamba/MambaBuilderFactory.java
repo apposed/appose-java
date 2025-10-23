@@ -39,17 +39,17 @@ import org.apposed.appose.BuilderFactory;
  */
 public class MambaBuilderFactory implements BuilderFactory {
 	@Override
-	public Builder createBuilder() {
+	public Builder<?> createBuilder() {
 		return new MambaBuilder();
 	}
 
 	@Override
-	public Builder createBuilder(String source) {
+	public Builder<?> createBuilder(String source) {
 		return new MambaBuilder(source);
 	}
 
 	@Override
-	public Builder createBuilder(String source, String scheme) {
+	public Builder<?> createBuilder(String source, String scheme) {
 		return new MambaBuilder(source, scheme);
 	}
 

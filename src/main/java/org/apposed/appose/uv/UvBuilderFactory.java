@@ -39,17 +39,17 @@ import org.apposed.appose.BuilderFactory;
  */
 public class UvBuilderFactory implements BuilderFactory {
 	@Override
-	public Builder createBuilder() {
+	public Builder<?> createBuilder() {
 		return new UvBuilder();
 	}
 
 	@Override
-	public Builder createBuilder(String source) {
+	public Builder<?> createBuilder(String source) {
 		return new UvBuilder(source);
 	}
 
 	@Override
-	public Builder createBuilder(String source, String scheme) {
+	public Builder<?> createBuilder(String source, String scheme) {
 		return new UvBuilder(source, scheme);
 	}
 
