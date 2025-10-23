@@ -50,39 +50,43 @@ import java.net.MalformedURLException;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.net.URL;
+import java.util.zip.ZipInputStream;
 
 /**
- * Utility methods to unzip bzip2 files and to enable downloads
+ * Utility methods supporting download and unpacking of remote archives.
+ *
+ * @author Carlos Garcia
+ * @author Curtis Rueden
  */
 public final class Downloads {
 	
 	private Downloads() {
 		// Prevent instantiation of utility class.
 	}
-	
+
 	/**
-	 * DEcompress a bzip2 file into a new file.
-	 * The method is needed because Micromamba is distributed as a .tr.bz2 file and
-	 * many distributions do not have tools readily available to extract the required files 
+	 * Decompress a bzip2 file into a new file.
+	 * The method is needed because Micromamba is distributed as a .tar.bz2 file and
+	 * many distributions do not have tools readily available to extract the required files.
 	 * @param source
 	 * 	.bzip2 file
 	 * @param destination
 	 * 	destination folder where the contents of the file are going to be decompressed
 	 * @throws FileNotFoundException if the .bzip2 file is not found or does not exist
 	 * @throws IOException if the source file already exists or there is any error with the decompression
-	 * @throws InterruptedException if the therad where the decompression is happening is interrupted
+	 * @throws InterruptedException if the thread where the decompression is happening is interrupted
 	 */
 	public static void unBZip2(File source, File destination) throws FileNotFoundException, IOException, InterruptedException {
-	    try (
-	    		BZip2CompressorInputStream input = new BZip2CompressorInputStream(new BufferedInputStream(new FileInputStream(source)));
-	    		FileOutputStream output = new FileOutputStream(destination);
-	    		) {
-               copy(input, output);
-	    }
+		try (
+			BZip2CompressorInputStream input = new BZip2CompressorInputStream(new BufferedInputStream(new FileInputStream(source)));
+			FileOutputStream output = new FileOutputStream(destination);
+		) {
+			copy(input, output);
+		}
 	}
 
 	/**
-	 * Copies the content of a InputStream into an OutputStream
+	 * Copies the content of an InputStream into an OutputStream.
 	 *
 	 * @param input
 	 * 	the InputStream to copy
@@ -107,8 +111,35 @@ public final class Downloads {
 		return count;
 	}
 
-	/** Untar an input file into an output file.
+	public static void unpack(final File inputFile, final File outputDir) throws FileNotFoundException, IOException, InterruptedException {
+		String filename = inputFile.getName().toLowerCase();
+		if (filename.endsWith(".tar")) unTar(inputFile, outputDir);
+		else if (filename.endsWith(".tar.bz2")) unBZip2(inputFile, outputDir);
+		else if (filename.endsWith(".tar.gz")) unTarGz(inputFile, outputDir);
+		else if (filename.endsWith(".zip")) unZip(inputFile, outputDir);
+		else throw new IllegalArgumentException("Unsupported archive type for file: " + inputFile.getName());
+	}
 
+	/**
+	 * Decompress a zip file into a new file.
+	 * @param source .zip file
+	 * @param destination
+	 * 	destination folder where the contents of the file are going to be decompressed
+	 * @throws FileNotFoundException if the .zip file is not found or does not exist
+	 * @throws IOException if the source file already exists or there is any error with the decompression
+	 * @throws InterruptedException if the thread where the decompression is happening is interrupted
+	 */
+	public static void unZip(File source, File destination) throws FileNotFoundException, IOException, InterruptedException {
+		try (
+			ZipInputStream input = new ZipInputStream(new BufferedInputStream(new FileInputStream(source)));
+			FileOutputStream output = new FileOutputStream(destination);
+		) {
+			copy(input, output);
+		}
+	}
+
+	/**
+	 * Untar an input file into an output file.
 	 * The output file is created in the output folder, having the same name
 	 * as the input file, minus the '.tar' extension.
 	 *
@@ -189,7 +220,7 @@ public final class Downloads {
 	}
 	
 	/**
-	 * This method shuold be used when we get the following response codes from 
+	 * This method should be used when we get the following response codes from
 	 * a {@link HttpURLConnection}:
 	 * - {@link HttpURLConnection#HTTP_MOVED_TEMP}
 	 * - {@link HttpURLConnection#HTTP_MOVED_PERM}

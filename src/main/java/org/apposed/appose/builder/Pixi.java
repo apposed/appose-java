@@ -126,21 +126,22 @@ public class Pixi {
 	 * URL from where Pixi is downloaded to be installed
 	 */
 	public final static String PIXI_URL = "https://github.com/prefix-dev/pixi/releases/download/" +
-		PIXI_VERSION + "/pixi-" + pixiPlatform() + ".tar.gz";
+		PIXI_VERSION + "/" + pixiBinary();
 
 	/**
-	 * @return a String that identifies the current OS to download the correct Pixi version
+	 * @return a String that identifies the filename to download for the current platform.
 	 */
-	private static String pixiPlatform() {
+	private static String pixiBinary() {
 		String osName = System.getProperty("os.name");
 		if (osName.startsWith("Windows")) osName = "Windows";
 		String osArch = System.getProperty("os.arch");
 		switch (osName + "|" + osArch) {
-			case "Linux|amd64":      return "x86_64-unknown-linux-musl";
-			case "Linux|aarch64":    return "aarch64-unknown-linux-musl";
-			case "Mac OS X|x86_64":  return "x86_64-apple-darwin";
-			case "Mac OS X|aarch64": return "aarch64-apple-darwin";
-			case "Windows|amd64":    return "x86_64-pc-windows-msvc";
+			case "Linux|amd64":      return "pixi-x86_64-unknown-linux-musl.tar.gz";
+			case "Linux|aarch64":    return "pixi-aarch64-unknown-linux-musl.tar.gz";
+			case "Mac OS X|x86_64":  return "pixi-x86_64-apple-darwin.tar.gz";
+			case "Mac OS X|aarch64": return "pixi-aarch64-apple-darwin.tar.gz";
+			case "Windows|amd64":    return "pixi-x86_64-pc-windows-msvc.zip";
+			case "Windows|aarch64":  return "pixi-aarch64-pc-windows-msvc.zip";
 			default:                 return null;
 		}
 	}
@@ -266,7 +267,10 @@ public class Pixi {
 	}
 
 	private File downloadPixi() throws IOException, InterruptedException, URISyntaxException {
-		final File tempFile = File.createTempFile("pixi", ".tar.gz");
+		// Hacky, but these are the only two cases.
+		String extension = PIXI_URL.endsWith(".zip") ? ".zip" : ".tar.gz";
+
+		final File tempFile = File.createTempFile("pixi", extension);
 		tempFile.deleteOnExit();
 		URL website = Downloads.redirectedURL(new URL(PIXI_URL));
 		long size = Downloads.getFileSize(website);
@@ -306,7 +310,7 @@ public class Pixi {
 		if (!pixiBinDir.exists() && !pixiBinDir.mkdirs())
 			throw new IOException("Failed to create Pixi bin directory: " + pixiBinDir);
 
-		Downloads.unTarGz(tempFile, pixiBinDir);
+		Downloads.unpack(tempFile, pixiBinDir);
 		File pixiFile = new File(pixiCommand);
 		if (!pixiFile.exists()) throw new IOException("Expected pixi binary is missing: " + pixiCommand);
 		if (!pixiFile.canExecute()) {
