@@ -29,7 +29,6 @@
 
 package org.apposed.appose.util;
 
-import org.apache.commons.io.FileUtils;
 import org.junit.jupiter.api.Test;
 
 import java.io.File;
@@ -79,7 +78,7 @@ public class FilePathsTest {
 			assertEquals(binFly, exe);
 		}
 		finally {
-			FileUtils.deleteDirectory(tmpDir);
+			FilePaths.deleteRecursively(tmpDir);
 		}
 	}
 
@@ -126,7 +125,7 @@ public class FilePathsTest {
 			assertMoved(dinnerFile2, destDinnerDir, "<wine>");
 		}
 		finally {
-			FileUtils.deleteDirectory(tmpDir);
+			FilePaths.deleteRecursively(tmpDir);
 		}
 	}
 
@@ -150,7 +149,7 @@ public class FilePathsTest {
 			assertContent(backupFile, "obsolete");
 		}
 		finally {
-			FileUtils.deleteDirectory(tmpDir);
+			FilePaths.deleteRecursively(tmpDir);
 		}
 	}
 
