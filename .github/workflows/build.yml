@@ -1,3 +1,20 @@
+# Appose CI Build
+#
+# Caching Strategy:
+# 1. Maven dependencies (via setup-java cache: 'maven')
+# 2. Appose environments and tool binaries (~/.local/share/appose)
+#    - Includes pixi, uv, and micromamba executables
+#    - Includes built environments
+# 3. Pixi package cache (~/.cache/rattler on Linux, ~/Library/Caches/rattler on macOS)
+# 4. UV package cache (~/.cache/uv on Linux, ~/Library/Caches/uv on macOS)
+# 5. Micromamba package cache (~/micromamba/pkgs and ~/.conda/pkgs)
+#
+# Cache keys are based on:
+# - pom.xml hash (dependencies change)
+# - Builder source files (tool versions change)
+#
+# This prevents redundant downloads of ~100MB+ tool binaries and packages on every CI run.
+
 name: build
 
 on:
@@ -34,14 +51,45 @@ jobs:
         with:
           python-version: '3.10'
 
-      - name: Cache Appose environments
+      - name: Cache Appose environments and tools
         id: cache-appose
         uses: actions/cache@v4
         with:
           path: ~/.local/share/appose
-          key: ${{ runner.os }}-build-appose-${{ hashFiles('*') }}
+          key: ${{ runner.os }}-appose-${{ hashFiles('pom.xml') }}-${{ hashFiles('src/main/java/org/apposed/appose/builder/Pixi.java', 'src/main/java/org/apposed/appose/builder/Uv.java', 'src/main/java/org/apposed/appose/builder/Mamba.java') }}
           restore-keys: |
-            ${{ runner.os }}-build-appose-
+            ${{ runner.os }}-appose-${{ hashFiles('pom.xml') }}-
+            ${{ runner.os }}-appose-
+
+      - name: Cache Pixi packages (Rattler cache)
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cache/rattler
+            ~/Library/Caches/rattler
+          key: ${{ runner.os }}-pixi-pkgs-${{ hashFiles('pom.xml') }}
+          restore-keys: |
+            ${{ runner.os }}-pixi-pkgs-
+
+      - name: Cache UV packages
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cache/uv
+            ~/Library/Caches/uv
+          key: ${{ runner.os }}-uv-pkgs-${{ hashFiles('pom.xml') }}
+          restore-keys: |
+            ${{ runner.os }}-uv-pkgs-
+
+      - name: Cache Micromamba packages
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/micromamba/pkgs
+            ~/.conda/pkgs
+          key: ${{ runner.os }}-mamba-pkgs-${{ hashFiles('pom.xml') }}
+          restore-keys: |
+            ${{ runner.os }}-mamba-pkgs-
 
       - name: Set up CI environment
         run: .github/setup.sh

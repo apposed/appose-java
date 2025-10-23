@@ -141,6 +141,67 @@ try (Service python = env.python()) {
 Of course, the above examples could have been done all in one language. But
 hopefully they hint at the possibilities of easy cross-language integration.
 
+## Caching and disk usage
+
+Appose uses multiple layers of caching to improve performance and reduce
+redundant downloads. Understanding these cache locations can help you manage
+disk usage and troubleshoot environment issues.
+
+### Appose environment cache
+
+**Location:** `~/.local/share/appose/` (customizable via `appose.envs-dir` system property)
+
+This directory contains:
+- **Tool binaries:** Pixi, UV, and Micromamba executables downloaded by Appose
+  - `.pixi/bin/pixi` (v0.39.5)
+  - `.uv/bin/uv` (v0.5.25)
+  - `.mamba/bin/micromamba` (latest)
+- **Built environments:** Each named environment created via `build(envName)`
+
+### Package manager caches
+
+Each package manager maintains its own cache for downloaded packages:
+
+**Pixi** (uses Rattler cache):
+- Linux: `~/.cache/rattler`
+- macOS: `~/Library/Caches/rattler`
+- Windows: `%LOCALAPPDATA%\rattler\Cache`
+- Environment variable: `PIXI_CACHE_DIR` or `RATTLER_CACHE_DIR`
+
+**UV**:
+- Linux: `~/.cache/uv`
+- macOS: `~/Library/Caches/uv`
+- Windows: `%LOCALAPPDATA%\uv\Cache`
+- Environment variable: `UV_CACHE_DIR`
+- Check location: `uv cache dir`
+
+**Micromamba**:
+- Default: `~/micromamba/pkgs/` (micromamba's default root prefix)
+- Alternative: `~/.conda/pkgs/` (if conda was installed previously)
+- Customizable via: `micromamba config append pkgs_dirs /path/to/cache`
+- Environment variable: `MAMBA_ROOT_PREFIX` (changes the entire root, including `pkgs/` subdirectory)
+
+### Clearing caches
+
+To free up disk space, you can clear individual caches:
+
+```bash
+# Clear UV cache
+uv cache clean
+
+# Clear Pixi/Rattler cache
+pixi clean cache --yes
+
+# Clear Micromamba cache
+micromamba clean --all --yes
+
+# Remove all Appose environments and tools (nuclear option)
+rm -rf ~/.local/share/appose
+```
+
+**Note:** Package manager caches are shared across projects and significantly
+speed up subsequent environment creation. Only clear them if disk space is critical.
+
 ## Issue tracker
 
 All implementations of Appose use the same issue tracker:
