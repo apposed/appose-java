@@ -49,6 +49,7 @@ import java.util.Map;
 import org.apposed.appose.Service.ResponseType;
 import org.apposed.appose.Service.Task;
 import org.apposed.appose.Service.TaskStatus;
+import org.apposed.appose.builder.MambaBuilder;
 import org.junit.jupiter.api.Test;
 
 /**
@@ -610,7 +611,7 @@ public class ApposeTest {
 		assertNotNull(env2.builder(), "Wrapped environment should have a builder");
 
 		// Verify that the builder detected the config file
-		assertTrue(env2.builder() instanceof org.apposed.appose.mamba.MambaBuilder,
+		assertTrue(env2.builder() instanceof MambaBuilder,
 			"Should detect environment as mamba");
 
 		// Rebuild the wrapped environment

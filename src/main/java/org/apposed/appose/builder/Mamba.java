@@ -57,7 +57,7 @@
  * POSSIBILITY OF SUCH DAMAGE.
  ****************************************************************************-*/
 
-package org.apposed.appose.mamba;
+package org.apposed.appose.builder;
 
 import org.apposed.appose.util.Downloads;
 import org.apposed.appose.util.Environments;

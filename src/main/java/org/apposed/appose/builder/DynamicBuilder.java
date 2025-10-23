@@ -27,9 +27,11 @@
  * #L%
  */
 
-package org.apposed.appose;
+package org.apposed.appose.builder;
 
-import org.apposed.appose.util.Builders;
+import org.apposed.appose.Builder;
+import org.apposed.appose.BuilderFactory;
+import org.apposed.appose.Environment;
 
 import java.io.IOException;
 
@@ -45,8 +47,7 @@ public final class DynamicBuilder extends BaseBuilder<DynamicBuilder> {
 	private String scheme;
 	private String builderName;
 
-	// Package-private constructor for Appose class
-	DynamicBuilder(String source) {
+	public DynamicBuilder(String source) {
 		this.source = source;
 	}
 

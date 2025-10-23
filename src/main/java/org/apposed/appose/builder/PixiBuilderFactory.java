@@ -27,7 +27,7 @@
  * #L%
  */
 
-package org.apposed.appose.pixi;
+package org.apposed.appose.builder;
 
 import org.apposed.appose.Builder;
 import org.apposed.appose.BuilderFactory;

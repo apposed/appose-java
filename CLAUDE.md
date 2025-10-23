@@ -131,13 +131,13 @@ The project provides type-safe builder classes for different environment types:
 - Supports `pixi.toml` and `environment.yml` files
 - Uses `pixi run --manifest-path <envDir>/pixi.toml` for activation
 - Environment structure: `<envDir>/.pixi/envs/default`
-- Location: `org.apposed.appose.pixi.PixiBuilder`
+- Location: `org.apposed.appose.builder.PixiBuilder`
 
 **MambaBuilder** - Traditional conda environments via micromamba
 - Created via `Appose.mamba()` or `Appose.mamba(source)`
 - Supports `environment.yml` files
 - Uses `mamba run -p <envDir>` for activation
-- Location: `org.apposed.appose.mamba.MambaBuilder`
+- Location: `org.apposed.appose.builder.MambaBuilder`
 
 **UvBuilder** - Fast Python virtual environments via UV
 - Created via `Appose.uv()` or `Appose.uv(source)`
@@ -145,14 +145,14 @@ The project provides type-safe builder classes for different environment types:
 - Supports `requirements.txt` files
 - Standard Python venv structure (no special activation needed)
 - Environment structure: `<envDir>/bin` (or `Scripts` on Windows)
-- Location: `org.apposed.appose.uv.UvBuilder`
+- Location: `org.apposed.appose.builder.UvBuilder`
 
 **DynamicBuilder** - Auto-detects appropriate builder based on source file
 - Created via `Appose.file(source)`
 - Methods: `scheme(scheme)`, `builder(builderName)`
 - Delegates to PixiBuilder or MambaBuilder based on file extension or explicit scheme
 - Uses ServiceLoader discovery with builder priorities
-- Location: `org.apposed.appose.DynamicBuilder`
+- Location: `org.apposed.appose.builder.DynamicBuilder`
 
 **SystemBuilder** - Uses system PATH without installing packages
 - Created via `Appose.system()` or `Appose.system(directory)`

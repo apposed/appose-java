@@ -27,7 +27,7 @@
  * #L%
  */
 
-package org.apposed.appose.uv;
+package org.apposed.appose.builder;
 
 import org.apposed.appose.Builder;
 import org.apposed.appose.BuilderFactory;
@@ -35,63 +35,50 @@ import org.apposed.appose.BuilderFactory;
 import java.io.IOException;
 
 /**
- * Factory for creating UvBuilder instances.
+ * Factory for creating MambaBuilder instances.
  *
  * @author Curtis Rueden
  */
-public class UvBuilderFactory implements BuilderFactory {
+public class MambaBuilderFactory implements BuilderFactory {
 	@Override
 	public Builder<?> createBuilder() {
-		return new UvBuilder();
+		return new MambaBuilder();
 	}
 
 	@Override
 	public Builder<?> createBuilder(String source) throws IOException {
-		return new UvBuilder(source);
+		return new MambaBuilder(source);
 	}
 
 	@Override
 	public Builder<?> createBuilder(String source, String scheme) throws IOException {
-		return new UvBuilder(source, scheme);
+		return new MambaBuilder(source, scheme);
 	}
 
 	@Override
 	public String name() {
-		return "uv";
+		return "mamba";
 	}
 
 	@Override
 	public boolean supportsScheme(String scheme) {
-		switch (scheme) {
-			case "requirements.txt":
-			case "pypi":
-				return true;
-			default:
-				return false;
-		}
+		return "environment.yml".equals(scheme);
 	}
 
 	@Override
 	public boolean supportsSource(String source) {
-		// Support requirements.txt files
-		return source.endsWith("requirements.txt") || source.endsWith(".txt");
+		// Support YAML environment files
+		return source.endsWith(".yml") || source.endsWith(".yaml");
 	}
 
 	@Override
 	public double priority() {
-		return 75.0; // Between pixi (100) and mamba (50)
+		return 50.0; // Lower priority than pixi for environment.yml
 	}
 
 	@Override
 	public boolean canWrap(java.io.File envDir) {
-		// Check for UV/venv environment markers
-		// UV creates standard Python venv, so look for pyvenv.cfg
-		// but exclude conda and pixi environments
-		boolean hasPyvenvCfg = new java.io.File(envDir, "pyvenv.cfg").isFile();
-		boolean isNotPixi = !new java.io.File(envDir, ".pixi").isDirectory() &&
-		                    !new java.io.File(envDir, "pixi.toml").isFile();
-		boolean isNotConda = !new java.io.File(envDir, "conda-meta").isDirectory();
-
-		return hasPyvenvCfg && isNotPixi && isNotConda;
+		// Check for conda/mamba environment marker
+		return new java.io.File(envDir, "conda-meta").isDirectory();
 	}
 }

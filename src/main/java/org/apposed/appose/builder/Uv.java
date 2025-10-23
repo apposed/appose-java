@@ -27,7 +27,7 @@
  * #L%
  */
 
-package org.apposed.appose.uv;
+package org.apposed.appose.builder;
 
 import org.apposed.appose.util.Downloads;
 import org.apposed.appose.util.Environments;

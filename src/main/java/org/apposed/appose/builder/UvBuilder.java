@@ -27,9 +27,8 @@
  * #L%
  */
 
-package org.apposed.appose.uv;
+package org.apposed.appose.builder;
 
-import org.apposed.appose.BaseBuilder;
 import org.apposed.appose.Builder;
 import org.apposed.appose.Environment;
 import org.apposed.appose.util.FilePaths;

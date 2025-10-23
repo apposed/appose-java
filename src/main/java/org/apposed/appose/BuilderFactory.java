@@ -29,6 +29,8 @@
 
 package org.apposed.appose;
 
+import org.apposed.appose.builder.Builders;
+
 import java.io.File;
 import java.io.IOException;
 
@@ -36,7 +38,7 @@ import java.io.IOException;
  * Factory interface for creating builder instances.
  * <p>
  * Implementations are discovered at runtime and managed by
- * the {@link org.apposed.appose.util.Builders} utility class.
+ * the {@link Builders} utility class.
  * </p>
  *
  * @author Curtis Rueden

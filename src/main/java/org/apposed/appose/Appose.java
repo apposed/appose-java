@@ -29,11 +29,13 @@
 
 package org.apposed.appose;
 
-import org.apposed.appose.mamba.MambaBuilder;
-import org.apposed.appose.pixi.PixiBuilder;
-import org.apposed.appose.util.Builders;
+import org.apposed.appose.builder.DynamicBuilder;
+import org.apposed.appose.builder.MambaBuilder;
+import org.apposed.appose.builder.PixiBuilder;
+import org.apposed.appose.builder.SimpleBuilder;
+import org.apposed.appose.builder.Builders;
 import org.apposed.appose.util.Versions;
-import org.apposed.appose.uv.UvBuilder;
+import org.apposed.appose.builder.UvBuilder;
 
 import java.io.File;
 import java.io.IOException;
