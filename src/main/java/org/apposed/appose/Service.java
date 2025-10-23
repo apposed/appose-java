@@ -30,6 +30,7 @@
 package org.apposed.appose;
 
 import org.apposed.appose.util.Processes;
+import org.apposed.appose.util.Proxies;
 import org.apposed.appose.util.Types;
 
 import java.io.BufferedReader;
@@ -179,6 +180,14 @@ public class Service implements AutoCloseable {
 	public Task task(String script, Map<String, Object> inputs, String queue) throws IOException {
 		start();
 		return new Task(script, inputs, queue);
+	}
+
+	public <T> T proxy(String var, Class<T> api) {
+		return proxy(var, api, null);
+	}
+
+	public <T> T proxy(String var, Class<T> api, String queue) {
+		return Proxies.create(this, var, api, queue);
 	}
 
 	/**
