@@ -31,6 +31,7 @@ package org.apposed.appose;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
@@ -140,8 +141,8 @@ public class ApposeTest {
 	public void testConda() throws IOException, InterruptedException {
 		Environment env = Appose
 			.file("src/test/resources/envs/cowsay.yml")
-			.logDebug()
 			.base("target/envs/conda-cowsay")
+			.logDebug()
 			.build();
 		cowsayAndAssert(env, "moo");
 	}
@@ -150,8 +151,8 @@ public class ApposeTest {
 	public void testPixi() throws IOException, InterruptedException {
 		Environment env = Appose
 			.pixi("src/test/resources/envs/cowsay-pixi.toml")
-			.logDebug()
 			.base("target/envs/pixi-cowsay")
+			.logDebug()
 			.build();
 		cowsayAndAssert(env, "baa");
 	}
@@ -162,8 +163,8 @@ public class ApposeTest {
 			.pixi()
 			.conda("python>=3.8", "pip")
 			.pypi("cowsay==6.1")
-			.logDebug()
 			.base("target/envs/pixi-cowsay-builder")
+			.logDebug()
 			.build();
 		cowsayAndAssert(env, "ooh");
 	}
@@ -172,8 +173,8 @@ public class ApposeTest {
 	public void testPixiPyproject() throws IOException, InterruptedException {
 		Environment env = Appose
 			.pixi("src/test/resources/envs/cowsay-pixi-pyproject.toml")
-			.logDebug()
 			.base("target/envs/pixi-cowsay-pyproject")
+			.logDebug()
 			.build();
 		cowsayAndAssert(env, "pixi-pyproject");
 	}
@@ -184,8 +185,8 @@ public class ApposeTest {
 		Environment env = Appose
 			.file("src/test/resources/envs/cowsay.yml")
 			.builder("mamba")
-			.logDebug()
 			.base("target/envs/mamba-cowsay")
+			.logDebug()
 			.build();
 
 		// Verify it's actually using mamba by checking for conda-meta directory
@@ -201,8 +202,8 @@ public class ApposeTest {
 	public void testUv() throws IOException, InterruptedException {
 		Environment env = Appose
 			.uv("src/test/resources/envs/cowsay-requirements.txt")
-			.logDebug()
 			.base("target/envs/uv-cowsay")
+			.logDebug()
 			.build();
 		cowsayAndAssert(env, "uv");
 	}
@@ -212,8 +213,8 @@ public class ApposeTest {
 		Environment env = Appose
 			.uv()
 			.include("cowsay==6.1")
-			.logDebug()
 			.base("target/envs/uv-cowsay-builder")
+			.logDebug()
 			.build();
 		cowsayAndAssert(env, "fast");
 	}
@@ -222,8 +223,8 @@ public class ApposeTest {
 	public void testUvPyproject() throws IOException, InterruptedException {
 		Environment env = Appose
 			.uv("src/test/resources/envs/cowsay-pyproject.toml")
-			.logDebug()
 			.base("target/envs/uv-cowsay-pyproject")
+			.logDebug()
 			.build();
 		cowsayAndAssert(env, "pyproject");
 	}
@@ -523,8 +524,8 @@ public class ApposeTest {
 
 		Environment env = Appose.pixi()
 			.content(pixiToml)
-			.logDebug()
 			.base("target/envs/pixi-content-test")
+			.logDebug()
 			.build();
 
 		cowsayAndAssert(env, "content!");
@@ -536,8 +537,8 @@ public class ApposeTest {
 		// This verifies that the recursive generics enable natural method chaining.
 		Environment env = Appose.custom()
 			.env("CUSTOM_VAR", "test_value")  // Base Builder method
-			.inheritRunningJava()              // SimpleBuilder method
-			.appendSystemPath()                // SimpleBuilder method
+			.inheritRunningJava()             // SimpleBuilder method
+			.appendSystemPath()               // SimpleBuilder method
 			.build();
 
 		assertNotNull(env);
@@ -600,8 +601,8 @@ public class ApposeTest {
 		File envDir = new File("target/envs/mamba-wrap-rebuild-test");
 		Environment env1 = Appose
 			.mamba("src/test/resources/envs/cowsay.yml")
-			.logDebug()
 			.base(envDir)
+			.logDebug()
 			.build();
 
 		// Wrap the environment (simulating restarting the application)
@@ -611,8 +612,8 @@ public class ApposeTest {
 		assertNotNull(env2.builder(), "Wrapped environment should have a builder");
 
 		// Verify that the builder detected the config file
-		assertTrue(env2.builder() instanceof MambaBuilder,
-			"Should detect environment as mamba");
+		assertInstanceOf(MambaBuilder.class, env2.builder());
+		assertEquals("mamba", env2.type());
 
 		// Rebuild the wrapped environment
 		Environment env3 = env2.builder().rebuild();
@@ -701,14 +702,6 @@ public class ApposeTest {
 			assertTrue(actual.contains("(oo)"), "Output should contain cow eyes");
 			assertTrue(actual.contains("||----w |"), "Output should contain cow legs");
 		}
-	}
-
-	private String repeat(String str, int count) {
-		StringBuilder sb = new StringBuilder();
-		for (int i = 0; i < count; i++) {
-			sb.append(str);
-		}
-		return sb.toString();
 	}
 
 	private void maybeDebug(Service service) {
