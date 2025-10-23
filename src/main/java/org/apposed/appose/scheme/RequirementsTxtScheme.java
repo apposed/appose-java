@@ -6,13 +6,13 @@
  * %%
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions are met:
- * 
+ *
  * 1. Redistributions of source code must retain the above copyright notice,
  *    this list of conditions and the following disclaimer.
  * 2. Redistributions in binary form must reproduce the above copyright notice,
  *    this list of conditions and the following disclaimer in the documentation
  *    and/or other materials provided with the distribution.
- * 
+ *
  * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
  * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
  * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
@@ -26,47 +26,52 @@
  * POSSIBILITY OF SUCH DAMAGE.
  * #L%
  */
-package org.apposed.appose;
 
-import java.nio.FloatBuffer;
-import java.util.HashMap;
-import java.util.Map;
+package org.apposed.appose.scheme;
 
-import static org.apposed.appose.NDArray.Shape.Order.F_ORDER;
+import org.apposed.appose.Scheme;
 
-public class NDArrayExamplePython {
+/**
+ * Scheme for requirements.txt (pip) configuration files.
+ * <p>
+ * This format does not contain environment name metadata.
+ * </p>
+ *
+ * @author Curtis Rueden
+ */
+public class RequirementsTxtScheme implements Scheme {
 
-	public static void main(String[] args) throws Exception {
-
-		// create a FLOAT32 NDArray with shape (4,3,2) in F_ORDER
-		// respectively (2,3,4) in C_ORDER
-		final NDArray.DType dType = NDArray.DType.FLOAT32;
-		final NDArray.Shape shape = new NDArray.Shape(F_ORDER, 4, 3, 2);
-		final NDArray ndArray = new NDArray(dType, shape);
-
-		// fill with values 0..23 in flat iteration order
-		final FloatBuffer buf = ndArray.buffer().asFloatBuffer();
-		final long len = ndArray.shape().numElements();
-		for ( int i = 0; i < len; ++i ) {
-			buf.put(i, i);
-		}
-
-		// pass to python (will be wrapped as numpy ndarray
-		final Environment env = Appose.wrap("/opt/homebrew/Caskroom/miniforge/base/envs/appose/");
-		try ( Service service = env.python() ) {
-			final Map< String, Object > inputs = new HashMap<>();
-			inputs.put( "img", ndArray);
-			Service.Task task = service.task(PRINT_INPUT, inputs );
-			task.waitFor();
-			final String result = ( String ) task.outputs.get( "result" );
-			System.out.println( "result = \n" + result );
-		}
-		ndArray.close();
+	@Override
+	public String name() {
+		return "requirements.txt";
 	}
 
+	@Override
+	public double priority() {
+		// TODO
+		return 0;
+	}
 
-	private static final String PRINT_INPUT = "" + //
-		"import numpy as np\n" + //
-		"task.outputs['result'] = str(img.ndarray())";
+	@Override
+	public String envName(String content) {
+		// requirements.txt does not contain environment name metadata
+		return null;
+	}
 
+	@Override
+	public boolean supportsContent(String content) {
+		if (content == null) return false;
+
+		String trimmed = content.trim();
+
+		// Plain text list of package specifications
+		// Must start with package name (alphanumeric, underscore, or hyphen)
+		// Optionally followed by version specifiers
+		return trimmed.matches("(?s)^[a-zA-Z0-9_-]+(==|>=|<=|~=|!=)?.*");
+	}
+
+	@Override
+	public boolean supportsFilename(String filename) {
+		return filename.endsWith("requirements.txt");
+	}
 }

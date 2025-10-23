@@ -27,7 +27,7 @@
  * #L%
  */
 
-package org.apposed.appose;
+package org.apposed.appose.util;
 
 import java.io.File;
 import java.io.IOException;
@@ -96,13 +96,13 @@ public final class FilePaths {
 	 *   <li>etc.</li>
 	 * </ul>
 	 *
-	 * @param srcDir TODO
-	 * @param destDir TODO
-	 * @param overwrite TODO
+	 * @param srcDir Source directory whose contents will be moved.
+	 * @param destDir Destination directory into which the source directory's contents will be merged.
+	 * @param overwrite If true, overwrite existing destination files; if false, back up source files instead.
 	 */
 	public static void moveDirectory(File srcDir, File destDir, boolean overwrite) throws IOException {
-		if (!srcDir.isDirectory()) throw new IllegalArgumentException("Not a directory: " + srcDir);
-		if (!destDir.isDirectory()) throw new IllegalArgumentException("Not a directory: " + destDir);
+		ensureDirectory(srcDir);
+		ensureDirectory(destDir);
 		try (DirectoryStream<Path> stream = Files.newDirectoryStream(srcDir.toPath())) {
 			for (Path srcPath : stream) moveFile(srcPath.toFile(), destDir, overwrite);
 		}
@@ -156,9 +156,13 @@ public final class FilePaths {
 	}
 
 	/**
-	 * TODO
+	 * Renames the given file to a backup filename in its parent directory.
+	 * <p>
+	 *   The file will be renamed to {@code filename.ext.old}, or {@code filename.ext.0.old},
+	 *   {@code filename.ext.1.old}, etc., if {@code filename.ext.old} already exists.
+	 * </p>
 	 *
-	 * @param srcFile TODO
+	 * @param srcFile Source file to rename to a backup.
 	 * @throws IOException If something goes wrong with the needed I/O operations.
 	 */
 	public static void renameToBackup(File srcFile) throws IOException {
@@ -166,10 +170,14 @@ public final class FilePaths {
 	}
 
 	/**
-	 * TODO
+	 * Renames the given file to a backup filename in the specified destination directory.
+	 * <p>
+	 *   The file will be renamed to {@code destDir/filename.ext.old}, or {@code destDir/filename.ext.0.old},
+	 *   {@code destDir/filename.ext.1.old}, etc., if {@code destDir/filename.ext.old} already exists.
+	 * </p>
 	 *
-	 * @param srcFile TODO
-	 * @param destDir TODO
+	 * @param srcFile Source file to rename to a backup.
+	 * @param destDir Destination directory where the backup file will be created.
 	 * @throws IOException If something goes wrong with the needed I/O operations.
 	 */
 	public static void renameToBackup(File srcFile, File destDir) throws IOException {
@@ -188,6 +196,44 @@ public final class FilePaths {
 		}
 		if (!srcFile.renameTo(backupFile)) {
 			throw new IOException("Failed to rename file:" + srcFile + " -> " + backupFile);
+		}
+	}
+
+	/**
+	 * Deletes a directory and all its contents recursively.
+	 * Properly handles symlinks including broken ones.
+	 *
+	 * @param dir The directory to delete
+	 * @throws IOException If deletion fails
+	 */
+	public static void deleteRecursively(File dir) throws IOException {
+		Path path = dir.toPath();
+		if (!Files.exists(path) && !Files.isSymbolicLink(path)) return;
+
+		if (Files.isDirectory(path)) {
+			try (DirectoryStream<Path> stream = Files.newDirectoryStream(path)) {
+				for (Path entry : stream) {
+					deleteRecursively(entry.toFile());
+				}
+			}
+		}
+
+		// Use Files.delete() instead of File.delete() to properly handle symlinks
+		Files.delete(path);
+	}
+
+	/**
+	 * Checks that the given file is an existing directory, throwing an exception if not.
+	 *
+	 * @param envDir The file to check.
+	 * @throws IOException If the given file does not exist, or is not a directory.
+	 */
+	public static void ensureDirectory(File envDir) throws IOException {
+		if (!envDir.exists()) {
+			throw new IOException("Environment directory does not exist: " + envDir);
+		}
+		if (!envDir.isDirectory()) {
+			throw new IOException("Not a directory: " + envDir);
 		}
 	}
 }

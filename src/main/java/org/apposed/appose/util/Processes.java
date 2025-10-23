@@ -6,13 +6,13 @@
  * %%
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions are met:
- * 
+ *
  * 1. Redistributions of source code must retain the above copyright notice,
  *    this list of conditions and the following disclaimer.
  * 2. Redistributions in binary form must reproduce the above copyright notice,
  *    this list of conditions and the following disclaimer in the documentation
  *    and/or other materials provided with the distribution.
- * 
+ *
  * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
  * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
  * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
@@ -26,31 +26,45 @@
  * POSSIBILITY OF SUCH DAMAGE.
  * #L%
  */
-package org.apposed.appose;
+
+package org.apposed.appose.util;
 
 import java.io.File;
+import java.util.Map;
 
-public final class Platforms {
-    private Platforms() { }
+/**
+ * Utility class for working with processes.
+ *
+ * @author Curtis Rueden
+ */
+public final class Processes {
 
-    public enum OperatingSystem { LINUX, MACOS, WINDOWS, UNKNOWN }
+	private Processes() {
+		// Prevent instantiation of utility class.
+	}
 
-    /** The detected operating system. */
-    public static final OperatingSystem OS;
-
-    static {
-        final String osName = System.getProperty("os.name").toLowerCase();
-        if (osName.startsWith("windows")) OS = OperatingSystem.WINDOWS;
-        else if (osName.startsWith("mac")) OS = OperatingSystem.MACOS;
-        else if (osName.contains("linux") || osName.endsWith("ix")) OS = OperatingSystem.LINUX;
-        else OS = OperatingSystem.UNKNOWN;
-    }
-
-    public static boolean isExecutable(File file) {
-        // Note: On Windows, what we are really looking for is EXE files,
-        // not any file with the executable bit set, unlike on POSIX.
-        return OS == OperatingSystem.WINDOWS ?
-            file.exists() && file.getName().toLowerCase().endsWith(".exe") :
-            file.canExecute();
-    }
+	/**
+	 * Creates a ProcessBuilder with environment variables applied.
+	 *
+	 * @param workingDir Working directory for the process (can be null).
+	 * @param envVars Environment variables to set (can be null or empty).
+	 * @param inheritIO Whether to inherit IO streams from parent process.
+	 * @param command Command and arguments to execute.
+	 * @return Configured ProcessBuilder ready to start.
+	 */
+	public static ProcessBuilder builder(File workingDir, Map<String, String> envVars,
+		boolean inheritIO, String... command)
+	{
+		ProcessBuilder pb = new ProcessBuilder(command);
+		if (workingDir != null) {
+			pb.directory(workingDir);
+		}
+		if (envVars != null && !envVars.isEmpty()) {
+			pb.environment().putAll(envVars);
+		}
+		if (inheritIO) {
+			pb.inheritIO();
+		}
+		return pb;
+	}
 }

@@ -29,6 +29,8 @@
 
 package org.apposed.appose;
 
+import org.apposed.appose.util.FilePaths;
+
 import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
@@ -36,14 +38,54 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 public interface Environment {
 
 	String base();
 	List<String> binPaths();
-	List<String> classpath();
 	List<String> launchArgs();
+
+	/**
+	 * Environment variables to set when launching worker processes.
+	 * By default, returns an empty map.
+	 *
+	 * @return A map of environment variable names to values.
+	 */
+	default Map<String, String> envVars() {
+		return Collections.emptyMap();
+	}
+
+	/**
+	 * Returns the builder that created this environment.
+	 * This enables re-configuration and rebuilding of the environment.
+	 *
+	 * @return The builder instance.
+	 */
+	Builder<?> builder();
+
+	/**
+	 * Returns the type of this environment (e.g., "pixi", "mamba", "uv", "system").
+	 * By default, delegates to the builder's name.
+	 *
+	 * @return The environment type name.
+	 */
+	default String type() {
+		return builder().name();
+	}
+
+	/**
+	 * Rebuilds this environment from scratch.
+	 * This deletes the existing environment directory and rebuilds it using the
+	 * current builder configuration.
+	 *
+	 * @return The newly rebuilt environment.
+	 * @throws IOException If something goes wrong during rebuild.
+	 */
+	default Environment rebuild() throws IOException {
+		return builder().rebuild();
+	}
 
 	/**
 	 * Creates a Python script service.
@@ -197,13 +239,18 @@ public interface Environment {
 			// becomes available on the system path while the environment is activated.
 			exe = exes.get(0);
 		}
-		else exe = exeFile.getCanonicalPath();
+		else {
+			// Use getAbsolutePath() instead of getCanonicalPath() to preserve symlinks.
+			// This is important for Python virtual environments where the python symlink
+			// needs to be used directly (not the resolved target) for proper site-packages access.
+			exe = exeFile.getAbsolutePath();
+		}
 
 		// Construct final args list: launchArgs + exe + args
 		List<String> allArgs = new ArrayList<>(launchArgs);
 		allArgs.add(exe);
 		allArgs.addAll(Arrays.asList(args));
 
-		return new Service(new File(base()), allArgs.toArray(new String[0]));
+		return new Service(new File(base()), envVars(), allArgs.toArray(new String[0]));
 	}
 }

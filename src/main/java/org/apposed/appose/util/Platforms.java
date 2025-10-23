@@ -26,47 +26,39 @@
  * POSSIBILITY OF SUCH DAMAGE.
  * #L%
  */
-package org.apposed.appose;
+package org.apposed.appose.util;
 
-import java.nio.FloatBuffer;
-import java.util.HashMap;
-import java.util.Map;
+import java.io.File;
 
-import static org.apposed.appose.NDArray.Shape.Order.F_ORDER;
+/**
+ * Utility class housing platform-specific logic.
+ *
+ * @author Curtis Rueden
+ */
+public final class Platforms {
 
-public class NDArrayExamplePython {
-
-	public static void main(String[] args) throws Exception {
-
-		// create a FLOAT32 NDArray with shape (4,3,2) in F_ORDER
-		// respectively (2,3,4) in C_ORDER
-		final NDArray.DType dType = NDArray.DType.FLOAT32;
-		final NDArray.Shape shape = new NDArray.Shape(F_ORDER, 4, 3, 2);
-		final NDArray ndArray = new NDArray(dType, shape);
-
-		// fill with values 0..23 in flat iteration order
-		final FloatBuffer buf = ndArray.buffer().asFloatBuffer();
-		final long len = ndArray.shape().numElements();
-		for ( int i = 0; i < len; ++i ) {
-			buf.put(i, i);
-		}
-
-		// pass to python (will be wrapped as numpy ndarray
-		final Environment env = Appose.wrap("/opt/homebrew/Caskroom/miniforge/base/envs/appose/");
-		try ( Service service = env.python() ) {
-			final Map< String, Object > inputs = new HashMap<>();
-			inputs.put( "img", ndArray);
-			Service.Task task = service.task(PRINT_INPUT, inputs );
-			task.waitFor();
-			final String result = ( String ) task.outputs.get( "result" );
-			System.out.println( "result = \n" + result );
-		}
-		ndArray.close();
+	private Platforms() {
+		// Prevent instantiation of utility class.
 	}
 
+	public enum OperatingSystem { LINUX, MACOS, WINDOWS, UNKNOWN }
 
-	private static final String PRINT_INPUT = "" + //
-		"import numpy as np\n" + //
-		"task.outputs['result'] = str(img.ndarray())";
+	/** The detected operating system. */
+	public static final OperatingSystem OS;
 
+	static {
+		final String osName = System.getProperty("os.name").toLowerCase();
+		if (osName.startsWith("windows")) OS = OperatingSystem.WINDOWS;
+		else if (osName.startsWith("mac")) OS = OperatingSystem.MACOS;
+		else if (osName.contains("linux") || osName.endsWith("ix")) OS = OperatingSystem.LINUX;
+		else OS = OperatingSystem.UNKNOWN;
+	}
+
+	public static boolean isExecutable(File file) {
+		// Note: On Windows, what we are really looking for is EXE files,
+		// not any file with the executable bit set, unlike on POSIX.
+		return OS == OperatingSystem.WINDOWS ?
+			file.exists() && file.getName().toLowerCase().endsWith(".exe") :
+			file.canExecute();
+	}
 }

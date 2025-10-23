@@ -29,8 +29,9 @@
 
 package org.apposed.appose;
 
+import org.apposed.appose.shm.Shms;
+
 import java.nio.ByteBuffer;
-import java.util.ServiceLoader;
 
 /**
  * A shared memory block.
@@ -112,12 +113,7 @@ public interface SharedMemory extends AutoCloseable {
 		if (!create && name == null) {
 			throw new IllegalArgumentException("'name' can only be null if create=true");
 		}
-		ServiceLoader<ShmFactory> loader = ServiceLoader.load(ShmFactory.class);
-		for (ShmFactory factory : loader) {
-			SharedMemory shm = factory.create(name, create, rsize);
-			if (shm != null) return shm;
-		}
-		throw new UnsupportedOperationException("No SharedMemory support for this platform");
+		return Shms.create(name, create, rsize);
 	}
 
 	/**

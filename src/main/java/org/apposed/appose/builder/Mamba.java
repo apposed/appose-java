@@ -57,7 +57,12 @@
  * POSSIBILITY OF SUCH DAMAGE.
  ****************************************************************************-*/
 
-package org.apposed.appose.mamba;
+package org.apposed.appose.builder;
+
+import org.apposed.appose.util.Downloads;
+import org.apposed.appose.util.Environments;
+import org.apposed.appose.util.FileDownloader;
+import org.apposed.appose.util.Processes;
 
 import java.io.BufferedReader;
 import java.io.File;
@@ -75,7 +80,9 @@ import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Calendar;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
@@ -87,12 +94,12 @@ import java.util.stream.Collectors;
  * @author Ko Sugawara
  * @author Carlos Garcia
  */
-class Mamba {
+public class Mamba {
 
 	/**
 	 * String containing the path that points to the micromamba executable
 	 */
-	final String mambaCommand;
+	public final String mambaCommand;
 
 	/**
 	 * Root directory of micromamba that also contains the environments folder
@@ -126,6 +133,11 @@ class Mamba {
 	private Consumer<String> errorConsumer;
 
 	/**
+	 * Environment variables to set when running micromamba commands.
+	 */
+	private Map<String, String> envVars = new HashMap<>();
+
+	/**
 	 * Relative path to the micromamba executable from the micromamba {@link #rootdir}
 	 */
 	private final static Path MICROMAMBA_RELATIVE_PATH = isWindowsOS() ?
@@ -135,7 +147,7 @@ class Mamba {
 	/**
 	 * Path where Appose installs Micromamba by default
 	 */
-	final public static String BASE_PATH = Paths.get(System.getProperty("user.home"), ".local", "share", "appose", "micromamba").toString();
+	public static final String BASE_PATH = Paths.get(Environments.apposeEnvsDir(), ".mamba").toString();
 
 	/**
 	 * URL from where Micromamba is downloaded to be installed
@@ -185,7 +197,7 @@ class Mamba {
 	/**
 	 * Returns a {@link ProcessBuilder} with the working directory specified in the
 	 * constructor.
-	 * 
+	 *
 	 * @param isInheritIO
 	 *            Sets the source and destination for subprocess standard I/O to be
 	 *            the same as those of the current Java process.
@@ -194,10 +206,7 @@ class Mamba {
 	 */
 	private ProcessBuilder getBuilder( final boolean isInheritIO )
 	{
-		final ProcessBuilder builder = new ProcessBuilder().directory( new File( rootdir ) );
-		if ( isInheritIO )
-			builder.inheritIO();
-		return builder;
+		return Processes.builder(new File(rootdir), envVars, isInheritIO);
 	}
 
 	/**
@@ -218,7 +227,7 @@ class Mamba {
 	 * </pre>
 	 */
 	public Mamba() {
-		this(BASE_PATH);
+		this(null);
 	}
 
 	/**
@@ -243,10 +252,7 @@ class Mamba {
 	 *  The root dir for Mamba installation.
 	 */
 	public Mamba(final String rootdir) {
-		if (rootdir == null)
-			this.rootdir = BASE_PATH;
-		else
-			this.rootdir = rootdir;
+		this.rootdir = rootdir == null ? BASE_PATH : rootdir;
 		this.mambaCommand = Paths.get(this.rootdir).resolve(MICROMAMBA_RELATIVE_PATH).toAbsolutePath().toString();
 	}
 
@@ -298,11 +304,21 @@ class Mamba {
 		this.errorConsumer = consumer;
 	}
 
+	/**
+	 * Sets environment variables to be passed to micromamba processes.
+	 * @param envVars Map of environment variable names to values
+	 */
+	public void setEnvVars(Map<String, String> envVars) {
+		if (envVars != null) {
+			this.envVars = new HashMap<>(envVars);
+		}
+	}
+
 	private File downloadMicromamba() throws IOException, InterruptedException, URISyntaxException {
 		final File tempFile = File.createTempFile( "micromamba", ".tar.bz2" );
 		tempFile.deleteOnExit();
-		URL website = MambaInstallerUtils.redirectedURL(new URL(MICROMAMBA_URL));
-		long size = MambaInstallerUtils.getFileSize(website);
+		URL website = Downloads.redirectedURL(new URL(MICROMAMBA_URL));
+		long size = Downloads.getFileSize(website);
 		Thread currentThread = Thread.currentThread();
 		IOException[] ioe = {null};
 		InterruptedException[] ie = {null};
@@ -331,13 +347,13 @@ class Mamba {
 	private void decompressMicromamba(final File tempFile) throws IOException, InterruptedException {
 		final File tempTarFile = File.createTempFile( "micromamba", ".tar" );
 		tempTarFile.deleteOnExit();
-		MambaInstallerUtils.unBZip2(tempFile, tempTarFile);
+		Downloads.unBZip2(tempFile, tempTarFile);
 		File mambaBaseDir = new File(rootdir);
 		if (!mambaBaseDir.isDirectory() && !mambaBaseDir.mkdirs())
 			throw new IOException("Failed to create Micromamba default directory " +
 				mambaBaseDir.getParentFile().getAbsolutePath() +
 				". Please try installing it in another directory.");
-		MambaInstallerUtils.unTar(tempTarFile, mambaBaseDir);
+		Downloads.unTar(tempTarFile, mambaBaseDir);
 		File mmFile = new File(mambaCommand);
 		if (!mmFile.exists()) throw new IOException("Expected micromamba binary is missing: " + mambaCommand);
 		if (!mmFile.canExecute()) {
@@ -425,6 +441,44 @@ class Mamba {
 		checkMambaInstalled();
 		runMamba("env", "create", "--prefix",
 				envDir.getAbsolutePath(), "-f", envYaml, "-y", "-vv", "--no-rc" );
+	}
+
+	/**
+	 * Creates an empty conda environment at the specified directory.
+	 * This is useful for two-step builds: create empty, then update with environment.yml.
+	 *
+	 * @param envDir
+	 *            The directory where the environment will be created.
+	 * @throws IOException
+	 *             If an I/O error occurs.
+	 * @throws InterruptedException
+	 *             If the current thread is interrupted.
+	 * @throws IllegalStateException if Micromamba has not been installed
+	 */
+	public void create(final File envDir) throws IOException, InterruptedException
+	{
+		checkMambaInstalled();
+		runMamba("create", "--prefix", envDir.getAbsolutePath(), "-y", "--no-rc");
+	}
+
+	/**
+	 * Updates an existing conda environment from an environment.yml file.
+	 *
+	 * @param envDir
+	 *            The directory of the existing environment.
+	 * @param envYaml
+	 *            Path to the environment.yml file.
+	 * @throws IOException
+	 *             If an I/O error occurs.
+	 * @throws InterruptedException
+	 *             If the current thread is interrupted.
+	 * @throws IllegalStateException if Micromamba has not been installed
+	 */
+	public void update(final File envDir, final File envYaml) throws IOException, InterruptedException
+	{
+		checkMambaInstalled();
+		runMamba("env", "update", "-y", "--prefix",
+				envDir.getAbsolutePath(), "-f", envYaml.getAbsolutePath());
 	}
 
 	/**

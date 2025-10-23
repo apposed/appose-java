@@ -29,12 +29,22 @@
 
 package org.apposed.appose;
 
+import org.apposed.appose.util.Processes;
+import org.apposed.appose.util.Types;
+
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.PrintWriter;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Consumer;
 
@@ -49,6 +59,7 @@ public class Service implements AutoCloseable {
 	private static int serviceCount = 0;
 
 	private final File cwd;
+	private final Map<String, String> envVars;
 	private final String[] args;
 	private final Map<String, Task> tasks = new ConcurrentHashMap<>();
 	private final int serviceID;
@@ -76,7 +87,12 @@ public class Service implements AutoCloseable {
 	private Consumer<String> debugListener;
 
 	public Service(File cwd, String... args) {
+		this(cwd, null, args);
+	}
+
+	public Service(File cwd, Map<String, String> envVars, String... args) {
 		this.cwd = cwd;
+		this.envVars = envVars != null ? new HashMap<>(envVars) : new HashMap<>();
 		this.args = args.clone();
 		serviceID = serviceCount++;
 	}
@@ -104,7 +120,7 @@ public class Service implements AutoCloseable {
 		}
 
 		String prefix = "Appose-Service-" + serviceID;
-		ProcessBuilder pb = new ProcessBuilder(args).directory(cwd);
+		ProcessBuilder pb = Processes.builder(cwd, envVars, false, args);
 		process = pb.start();
 		stdin = new PrintWriter(process.getOutputStream());
 		stdoutThread = new Thread(this::stdoutLoop, prefix + "-Stdout");

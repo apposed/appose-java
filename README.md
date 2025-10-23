@@ -24,7 +24,7 @@ This is the **Java implementation of Appose**.
 
 ## How do I use it?
 
-The dependency coordinate is `org.apposed:appose:0.3.0`.
+The dependency coordinate is `org.apposed:appose:0.8.0`.
 
 ### Maven
 
@@ -35,7 +35,7 @@ In your project's `pom.xml`:
   <dependency>
     <groupId>org.apposed</groupId>
     <artifactId>appose</artifactId>
-    <version>0.3.0</version>
+    <version>0.8.0</version>
   </dependency>
 </dependencies>
 ```
@@ -49,7 +49,7 @@ repositories {
     mavenCentral()
 }
 dependencies {
-    implementation("org.apposed:appose:0.3.0")
+    implementation("org.apposed:appose:0.8.0")
 }
 ```
 
@@ -105,7 +105,7 @@ task.outputs["numer"] = current
 task.outputs["denom"] = previous
 """;
 
-Environment env = Appose.conda("/path/to/environment.yml").build();
+Environment env = Appose.file("/path/to/environment.yml").build();
 try (Service python = env.python()) {
     Task task = python.task(goldenRatioInPython);
     task.listen(event -> {

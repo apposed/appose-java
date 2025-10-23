@@ -29,6 +29,12 @@
 
 package org.apposed.appose;
 
+import groovy.lang.Binding;
+import groovy.lang.GroovyShell;
+import org.apposed.appose.Service.RequestType;
+import org.apposed.appose.Service.ResponseType;
+import org.apposed.appose.util.Types;
+
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
@@ -40,12 +46,6 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
-
-import org.apposed.appose.Service.RequestType;
-import org.apposed.appose.Service.ResponseType;
-
-import groovy.lang.Binding;
-import groovy.lang.GroovyShell;
 
 /**
  * The Appose worker for running Groovy scripts.

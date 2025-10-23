@@ -1,0 +1,3 @@
+org.apposed.appose.builder.PixiBuilderFactory
+org.apposed.appose.builder.MambaBuilderFactory
+org.apposed.appose.builder.UvBuilderFactory

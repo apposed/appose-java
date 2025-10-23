@@ -6,13 +6,13 @@
  * %%
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions are met:
- * 
+ *
  * 1. Redistributions of source code must retain the above copyright notice,
  *    this list of conditions and the following disclaimer.
  * 2. Redistributions in binary form must reproduce the above copyright notice,
  *    this list of conditions and the following disclaimer in the documentation
  *    and/or other materials provided with the distribution.
- * 
+ *
  * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
  * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
  * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
@@ -26,47 +26,51 @@
  * POSSIBILITY OF SUCH DAMAGE.
  * #L%
  */
-package org.apposed.appose;
 
-import java.nio.FloatBuffer;
-import java.util.HashMap;
-import java.util.Map;
+package org.apposed.appose.util;
 
-import static org.apposed.appose.NDArray.Shape.Order.F_ORDER;
+import java.io.IOException;
+import java.net.JarURLConnection;
+import java.net.URL;
+import java.util.jar.Attributes;
+import java.util.jar.Manifest;
 
-public class NDArrayExamplePython {
+/**
+ * Utility methods for working with version strings.
+ *
+ * @author Curtis Rueden
+ */
+public final class Versions {
 
-	public static void main(String[] args) throws Exception {
-
-		// create a FLOAT32 NDArray with shape (4,3,2) in F_ORDER
-		// respectively (2,3,4) in C_ORDER
-		final NDArray.DType dType = NDArray.DType.FLOAT32;
-		final NDArray.Shape shape = new NDArray.Shape(F_ORDER, 4, 3, 2);
-		final NDArray ndArray = new NDArray(dType, shape);
-
-		// fill with values 0..23 in flat iteration order
-		final FloatBuffer buf = ndArray.buffer().asFloatBuffer();
-		final long len = ndArray.shape().numElements();
-		for ( int i = 0; i < len; ++i ) {
-			buf.put(i, i);
-		}
-
-		// pass to python (will be wrapped as numpy ndarray
-		final Environment env = Appose.wrap("/opt/homebrew/Caskroom/miniforge/base/envs/appose/");
-		try ( Service service = env.python() ) {
-			final Map< String, Object > inputs = new HashMap<>();
-			inputs.put( "img", ndArray);
-			Service.Task task = service.task(PRINT_INPUT, inputs );
-			task.waitFor();
-			final String result = ( String ) task.outputs.get( "result" );
-			System.out.println( "result = \n" + result );
-		}
-		ndArray.close();
+	private Versions() {
+		// Prevent instantiation of utility class.
 	}
 
+	/** Gets the version of the resource (e.g. JAR file) containing the given class. */
+	public static String version(Class<?> c) {
+		Manifest m = manifest(c);
+		if (m == null) return null;
+		Attributes mainAttrs = m.getMainAttributes();
+		String specVersion = mainAttrs.getValue("Specification-Version");
+		String implVersion = mainAttrs.getValue("Implementation-Version");
+		String buildNo = mainAttrs.getValue("Implementation-Build");
+		String v = implVersion != null ? implVersion : specVersion;
+		if (v == null) return null;
+		return v.endsWith("-SNAPSHOT") && buildNo != null ? v + "-" + buildNo : v;
+	}
 
-	private static final String PRINT_INPUT = "" + //
-		"import numpy as np\n" + //
-		"task.outputs['result'] = str(img.ndarray())";
+	/** Gets the JAR manifest associated with the given class. */
+	private static Manifest manifest(Class<?> c) {
+		try {
+			return manifest(new URL("jar:" + FilePaths.location(c) + "!/"));
+		}
+		catch (IOException e) {
+			return null;
+		}
+	}
 
+	private static Manifest manifest(URL jarURL) throws IOException {
+		JarURLConnection conn = (JarURLConnection) jarURL.openConnection();
+		return new Manifest(conn.getManifest());
+	}
 }

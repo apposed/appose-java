@@ -6,13 +6,13 @@
  * %%
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions are met:
- * 
+ *
  * 1. Redistributions of source code must retain the above copyright notice,
  *    this list of conditions and the following disclaimer.
  * 2. Redistributions in binary form must reproduce the above copyright notice,
  *    this list of conditions and the following disclaimer in the documentation
  *    and/or other materials provided with the distribution.
- * 
+ *
  * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
  * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
  * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
@@ -26,47 +26,70 @@
  * POSSIBILITY OF SUCH DAMAGE.
  * #L%
  */
-package org.apposed.appose;
 
-import java.nio.FloatBuffer;
-import java.util.HashMap;
-import java.util.Map;
+package org.apposed.appose.builder;
 
-import static org.apposed.appose.NDArray.Shape.Order.F_ORDER;
+import org.apposed.appose.Builder;
+import org.apposed.appose.BuilderFactory;
 
-public class NDArrayExamplePython {
+import java.io.IOException;
 
-	public static void main(String[] args) throws Exception {
-
-		// create a FLOAT32 NDArray with shape (4,3,2) in F_ORDER
-		// respectively (2,3,4) in C_ORDER
-		final NDArray.DType dType = NDArray.DType.FLOAT32;
-		final NDArray.Shape shape = new NDArray.Shape(F_ORDER, 4, 3, 2);
-		final NDArray ndArray = new NDArray(dType, shape);
-
-		// fill with values 0..23 in flat iteration order
-		final FloatBuffer buf = ndArray.buffer().asFloatBuffer();
-		final long len = ndArray.shape().numElements();
-		for ( int i = 0; i < len; ++i ) {
-			buf.put(i, i);
-		}
-
-		// pass to python (will be wrapped as numpy ndarray
-		final Environment env = Appose.wrap("/opt/homebrew/Caskroom/miniforge/base/envs/appose/");
-		try ( Service service = env.python() ) {
-			final Map< String, Object > inputs = new HashMap<>();
-			inputs.put( "img", ndArray);
-			Service.Task task = service.task(PRINT_INPUT, inputs );
-			task.waitFor();
-			final String result = ( String ) task.outputs.get( "result" );
-			System.out.println( "result = \n" + result );
-		}
-		ndArray.close();
+/**
+ * Factory for creating PixiBuilder instances.
+ *
+ * @author Curtis Rueden
+ */
+public class PixiBuilderFactory implements BuilderFactory {
+	@Override
+	public Builder<?> createBuilder() {
+		return new PixiBuilder();
 	}
 
+	@Override
+	public Builder<?> createBuilder(String source) throws IOException {
+		return new PixiBuilder(source);
+	}
 
-	private static final String PRINT_INPUT = "" + //
-		"import numpy as np\n" + //
-		"task.outputs['result'] = str(img.ndarray())";
+	@Override
+	public Builder<?> createBuilder(String source, String scheme) throws IOException {
+		return new PixiBuilder(source, scheme);
+	}
 
+	@Override
+	public String name() {
+		return "pixi";
+	}
+
+	@Override
+	public boolean supportsScheme(String scheme) {
+		switch (scheme) {
+			case "pixi.toml":
+			case "environment.yml":
+			case "conda":
+			case "pypi":
+				return true;
+			default:
+				return false;
+		}
+	}
+
+	@Override
+	public boolean supportsSource(String source) {
+		// Support pixi.toml and YAML environment files
+		return source.endsWith("pixi.toml") ||
+		       source.endsWith(".yml") ||
+		       source.endsWith(".yaml");
+	}
+
+	@Override
+	public double priority() {
+		return 100.0; // Preferred for environment.yml and conda/pypi packages
+	}
+
+	@Override
+	public boolean canWrap(java.io.File envDir) {
+		// Check for pixi environment markers
+		return new java.io.File(envDir, ".pixi").isDirectory() ||
+		       new java.io.File(envDir, "pixi.toml").isFile();
+	}
 }

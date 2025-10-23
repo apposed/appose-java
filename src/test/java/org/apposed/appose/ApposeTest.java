@@ -31,6 +31,7 @@ package org.apposed.appose;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
@@ -49,6 +50,7 @@ import java.util.Map;
 import org.apposed.appose.Service.ResponseType;
 import org.apposed.appose.Service.Task;
 import org.apposed.appose.Service.TaskStatus;
+import org.apposed.appose.builder.MambaBuilder;
 import org.junit.jupiter.api.Test;
 
 /**
@@ -138,38 +140,191 @@ public class ApposeTest {
 	@Test
 	public void testConda() throws IOException, InterruptedException {
 		Environment env = Appose
-			.conda(new File("src/test/resources/envs/cowsay.yml"))
+			.file("src/test/resources/envs/cowsay.yml")
+			.base("target/envs/conda-cowsay")
 			.logDebug()
 			.build();
-		try (Service service = env.python()) {
-			maybeDebug(service);
-			Task task = service.task(
-				"import cowsay\n" +
-				"task.outputs['moo'] = cowsay.get_output_string('cow', 'moo')\n"
-			);
-			task.waitFor();
-			assertComplete(task);
-			String expectedMoo =
-				"  ___\n" +
-				"| moo |\n" +
-				"  ===\n" +
-				"   \\\n" +
-				"    \\\n" +
-				"      ^__^\n" +
-				"      (oo)\\_______\n" +
-				"      (__)\\       )\\/\\\n" +
-				"          ||----w |\n" +
-				"          ||     ||";
-			String actualMoo = (String) task.outputs.get("moo");
-			assertEquals(expectedMoo, actualMoo);
+		cowsayAndAssert(env, "moo");
+	}
+
+	@Test
+	public void testPixi() throws IOException, InterruptedException {
+		Environment env = Appose
+			.pixi("src/test/resources/envs/cowsay-pixi.toml")
+			.base("target/envs/pixi-cowsay")
+			.logDebug()
+			.build();
+		cowsayAndAssert(env, "baa");
+	}
+
+	@Test
+	public void testPixiBuilderAPI() throws IOException, InterruptedException {
+		Environment env = Appose
+			.pixi()
+			.conda("python>=3.8", "pip")
+			.pypi("cowsay==6.1")
+			.base("target/envs/pixi-cowsay-builder")
+			.logDebug()
+			.build();
+		cowsayAndAssert(env, "ooh");
+	}
+
+	@Test
+	public void testPixiPyproject() throws IOException, InterruptedException {
+		Environment env = Appose
+			.pixi("src/test/resources/envs/cowsay-pixi-pyproject.toml")
+			.base("target/envs/pixi-cowsay-pyproject")
+			.logDebug()
+			.build();
+		cowsayAndAssert(env, "pixi-pyproject");
+	}
+
+	@Test
+	public void testExplicitMambaBuilder() throws IOException, InterruptedException {
+		// Test explicit mamba builder selection using .builder() method
+		Environment env = Appose
+			.file("src/test/resources/envs/cowsay.yml")
+			.builder("mamba")
+			.base("target/envs/mamba-cowsay")
+			.logDebug()
+			.build();
+
+		// Verify it's actually using mamba by checking for conda-meta directory
+		File envBase = new File(env.base());
+		File condaMeta = new File(envBase, "conda-meta");
+		assertTrue(condaMeta.exists() && condaMeta.isDirectory(),
+			"Environment should have conda-meta directory when using mamba builder");
+
+		cowsayAndAssert(env, "yay");
+	}
+
+	@Test
+	public void testUv() throws IOException, InterruptedException {
+		Environment env = Appose
+			.uv("src/test/resources/envs/cowsay-requirements.txt")
+			.base("target/envs/uv-cowsay")
+			.logDebug()
+			.build();
+		cowsayAndAssert(env, "uv");
+	}
+
+	@Test
+	public void testUvBuilderAPI() throws IOException, InterruptedException {
+		Environment env = Appose
+			.uv()
+			.include("cowsay==6.1")
+			.base("target/envs/uv-cowsay-builder")
+			.logDebug()
+			.build();
+		cowsayAndAssert(env, "fast");
+	}
+
+	@Test
+	public void testUvPyproject() throws IOException, InterruptedException {
+		Environment env = Appose
+			.uv("src/test/resources/envs/cowsay-pyproject.toml")
+			.base("target/envs/uv-cowsay-pyproject")
+			.logDebug()
+			.build();
+		cowsayAndAssert(env, "pyproject");
+	}
+
+	@Test
+	public void testWrap() throws IOException {
+		// Test wrapping a pixi environment
+		File pixiDir = new File("target/test-wrap-pixi");
+		pixiDir.mkdirs();
+		File pixiToml = new File(pixiDir, "pixi.toml");
+		pixiToml.createNewFile();
+
+		try {
+			Environment pixiEnv = Appose.wrap(pixiDir);
+			assertNotNull(pixiEnv);
+			assertEquals(pixiDir.getAbsolutePath(), pixiEnv.base());
+			assertNotNull(pixiEnv.launchArgs());
+			assertFalse(pixiEnv.launchArgs().isEmpty());
+			assertTrue(pixiEnv.launchArgs().get(0).contains("pixi"),
+				"Pixi environment should use pixi launcher");
+		} finally {
+			pixiToml.delete();
+		}
+
+		// Test wrapping a conda/mamba environment
+		File condaDir = new File("target/test-wrap-conda");
+		condaDir.mkdirs();
+		File condaMeta = new File(condaDir, "conda-meta");
+		condaMeta.mkdirs();
+
+		try {
+			Environment condaEnv = Appose.wrap(condaDir);
+			assertNotNull(condaEnv);
+			assertEquals(condaDir.getAbsolutePath(), condaEnv.base());
+			assertNotNull(condaEnv.launchArgs());
+			assertFalse(condaEnv.launchArgs().isEmpty());
+			assertTrue(condaEnv.launchArgs().get(0).contains("micromamba"),
+				"Conda environment should use micromamba launcher");
+		} finally {
+			condaMeta.delete();
+		}
+
+		// Test wrapping a UV/venv environment
+		File uvDir = new File("target/test-wrap-uv");
+		uvDir.mkdirs();
+		File pyvenvCfg = new File(uvDir, "pyvenv.cfg");
+		pyvenvCfg.createNewFile();
+
+		try {
+			Environment uvEnv = Appose.wrap(uvDir);
+			assertNotNull(uvEnv);
+			assertEquals(uvDir.getAbsolutePath(), uvEnv.base());
+			// UV environments use standard venv structure with no special launch args
+			assertTrue(uvEnv.launchArgs().isEmpty(),
+				"UV environment should have no special launcher");
+		} finally {
+			pyvenvCfg.delete();
+		}
+
+		// Test wrapping a plain directory (should fall back to SystemBuilder)
+		File systemDir = new File("target/test-wrap-system");
+		systemDir.mkdirs();
+
+		try {
+			Environment systemEnv = Appose.wrap(systemDir);
+			assertNotNull(systemEnv);
+			assertEquals(systemDir.getAbsolutePath(), systemEnv.base());
+			// SystemBuilder uses empty launch args by default
+			assertTrue(systemEnv.launchArgs().isEmpty(),
+				"System environment should have no special launcher");
+		} finally {
+			systemDir.delete();
+			pixiDir.delete();
+			condaDir.delete();
+			uvDir.delete();
+		}
+
+		// Test that wrapping non-existent directory throws exception
+		File nonExistent = new File("target/does-not-exist");
+		try {
+			Appose.wrap(nonExistent);
+			fail("Should have thrown IOException for non-existent directory");
+		} catch (IOException e) {
+			assertTrue(e.getMessage().contains("does not exist"));
 		}
 	}
 
 	@Test
 	public void testServiceStartupFailure() throws IOException, InterruptedException {
-		String tempNonExistingDir = "no-pythons-to-be-found-here";
-		new File(tempNonExistingDir).deleteOnExit();
-		Environment env = Appose.build(tempNonExistingDir);
+		// Create an environment with no binPaths to test startup failure
+		File tempDir = new File("no-pythons-to-be-found-here");
+		tempDir.mkdirs();
+		tempDir.deleteOnExit();
+
+		Environment env = new Environment() {
+			@Override public String base() { return tempDir.getAbsolutePath(); }
+			@Override public List<String> binPaths() { return new ArrayList<>(); }
+			@Override public List<String> launchArgs() { return new ArrayList<>(); }
+			@Override public Builder<?> builder() { return null; }
+		};
 		try (Service service = env.python()) {
 			String info = "";
 			try {
@@ -351,6 +506,124 @@ public class ApposeTest {
 		}
 	}
 
+	@Test
+	public void testContentAPI() throws IOException, InterruptedException {
+		// Test building environment from content string
+		String pixiToml =
+			"[project]\n" +
+			"name = \"content-test\"\n" +
+			"channels = [\"conda-forge\"]\n" +
+			"platforms = [\"linux-64\", \"osx-64\", \"osx-arm64\", \"win-64\"]\n" +
+			"\n" +
+			"[dependencies]\n" +
+			"python = \">=3.8\"\n" +
+			"appose = \"*\"\n" +
+			"\n" +
+			"[pypi-dependencies]\n" +
+			"cowsay = \"==6.1\"\n";
+
+		Environment env = Appose.pixi()
+			.content(pixiToml)
+			.base("target/envs/pixi-content-test")
+			.logDebug()
+			.build();
+
+		cowsayAndAssert(env, "content!");
+	}
+
+	@Test
+	public void testCustom() throws IOException, InterruptedException {
+		// Test fluent chaining from base Builder methods to SimpleBuilder methods.
+		// This verifies that the recursive generics enable natural method chaining.
+		Environment env = Appose.custom()
+			.env("CUSTOM_VAR", "test_value")  // Base Builder method
+			.inheritRunningJava()             // SimpleBuilder method
+			.appendSystemPath()               // SimpleBuilder method
+			.build();
+
+		assertNotNull(env);
+		assertNotNull(env.binPaths());
+		assertFalse(env.binPaths().isEmpty(), "Custom environment should have binary paths configured");
+		assertTrue(env.launchArgs().isEmpty(), "Custom environment should have no special launcher");
+
+		// Verify environment variables are propagated
+		assertNotNull(env.envVars());
+		assertEquals("test_value", env.envVars().get("CUSTOM_VAR"));
+
+		// Verify inheritRunningJava() sets JAVA_HOME
+		String javaHome = System.getProperty("java.home");
+		if (javaHome != null) {
+			assertEquals(javaHome, env.envVars().get("JAVA_HOME"));
+			// Verify Java bin directory is in binPaths
+			String javaBin = new File(javaHome, "bin").getAbsolutePath();
+			assertTrue(env.binPaths().contains(javaBin),
+				"Java bin directory should be in binPaths");
+		}
+
+		// Verify that the custom environment can execute Python tasks
+		try (Service service = env.python()) {
+			maybeDebug(service);
+			Task task = service.task("task.outputs['result'] = 2 + 2");
+			task.waitFor();
+			assertComplete(task);
+			Number result = (Number) task.outputs.get("result");
+			assertEquals(4, result.intValue());
+		}
+
+		// Test custom environment with specific base directory
+		File customDir = new File("target/test-custom");
+		customDir.mkdirs();
+		try {
+			Environment customEnv = Appose.custom()
+				.base(customDir)
+				.appendSystemPath()
+				.build();
+
+			assertEquals(customDir.getAbsolutePath(), customEnv.base());
+			assertNotNull(customEnv.binPaths());
+		} finally {
+			customDir.delete();
+		}
+
+		// Test custom environment with specific binary paths
+		Environment pathEnv = Appose.custom()
+			.binPaths("/usr/bin", "/usr/local/bin")
+			.build();
+
+		List<String> binPaths = pathEnv.binPaths();
+		assertTrue(binPaths.contains("/usr/bin"), "Custom binPaths should include /usr/bin");
+		assertTrue(binPaths.contains("/usr/local/bin"), "Custom binPaths should include /usr/local/bin");
+	}
+
+	@Test
+	public void testWrapAndRebuild() throws IOException, InterruptedException {
+		// Build a mamba environment from a config file
+		File envDir = new File("target/envs/mamba-wrap-rebuild-test");
+		Environment env1 = Appose
+			.mamba("src/test/resources/envs/cowsay.yml")
+			.base(envDir)
+			.logDebug()
+			.build();
+
+		// Wrap the environment (simulating restarting the application)
+		Environment env2 = Appose.wrap(envDir);
+		assertNotNull(env2);
+		assertEquals(envDir.getAbsolutePath(), env2.base());
+		assertNotNull(env2.builder(), "Wrapped environment should have a builder");
+
+		// Verify that the builder detected the config file
+		assertInstanceOf(MambaBuilder.class, env2.builder());
+		assertEquals("mamba", env2.type());
+
+		// Rebuild the wrapped environment
+		Environment env3 = env2.builder().rebuild();
+		assertNotNull(env3);
+		assertEquals(envDir.getAbsolutePath(), env3.base());
+
+		// Verify the rebuilt environment works
+		cowsayAndAssert(env3, "rebuilt");
+	}
+
 	public void executeAndAssert(Service service, String script)
 		throws IOException, InterruptedException
 	{
@@ -407,6 +680,28 @@ public class ApposeTest {
 		assertEquals(0, completion.current); // no current from non-UPDATE response
 		assertEquals(0, completion.maximum); // no maximum from non-UPDATE response
 		assertNull(completion.error);
+	}
+
+	public void cowsayAndAssert(Environment env, String greeting)
+		throws IOException, InterruptedException
+	{
+		try (Service service = env.python()) {
+			maybeDebug(service);
+			Task task = service.task(
+				"import cowsay\n" +
+				"task.outputs['result'] = cowsay.get_output_string('cow', '" + greeting + "')\n"
+			);
+			task.waitFor();
+			assertComplete(task);
+			// Verify cowsay output contains the greeting and key elements
+			// (exact spacing can vary between cowsay versions)
+			String actual = (String) task.outputs.get("result");
+			assertNotNull(actual, "Cowsay output should not be null");
+			assertTrue(actual.contains(greeting), "Output should contain the greeting: " + greeting);
+			assertTrue(actual.contains("^__^"), "Output should contain cow face");
+			assertTrue(actual.contains("(oo)"), "Output should contain cow eyes");
+			assertTrue(actual.contains("||----w |"), "Output should contain cow legs");
+		}
 	}
 
 	private void maybeDebug(Service service) {

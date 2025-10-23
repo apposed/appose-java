@@ -29,6 +29,14 @@
 
 package org.apposed.appose;
 
+import org.apposed.appose.builder.DynamicBuilder;
+import org.apposed.appose.builder.MambaBuilder;
+import org.apposed.appose.builder.PixiBuilder;
+import org.apposed.appose.builder.SimpleBuilder;
+import org.apposed.appose.builder.Builders;
+import org.apposed.appose.util.Versions;
+import org.apposed.appose.builder.UvBuilder;
+
 import java.io.File;
 import java.io.IOException;
 
@@ -55,7 +63,7 @@ import java.io.IOException;
  * </p>
  * 
  * <pre>{@code
- * Environment env = Appose.conda("/path/to/environment.yml").build();
+ * Environment env = Appose.mamba("/path/to/environment.yml").build();
  * Service python = env.python();
  * Task task = python.task("""
  *     5 + 6
@@ -69,7 +77,7 @@ import java.io.IOException;
  * </p>
  * 
  * <pre>{@code
- * Environment env = Appose.conda("/path/to/environment.yml").build();
+ * Environment env = Appose.mamba("/path/to/environment.yml").build();
  * Service python = env.python();
  * Task golden_ratio = python.task("""
  *     # Approximate the golden ratio using the Fibonacci sequence.
@@ -242,64 +250,162 @@ import java.io.IOException;
  */
 public class Appose {
 
-	public static Builder scheme(String scheme) {
-		return new Builder().scheme(scheme);
+	// -- Fluid Builder API access --
+
+	/**
+	 * Creates a Pixi-based environment builder.
+	 * Pixi supports both conda and PyPI packages natively.
+	 *
+	 * @return A new PixiBuilder instance.
+	 */
+	public static PixiBuilder pixi() {
+		return new PixiBuilder();
 	}
 
-	public static Builder file(String filePath) throws IOException {
-		return new Builder().file(filePath);
+	/**
+	 * Creates a Pixi-based environment builder from a source file.
+	 *
+	 * @param source Path to pixi.toml or environment.yml file.
+	 * @return A new PixiBuilder instance.
+	 */
+	public static PixiBuilder pixi(String source) throws IOException {
+		return new PixiBuilder(source);
 	}
 
-	public static Builder file(String filePath, String scheme) throws IOException {
-		return new Builder().file(filePath, scheme);
+	/**
+	 * Creates a Micromamba-based environment builder.
+	 * Micromamba uses traditional conda environments.
+	 *
+	 * @return A new MambaBuilder instance.
+	 */
+	public static MambaBuilder mamba() {
+		return new MambaBuilder();
 	}
 
-	public static Builder file(File file) throws IOException {
-		return new Builder().file(file);
+	/**
+	 * Creates a Micromamba-based environment builder from an environment.yml file.
+	 *
+	 * @param source Path to environment.yml file.
+	 * @return A new MambaBuilder instance.
+	 */
+	public static MambaBuilder mamba(String source) throws IOException {
+		return new MambaBuilder(source);
 	}
 
-	public static Builder file(File file, String scheme) throws IOException {
-		return new Builder().file(file, scheme);
+	/**
+	 * Creates a UV-based virtual environment builder.
+	 * UV is a fast Python package installer and resolver.
+	 *
+	 * @return A new UvBuilder instance.
+	 */
+	public static UvBuilder uv() {
+		return new UvBuilder();
 	}
 
-	public static Builder channel(String name) {
-		return new Builder().channel(name);
+	/**
+	 * Creates a UV-based virtual environment builder from a requirements.txt file.
+	 *
+	 * @param source Path to requirements.txt file.
+	 * @return A new UvBuilder instance.
+	 */
+	public static UvBuilder uv(String source) throws IOException {
+		return new UvBuilder(source);
 	}
 
-	public static Builder channel(String name, String location) {
-		return new Builder().channel(name, location);
+	/**
+	 * Creates a builder that auto-detects the appropriate handler
+	 * based on the source file extension.
+	 *
+	 * @param source Path to environment configuration file.
+	 * @return A new DynamicBuilder instance.
+	 */
+	public static DynamicBuilder file(String source) {
+		return new DynamicBuilder(source);
 	}
 
-	public static Builder include(String content) {
-		return new Builder().include(content);
+	// -- Direct Environment shortcuts --
+
+	/**
+	 * Wraps an existing environment directory, automatically detecting the environment type.
+	 * This method intelligently detects whether the directory contains a pixi, mamba/conda,
+	 * or other environment and sets up the appropriate activation.
+	 *
+	 * @param envDir The directory containing the environment.
+	 * @return An Environment configured for the detected type.
+	 * @throws IOException If the directory doesn't exist or type cannot be determined.
+	 */
+	public static Environment wrap(File envDir) throws IOException {
+		if (!envDir.exists()) {
+			throw new IOException("Environment directory does not exist: " + envDir);
+		}
+
+		// Find a builder factory that can wrap this directory.
+		BuilderFactory factory = Builders.findFactoryForWrapping(envDir);
+
+		if (factory != null) {
+			return factory.createBuilder().wrap(envDir);
+		}
+
+		// Default to simple builder (no special activation, just use binaries in directory).
+		return new SimpleBuilder().wrap(envDir);
 	}
 
-	public static Builder include(String content, String scheme) {
-		return new Builder().include(content, scheme);
+	/**
+	 * Wraps an existing environment directory, automatically detecting the environment type.
+	 *
+	 * @param envDir The path to the directory containing the environment.
+	 * @return An Environment configured for the detected type.
+	 * @throws IOException If the directory doesn't exist or type cannot be determined.
+	 */
+	public static Environment wrap(String envDir) throws IOException {
+		return wrap(new File(envDir));
 	}
 
-	@Deprecated
-	public static Builder conda(File environmentYaml) throws IOException {
-		return file(environmentYaml, "environment.yml");
-	}
-
-	public static Environment build(File directory) throws IOException {
-		return new Builder().build(directory);
-	}
-
-	public static Environment build(String directory) throws IOException {
-		return build(new File(directory));
-	}
-
+	/**
+	 * Creates a system environment with sensible defaults.
+	 * <p>
+	 * This is a convenience method equivalent to:
+	 * <pre>
+	 * Appose.custom().inheritRunningJava().appendSystemPath().build()
+	 * </pre>
+	 * The resulting environment:
+	 * <ul>
+	 * <li>Uses the parent process's Java installation</li>
+	 * <li>Includes the system PATH for finding executables</li>
+	 * <li>Uses the current directory as the working directory</li>
+	 * </ul>
+	 *
+	 * @return A system environment ready to use.
+	 * @throws IOException If the environment cannot be created.
+	 */
 	public static Environment system() throws IOException {
-		return system(new File("."));
+		return new SimpleBuilder()
+			.inheritRunningJava()
+			.appendSystemPath()
+			.build();
 	}
 
-	public static Environment system(File directory) throws IOException {
-		return new Builder().useSystemPath().build(directory);
+	/**
+	 * Creates a custom simple environment builder with no defaults. Use this
+	 * when you need explicit control over binary paths and configuration.
+	 *
+	 * @return A new SimpleBuilder instance.
+	 * @see #wrap(File)
+	 * @see #wrap(String)
+	 */
+	public static SimpleBuilder custom() {
+		return new SimpleBuilder();
 	}
 
-	public static Environment system(String directory) throws IOException {
-		return system(new File(directory));
+	/**
+	 * Gets the version of Appose in use.
+	 *
+	 * @return The version string extracted from the JAR manifest,
+	 *   or {@code "<dev>"} if there is no enclosing JAR with
+	 *   appropriate manifest entries.
+	 */
+	public static String version() {
+		String v = Versions.version(Appose.class);
+		return v == null ? "<dev>" : v;
 	}
 }

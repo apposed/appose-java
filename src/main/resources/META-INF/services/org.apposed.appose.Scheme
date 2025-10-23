@@ -1,0 +1,4 @@
+org.apposed.appose.scheme.EnvironmentYmlScheme
+org.apposed.appose.scheme.PixiTomlScheme
+org.apposed.appose.scheme.PyProjectTomlScheme
+org.apposed.appose.scheme.RequirementsTxtScheme

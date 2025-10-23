@@ -27,8 +27,10 @@
  * #L%
  */
 
-package org.apposed.appose;
+package org.apposed.appose.util;
 
+import org.apposed.appose.NDArray;
+import org.apposed.appose.SharedMemory;
 import org.junit.jupiter.api.Test;
 
 import java.math.BigDecimal;
@@ -38,9 +40,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertSame;
+import static org.junit.jupiter.api.Assertions.*;
 
 /**
  * Tests {@link Types}.

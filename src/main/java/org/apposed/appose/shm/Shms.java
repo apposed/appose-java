@@ -28,76 +28,104 @@
  */
 package org.apposed.appose.shm;
 
+import org.apposed.appose.SharedMemory;
+import org.apposed.appose.ShmFactory;
+import org.apposed.appose.util.Plugins;
+
 import java.util.Random;
 
 /**
  * Utilities used in platform-specific {@code ShmBase} implementations.
+ *
+ * @author Tobias Pietzsch
+ * @author Curtis Rueden
  */
-class ShmUtils {
+public final class Shms {
+
+	private Shms() {
+		// Prevent instantiation of utility class.
+	}
 
 	/**
 	 * Constant to specify that the shared memory segment that is going to be
-	 * open is only for reading
+	 * open is only for reading.
 	 */
-	static int O_RDONLY = 0;
+	public static int O_RDONLY = 0;
 
 	/**
 	 * Constant to specify that the shared memory segment that is going to be
-	 * open is for reading and/or writing
+	 * open is for reading and/or writing.
 	 */
-	static int O_RDWR = 2;
+	public static int O_RDWR = 2;
 
 	/**
 	 * Constant to specify that the shared memory segment that is going to be
-	 * open will be created if it does not exist
+	 * open will be created if it does not exist.
 	 */
-	static int O_CREAT = 64;
+	public static int O_CREAT = 64;
 
 	/**
 	 * Constant to specify that the shared memory regions mapped can be read but
-	 * not written
+	 * not written.
 	 */
-	static int PROT_READ = 0x1;
+	public static int PROT_READ = 0x1;
 
 	/**
-	 * Constant to specify that the shared memory regions mapped can be written
+	 * Constant to specify that the shared memory regions mapped can be written.
 	 */
-	static int PROT_WRITE = 0x2;
+	public static int PROT_WRITE = 0x2;
 
 	/**
 	 * Constant to specify that the shared memory regions mapped can be shared
-	 * with other processes
+	 * with other processes.
 	 */
-	static int MAP_SHARED = 0x01;
+	public static int MAP_SHARED = 0x01;
+
+	/**
+	 * FreeBSD (and perhaps other BSDs) limit names to 14 characters.
+	 */
+	public static final int SHM_SAFE_NAME_LENGTH = 14;
+
+	/**
+	 * Shared memory block name prefix for Mac and Linux
+	 */
+	public static final String SHM_NAME_PREFIX_POSIX = "/psm_";
+
+	/**
+	 * Shared memory block name prefix for Windows
+	 */
+	public static final String SHM_NAME_PREFIX_WIN = "wnsm_";
+
+	/**
+	 * Creates a shared memory block by utilizing the appropriate
+	 * platform-specific {@link ShmFactory} implementation.
+	 *
+	 * @throws UnsupportedOperationException
+	 *     If no available implementation supports for the current platform.
+	 */
+	public static SharedMemory create(String name, boolean create, long rsize) {
+		SharedMemory shm = Plugins.create(ShmFactory.class,
+			factory -> factory.create(name, create, rsize));
+		if (shm == null) {
+			throw new UnsupportedOperationException(
+				"No SharedMemory support for this platform");
+		}
+		return shm;
+	}
 
 	/**
 	 * Add leading slash if {@code name} doesn't have one.
 	 */
-	static String withLeadingSlash(String name) {
+	public static String withLeadingSlash(String name) {
 		return name.startsWith("/") ? name : ("/" + name);
 	}
 
 	/**
 	 * Remove leading slash if {@code name} has one.
 	 */
-	static String withoutLeadingSlash(String name) {
+	public static String withoutLeadingSlash(String name) {
 		return name.startsWith("/") ? name.substring(1) : name;
 	}
-
-	/**
-	 * FreeBSD (and perhaps other BSDs) limit names to 14 characters.
-	 */
-	static final int SHM_SAFE_NAME_LENGTH = 14;
-
-	/**
-	 * Shared memory block name prefix for Mac and Linux
-	 */
-	static final String SHM_NAME_PREFIX_POSIX = "/psm_";
-
-	/**
-	 * Shared memory block name prefix for Windows
-	 */
-	static final String SHM_NAME_PREFIX_WIN = "wnsm_";
 
 	/**
 	 * Creates a random filename for the shared memory object.
@@ -106,18 +134,28 @@ class ShmUtils {
 	 * @param prefix    prefix of the generated filename
 	 * @return a random filename with the given {@code prefix}.
 	 */
-	static String make_filename(int maxLength, String prefix) {
+	public static String makeFilename(int maxLength, String prefix) {
 		// number of random bytes to use for name
 		final int nbytes = (maxLength - prefix.length()) / 2;
 		if (nbytes < 2) {
 			throw new IllegalArgumentException("prefix too long");
 		}
-		final String name = prefix + token_hex(nbytes);
+		final String name = prefix + tokenHex(nbytes);
 		assert name.length() <= maxLength;
 		return name;
 	}
 
-	static void checkSize(String shmName, long prevSize, long size) {
+	/**
+	 * Validates the size of an already-existing shared memory block.
+	 *
+	 * @param shmName Name of the shared memory block to validate.
+	 * @param prevSize Previous/current size of the shared memory block.
+	 * @param size Proposed revised size of the shared memory block.
+	 *
+	 * @throws RuntimeException
+	 *     If the shared memory block already exists with smaller size than the one given.
+	 */
+	public static void checkSize(String shmName, long prevSize, long size) {
 		final boolean alreadyExists = prevSize >= 0;
 		if (alreadyExists && prevSize < size) {
 			throw new RuntimeException("Shared memory segment '" + shmName + "' already exists with smaller size. "
@@ -126,7 +164,7 @@ class ShmUtils {
 		}
 	}
 
-	private static String token_hex(int nbytes) {
+	private static String tokenHex(int nbytes) {
 		final byte[] bytes = new byte[nbytes];
 		new Random().nextBytes(bytes);
 		StringBuilder sb = new StringBuilder(nbytes * 2);
