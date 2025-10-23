@@ -224,8 +224,8 @@ public final class PixiBuilder extends BaseBuilder<PixiBuilder> {
 		// Look for pixi.toml configuration file
 		File pixiToml = new File(envDir, "pixi.toml");
 		if (pixiToml.exists() && pixiToml.isFile()) {
-			// Populate sourceFile so rebuild() will work
-			sourceFile = pixiToml.getAbsolutePath();
+			// Read the content so rebuild() will work even after directory is deleted
+			sourceContent = new String(Files.readAllBytes(pixiToml.toPath()), StandardCharsets.UTF_8);
 		}
 
 		// Set the base directory and build (which will detect existing env)

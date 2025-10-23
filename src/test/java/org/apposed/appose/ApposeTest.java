@@ -573,6 +573,35 @@ public class ApposeTest {
 		assertTrue(binPaths.contains("/usr/local/bin"), "Custom binPaths should include /usr/local/bin");
 	}
 
+	@Test
+	public void testWrapAndRebuild() throws IOException, InterruptedException {
+		// Build a mamba environment from a config file
+		File envDir = new File("target/envs/mamba-wrap-rebuild-test");
+		Environment env1 = Appose
+			.mamba("src/test/resources/envs/cowsay.yml")
+			.logDebug()
+			.base(envDir)
+			.build();
+
+		// Wrap the environment (simulating restarting the application)
+		Environment env2 = Appose.wrap(envDir);
+		assertNotNull(env2);
+		assertEquals(envDir.getAbsolutePath(), env2.base());
+		assertNotNull(env2.builder(), "Wrapped environment should have a builder");
+
+		// Verify that the builder detected the config file
+		assertTrue(env2.builder() instanceof org.apposed.appose.mamba.MambaBuilder,
+			"Should detect environment as mamba");
+
+		// Rebuild the wrapped environment
+		Environment env3 = env2.builder().rebuild();
+		assertNotNull(env3);
+		assertEquals(envDir.getAbsolutePath(), env3.base());
+
+		// Verify the rebuilt environment works
+		cowsayAndAssert(env3, "rebuilt");
+	}
+
 	public void executeAndAssert(Service service, String script)
 		throws IOException, InterruptedException
 	{

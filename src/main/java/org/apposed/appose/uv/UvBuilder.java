@@ -201,8 +201,8 @@ public final class UvBuilder extends BaseBuilder<UvBuilder> {
 		// TODO: When pyproject.toml support is added, check for it first
 		File requirementsTxt = new File(envDir, "requirements.txt");
 		if (requirementsTxt.exists() && requirementsTxt.isFile()) {
-			// Populate sourceFile so rebuild() will work
-			sourceFile = requirementsTxt.getAbsolutePath();
+			// Read the content so rebuild() will work even after directory is deleted
+			sourceContent = new String(Files.readAllBytes(requirementsTxt.toPath()), StandardCharsets.UTF_8);
 		}
 
 		// Set the base directory and build (which will detect existing env)

@@ -157,8 +157,8 @@ public final class MambaBuilder extends BaseBuilder<MambaBuilder> {
 		// Look for environment.yml configuration file
 		File envYaml = new File(envDir, "environment.yml");
 		if (envYaml.exists() && envYaml.isFile()) {
-			// Populate sourceFile so rebuild() will work
-			sourceFile = envYaml.getAbsolutePath();
+			// Read the content so rebuild() will work even after directory is deleted
+			sourceContent = new String(Files.readAllBytes(envYaml.toPath()), StandardCharsets.UTF_8);
 		}
 
 		// Set the base directory and build (which will detect existing env)
