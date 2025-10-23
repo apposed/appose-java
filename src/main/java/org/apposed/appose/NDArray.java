@@ -37,6 +37,8 @@ import java.util.Arrays;
  * <p>
  * The array contains elements of a {@link DType data type}, arranged in a
  * particular {@link Shape}, and flattened into {@link SharedMemory}.
+ *
+ * @author Tobias Pietzsch
  */
 public class NDArray implements AutoCloseable {
 
