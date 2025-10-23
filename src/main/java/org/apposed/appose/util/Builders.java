@@ -32,9 +32,7 @@ package org.apposed.appose.util;
 import org.apposed.appose.BuilderFactory;
 
 import java.io.File;
-import java.util.ArrayList;
 import java.util.List;
-import java.util.ServiceLoader;
 
 /**
  * Utility class for discovering and managing environment builder factories.
@@ -47,26 +45,9 @@ public final class Builders {
 		// Prevent instantiation of utility class.
 	}
 
-	private static List<BuilderFactory> cachedFactories;
-
-	/**
-	 * Discovers all available builder factories via ServiceLoader.
-	 * Factories are cached and sorted by priority (highest first).
-	 *
-	 * @return List of discovered factories, sorted by priority.
-	 */
-	public static synchronized List<BuilderFactory> discoverFactories() {
-		if (cachedFactories == null) {
-			ServiceLoader<BuilderFactory> loader = ServiceLoader.load(BuilderFactory.class);
-			cachedFactories = new ArrayList<>();
-			for (BuilderFactory factory : loader) {
-				cachedFactories.add(factory);
-			}
-			// Sort by priority (descending - highest priority first)
-			cachedFactories.sort((a, b) -> Double.compare(b.priority(), a.priority()));
-		}
-		return cachedFactories;
-	}
+	/** All known {@link BuilderFactory} implementations, in priority order. */
+	private static final List<BuilderFactory> ALL = Plugins.discover(BuilderFactory.class,
+		(a, b) -> Double.compare(b.priority(), a.priority()));
 
 	/**
 	 * Finds a factory by name.
@@ -75,12 +56,7 @@ public final class Builders {
 	 * @return The factory with matching name, or null if not found.
 	 */
 	public static BuilderFactory findFactoryByName(String name) {
-		for (BuilderFactory factory : discoverFactories()) {
-			if (factory.name().equalsIgnoreCase(name)) {
-				return factory;
-			}
-		}
-		return null;
+		return Plugins.find(ALL, factory -> factory.name().equalsIgnoreCase(name));
 	}
 
 	/**
@@ -91,12 +67,7 @@ public final class Builders {
 	 * @return The first factory that supports the scheme, or null if none found.
 	 */
 	public static BuilderFactory findFactoryByScheme(String scheme) {
-		for (BuilderFactory factory : discoverFactories()) {
-			if (factory.supportsScheme(scheme)) {
-				return factory;
-			}
-		}
-		return null;
+		return Plugins.find(ALL, factory -> factory.supportsScheme(scheme));
 	}
 
 	/**
@@ -107,12 +78,7 @@ public final class Builders {
 	 * @return The first factory that can wrap the directory, or null if none found.
 	 */
 	public static BuilderFactory findFactoryForWrapping(File envDir) {
-		for (BuilderFactory factory : discoverFactories()) {
-			if (factory.canWrap(envDir)) {
-				return factory;
-			}
-		}
-		return null;
+		return Plugins.find(ALL, factory -> factory.canWrap(envDir));
 	}
 
 	/**
@@ -123,15 +89,8 @@ public final class Builders {
 	 * @return The first factory that can build from the source, or null if none found.
 	 */
 	public static BuilderFactory findFactoryBySource(String source) {
-		if (source == null) throw new NullPointerException("Cannot auto-detect builder: no source specified");
-
-		for (BuilderFactory factory : discoverFactories()) {
-			if (factory.supportsSource(source)) {
-				return factory;
-			}
-		}
-
-		throw new IllegalArgumentException("No builder supports source file: " + source);
+		if (source == null) throw new IllegalStateException("Cannot auto-detect builder: no source specified");
+		return Plugins.find(ALL, factory -> factory.supportsSource(source));
 	}
 
 	/**
@@ -154,6 +113,6 @@ public final class Builders {
 	 */
 	public static String envType(File envDir) {
 		BuilderFactory factory = findFactoryForWrapping(envDir);
-		return factory != null ? factory.name() : null;
+		return factory == null ? null : factory.name();
 	}
 }

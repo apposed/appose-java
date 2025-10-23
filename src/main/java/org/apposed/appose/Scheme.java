@@ -36,7 +36,8 @@ package org.apposed.appose;
  * (e.g., pixi.toml, pyproject.toml, environment.yml, requirements.txt).
  * </p>
  * <p>
- * Scheme implementations are discovered via {@link java.util.ServiceLoader}.
+ * Implementations are discovered at runtime and managed by the
+ * {@link org.apposed.appose.util.Schemes} utility class.
  * </p>
  *
  * @author Curtis Rueden

@@ -28,12 +28,20 @@
  */
 package org.apposed.appose.shm;
 
+import org.apposed.appose.SharedMemory;
+import org.apposed.appose.ShmFactory;
+import org.apposed.appose.util.Plugins;
+
 import java.util.Random;
 
 /**
  * Utilities used in platform-specific {@code ShmBase} implementations.
  */
-class Shms {
+public final class Shms {
+
+	private Shms() {
+		// Prevent instantiation of utility class.
+	}
 
 	/**
 	 * Constant to specify that the shared memory segment that is going to be
@@ -98,6 +106,23 @@ class Shms {
 	 * Shared memory block name prefix for Windows
 	 */
 	static final String SHM_NAME_PREFIX_WIN = "wnsm_";
+
+	/**
+	 * Creates a shared memory block by utilizing the appropriate
+	 * platform-specific {@link ShmFactory} implementation.
+	 *
+	 * @throws UnsupportedOperationException
+	 *     If no available implementation supports for the current platform.
+	 */
+	public static SharedMemory create(String name, boolean create, long rsize) {
+		SharedMemory shm = Plugins.create(ShmFactory.class,
+			factory -> factory.create(name, create, rsize));
+		if (shm == null) {
+			throw new UnsupportedOperationException(
+				"No SharedMemory support for this platform");
+		}
+		return shm;
+	}
 
 	/**
 	 * Creates a random filename for the shared memory object.

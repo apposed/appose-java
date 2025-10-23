@@ -34,8 +34,10 @@ import java.io.IOException;
 
 /**
  * Factory interface for creating builder instances.
- * Implementations are discovered via ServiceLoader and provide
- * metadata about supported schemes and priorities.
+ * <p>
+ * Implementations are discovered at runtime and managed by
+ * the {@link org.apposed.appose.util.Builders} utility class.
+ * </p>
  *
  * @author Curtis Rueden
  */
