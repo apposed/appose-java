@@ -182,10 +182,74 @@ public class Service implements AutoCloseable {
 		return new Task(script, inputs, queue);
 	}
 
+	/**
+	 * Creates a proxy object providing strongly typed access to a remote object
+	 * in this service's worker process.
+	 * <p>
+	 * This is a convenience method for interacting with objects in the worker
+	 * process using a natural, object-oriented API instead of manually constructing
+	 * script strings. Method calls on the proxy are transparently forwarded to the
+	 * remote object via {@link Task}s.
+	 * </p>
+	 * <p>
+	 * Example usage:
+	 * </p>
+	 * <pre>
+	 * Service service = env.python();
+	 * service.task("task.export(calculator=Calculator())").waitFor();
+	 * CalculatorInterface calc = service.proxy("calculator", CalculatorInterface.class);
+	 * int result = calc.add(2, 3); // Executes remotely, returns 5
+	 * </pre>
+	 * <p>
+	 * <strong>Important:</strong> The variable must be explicitly exported using
+	 * {@code task.export(varName=value)} in a previous task. Only exported variables
+	 * are accessible across tasks within the same service.
+	 * </p>
+	 * <p>
+	 * <strong>Note:</strong> Type matching is honor-system based. The interface
+	 * must actually match the remote object's methods, or you'll get runtime errors.
+	 * </p>
+	 *
+	 * @param <T> The interface type that the proxy will implement.
+	 * @param var The name of the exported variable in the worker process referencing the remote object.
+	 * @param api The interface class that the proxy should implement.
+	 * @return A proxy object that forwards method calls to the remote object.
+	 * @see #proxy(String, Class, String) To control which queue handles the method calls.
+	 * @see Proxies#create(Service, String, Class) For detailed documentation on proxy behavior.
+	 */
 	public <T> T proxy(String var, Class<T> api) {
 		return proxy(var, api, null);
 	}
 
+	/**
+	 * Creates a proxy object providing strongly typed access to a remote object
+	 * in this service's worker process, with control over task execution queuing.
+	 * <p>
+	 * This is a convenience method for interacting with objects in the worker
+	 * process using a natural, object-oriented API instead of manually constructing
+	 * script strings. Method calls on the proxy are transparently forwarded to the
+	 * remote object via {@link Task}s.
+	 * </p>
+	 * <p>
+	 * <strong>Important:</strong> The variable must be explicitly exported using
+	 * {@code task.export(varName=value)} in a previous task. Only exported variables
+	 * are accessible across tasks within the same service.
+	 * </p>
+	 * <p>
+	 * <strong>Blocking behavior:</strong> Each method call blocks until the remote
+	 * execution completes. If the remote execution fails, a {@link RuntimeException}
+	 * is thrown with the error message from the worker.
+	 * </p>
+	 *
+	 * @param <T> The interface type that the proxy will implement.
+	 * @param var The name of the exported variable in the worker process referencing the remote object.
+	 * @param api The interface class that the proxy should implement.
+	 * @param queue Optional queue identifier for task execution. Pass {@code "main"} to ensure
+	 *              execution on the worker's main thread, or {@code null} for default behavior.
+	 * @return A proxy object that forwards method calls to the remote object.
+	 * @see #task(String, String) For understanding queue behavior.
+	 * @see Proxies#create(Service, String, Class, String) For detailed documentation on proxy behavior.
+	 */
 	public <T> T proxy(String var, Class<T> api, String queue) {
 		return Proxies.create(this, var, api, queue);
 	}
