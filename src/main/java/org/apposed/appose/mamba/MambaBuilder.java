@@ -81,9 +81,6 @@ public final class MambaBuilder extends BaseBuilder<MambaBuilder> {
 			throw new IOException("Cannot use MambaBuilder: environment already managed by UV/venv at " + envDir);
 		}
 
-		// Resolve configuration content (from file, content string, or null)
-		String configContent = resolveConfigContent();
-
 		// Is this envDir an already-existing conda directory?
 		boolean isCondaDir = new File(envDir, "conda-meta").isDirectory();
 		if (isCondaDir) {
@@ -92,13 +89,13 @@ public final class MambaBuilder extends BaseBuilder<MambaBuilder> {
 		}
 
 		// Building a new environment - config content is required
-		if (configContent == null) {
+		if (sourceContent == null) {
 			throw new IllegalStateException("No source specified for MambaBuilder. Use .file() or .content()");
 		}
 
 		// Infer scheme if not explicitly set
 		if (scheme == null) {
-			scheme = inferSchemeFromContent(configContent);
+			scheme = inferSchemeFromContent(sourceContent);
 		}
 
 		if (!"environment.yml".equals(scheme)) {
@@ -133,7 +130,7 @@ public final class MambaBuilder extends BaseBuilder<MambaBuilder> {
 
 			// Step 2: Write environment.yml to envDir
 			File envYaml = new File(envDir, "environment.yml");
-			Files.write(envYaml.toPath(), configContent.getBytes(StandardCharsets.UTF_8));
+			Files.write(envYaml.toPath(), sourceContent.getBytes(StandardCharsets.UTF_8));
 
 			// Step 3: Update environment from yml
 			mamba.update(envDir, envYaml);

@@ -34,9 +34,6 @@ import org.apposed.appose.util.FilePaths;
 
 import java.io.File;
 import java.io.IOException;
-import java.net.URL;
-import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -164,15 +161,6 @@ public abstract class BaseBuilder<T extends BaseBuilder<T>> implements Builder<T
 	}
 
 	// -- Source handling methods --
-
-	/**
-	 * Returns the configuration content.
-	 *
-	 * @return Configuration content, or null if no source specified
-	 */
-	protected String resolveConfigContent() {
-		return sourceContent;
-	}
 
 	/**
 	 * Infers the scheme from configuration file content.

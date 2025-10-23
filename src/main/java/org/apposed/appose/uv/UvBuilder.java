@@ -132,22 +132,19 @@ public final class UvBuilder extends BaseBuilder<UvBuilder> {
 		try {
 			uv.installUv();
 
-			// Resolve configuration content (from file, content string, or null for programmatic)
-			String configContent = resolveConfigContent();
-
 			// Check if this is already a UV virtual environment
 			boolean isUvVenv = new File(envDir, "pyvenv.cfg").isFile();
 
-			if (isUvVenv && configContent == null && packages.isEmpty()) {
+			if (isUvVenv && sourceContent == null && packages.isEmpty()) {
 				// Environment already exists and no new config/packages, just use it
 				return createEnvironment(envDir);
 			}
 
 			// Handle source-based build (file or content)
-			if (configContent != null) {
+			if (sourceContent != null) {
 				// Infer scheme if not explicitly set
 				if (scheme == null) {
-					scheme = inferSchemeFromContent(configContent);
+					scheme = inferSchemeFromContent(sourceContent);
 				}
 
 				if (!"requirements.txt".equals(scheme)) {
@@ -161,7 +158,7 @@ public final class UvBuilder extends BaseBuilder<UvBuilder> {
 
 				// Write requirements.txt to envDir
 				File reqsFile = new File(envDir, "requirements.txt");
-				Files.write(reqsFile.toPath(), configContent.getBytes(StandardCharsets.UTF_8));
+				Files.write(reqsFile.toPath(), sourceContent.getBytes(StandardCharsets.UTF_8));
 
 				// Install packages from requirements.txt
 				uv.pipInstallFromRequirements(envDir, reqsFile.getAbsolutePath());

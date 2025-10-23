@@ -126,19 +126,16 @@ public final class PixiBuilder extends BaseBuilder<PixiBuilder> {
 		try {
 			pixi.installPixi();
 
-			// Resolve configuration content (from file, content string, or null for programmatic)
-			String configContent = resolveConfigContent();
-
 			// Check if this is already a pixi project
 			boolean isPixiDir = new File(envDir, "pixi.toml").isFile() || new File(envDir, ".pixi").isDirectory();
 
-			if (isPixiDir && configContent == null && condaPackages.isEmpty() && pypiPackages.isEmpty()) {
+			if (isPixiDir && sourceContent == null && condaPackages.isEmpty() && pypiPackages.isEmpty()) {
 				// Environment already exists, just use it
 				return createEnvironment(pixi, envDir);
 			}
 
 			// Handle source-based build (file or content)
-			if (configContent != null) {
+			if (sourceContent != null) {
 				if (isPixiDir) {
 					// Already initialized, just use it
 					return createEnvironment(pixi, envDir);
@@ -146,7 +143,7 @@ public final class PixiBuilder extends BaseBuilder<PixiBuilder> {
 
 				// Infer scheme if not explicitly set
 				if (scheme == null) {
-					scheme = inferSchemeFromContent(configContent);
+					scheme = inferSchemeFromContent(sourceContent);
 				}
 
 				if (!envDir.exists() && !envDir.mkdirs()) {
@@ -156,11 +153,11 @@ public final class PixiBuilder extends BaseBuilder<PixiBuilder> {
 				if ("pixi.toml".equals(scheme)) {
 					// Write pixi.toml to envDir
 					File pixiTomlFile = new File(envDir, "pixi.toml");
-					Files.write(pixiTomlFile.toPath(), configContent.getBytes(StandardCharsets.UTF_8));
+					Files.write(pixiTomlFile.toPath(), sourceContent.getBytes(StandardCharsets.UTF_8));
 				} else if ("environment.yml".equals(scheme)) {
 					// Write environment.yml and import
 					File environmentYamlFile = new File(envDir, "environment.yml");
-					Files.write(environmentYamlFile.toPath(), configContent.getBytes(StandardCharsets.UTF_8));
+					Files.write(environmentYamlFile.toPath(), sourceContent.getBytes(StandardCharsets.UTF_8));
 					pixi.runPixi("init", "--import", environmentYamlFile.getAbsolutePath(), envDir.getAbsolutePath());
 				}
 
