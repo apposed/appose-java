@@ -243,18 +243,14 @@ public final class UvBuilder extends BaseBuilder<UvBuilder> {
 
 	@Override
 	protected String suggestEnvName() {
-		// Try to extract name from pyproject.toml if present
-		if (sourceContent != null && "pyproject.toml".equals(scheme)) {
-			String[] lines = sourceContent.split("\n");
-			for (String line : lines) {
-				line = line.trim();
-				if (line.startsWith("name") && line.contains("=")) {
-					// pyproject.toml format: name = "foo"
-					int equalsIndex = line.indexOf('=');
-					String value = line.substring(equalsIndex + 1).trim();
-					value = value.replaceAll("^[\"']|[\"']$", "");
-					if (!value.isEmpty()) return value;
-				}
+		// Try to extract name from configuration content
+		if (sourceContent != null) {
+			try {
+				org.apposed.appose.Scheme detectedScheme = org.apposed.appose.Schemes.fromContent(sourceContent);
+				String name = detectedScheme.envName(sourceContent);
+				if (name != null) return name;
+			} catch (IllegalArgumentException e) {
+				// Content doesn't match any known scheme, fall through to default
 			}
 		}
 		// requirements.txt doesn't contain environment name metadata

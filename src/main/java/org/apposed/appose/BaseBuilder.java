@@ -170,44 +170,7 @@ public abstract class BaseBuilder<T extends BaseBuilder<T>> implements Builder<T
 	 * @throws IllegalArgumentException If scheme cannot be inferred
 	 */
 	protected String inferSchemeFromContent(String content) {
-		String trimmed = content.trim();
-
-		// TOML detection - distinguish between pyproject.toml and pixi.toml
-		if (trimmed.matches("(?s).*\\[.*\\].*")) {
-			// Check for pyproject.toml markers (both standard and Pixi-flavored)
-			// Standard PEP 621: [project] with [project.dependencies]
-			// Pixi pyproject.toml: [project] with [tool.pixi.*]
-			if (trimmed.contains("[project]")) {
-				if (trimmed.contains("[tool.pixi.") ||
-				    trimmed.contains("[project.dependencies]") ||
-				    trimmed.matches("(?s).*\\[project\\].*dependencies\\s*=.*")) {
-					return "pyproject.toml";
-				}
-			}
-			// Check for pixi.toml markers (top-level dependencies sections)
-			if (trimmed.contains("[dependencies]") ||
-			     trimmed.contains("[pypi-dependencies]")) {
-				return "pixi.toml";
-			}
-			// Default TOML to pixi.toml for backward compatibility
-			return "pixi.toml";
-		}
-
-		// YAML detection (environment.yml)
-		if (trimmed.startsWith("name:") ||
-		    trimmed.startsWith("channels:") ||
-		    trimmed.startsWith("dependencies:") ||
-		    trimmed.matches("(?s)^[a-z_]+:\\s*.*")) {
-			return "environment.yml";
-		}
-
-		// Plain text list (requirements.txt)
-		if (trimmed.matches("(?s)^[a-zA-Z0-9_-]+(==|>=|<=|~=|!=)?.*")) {
-			return "requirements.txt";
-		}
-
-		throw new IllegalArgumentException(
-			"Cannot infer scheme from content. Please specify explicitly with .scheme()");
+		return Schemes.fromContent(content).name();
 	}
 
 	/**
@@ -218,13 +181,7 @@ public abstract class BaseBuilder<T extends BaseBuilder<T>> implements Builder<T
 	 * @throws IllegalArgumentException If scheme cannot be inferred
 	 */
 	protected String inferSchemeFromFilename(String filename) {
-		if (filename.endsWith("pixi.toml")) return "pixi.toml";
-		if (filename.endsWith("pyproject.toml")) return "pyproject.toml";
-		if (filename.endsWith(".yml") || filename.endsWith(".yaml")) return "environment.yml";
-		if (filename.endsWith(".txt") || filename.equals("requirements.txt")) return "requirements.txt";
-
-		throw new IllegalArgumentException(
-			"Cannot infer scheme from filename: " + filename);
+		return Schemes.fromFilename(filename).name();
 	}
 
 	/**

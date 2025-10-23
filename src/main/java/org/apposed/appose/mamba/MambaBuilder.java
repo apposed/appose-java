@@ -185,15 +185,14 @@ public final class MambaBuilder extends BaseBuilder<MambaBuilder> {
 
 	@Override
 	public String suggestEnvName() {
-		// Try to extract name from environment.yml content
+		// Try to extract name from configuration content
 		if (sourceContent != null) {
-			String[] lines = sourceContent.split("\n");
-			for (String line : lines) {
-				line = line.trim();
-				if (line.startsWith("name:")) {
-					String value = line.substring(5).trim().replace("\"", "");
-					if (!value.isEmpty()) return value;
-				}
+			try {
+				org.apposed.appose.Scheme detectedScheme = org.apposed.appose.Schemes.fromContent(sourceContent);
+				String name = detectedScheme.envName(sourceContent);
+				if (name != null) return name;
+			} catch (IllegalArgumentException e) {
+				// Content doesn't match any known scheme, fall through to default
 			}
 		}
 		return "appose-mamba-env";
