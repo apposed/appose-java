@@ -256,19 +256,29 @@ public final class PixiBuilder extends BaseBuilder<PixiBuilder> {
 
 	@Override
 	protected String suggestEnvName() {
-		// Try to extract name from pixi.toml or environment.yml content
+		// Try to extract name from pyproject.toml, pixi.toml, or environment.yml content
 		if (sourceContent != null) {
 			String[] lines = sourceContent.split("\n");
+			boolean inProjectSection = false;
 			for (String line : lines) {
 				line = line.trim();
+
+				// Track if we're in a [project] section (for pyproject.toml)
+				if (line.equals("[project]")) {
+					inProjectSection = true;
+					continue;
+				} else if (line.startsWith("[") && !line.startsWith("[project")) {
+					inProjectSection = false;
+				}
+
 				if (line.startsWith("name") && line.contains("=")) {
-					// pixi.toml format: name = "foo"
+					// TOML format: name = "foo" (pixi.toml or pyproject.toml)
 					int equalsIndex = line.indexOf('=');
 					String value = line.substring(equalsIndex + 1).trim();
 					value = value.replaceAll("^[\"']|[\"']$", "");
 					if (!value.isEmpty()) return value;
 				} else if (line.startsWith("name:")) {
-					// environment.yml format: name: foo
+					// YAML format: name: foo (environment.yml)
 					String value = line.substring(5).trim().replace("\"", "");
 					if (!value.isEmpty()) return value;
 				}
