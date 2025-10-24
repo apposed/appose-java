@@ -67,7 +67,6 @@ import java.io.BufferedReader;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStreamReader;
-import java.net.URISyntaxException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
@@ -171,19 +170,16 @@ public class Mamba extends Tool {
 	 *  The root dir for Mamba installation.
 	 */
 	public Mamba(final String rootdir) {
-		super("micromamba");
+		super("micromamba", MICROMAMBA_URL);
 		this.rootdir = rootdir == null ? BASE_PATH : rootdir;
 		this.mambaCommand = Paths.get(this.rootdir).resolve(MICROMAMBA_RELATIVE_PATH).toAbsolutePath().toString();
 	}
 
-	private File downloadMicromamba() throws IOException, InterruptedException, URISyntaxException {
-		return Downloads.download("micromamba", MICROMAMBA_URL, this::updateDownloadProgress);
-	}
-
-	private void decompressMicromamba(final File tempFile) throws IOException, InterruptedException {
+	@Override
+	protected void decompress(final File archive) throws IOException, InterruptedException {
 		final File tempTarFile = File.createTempFile("micromamba", ".tar");
 		tempTarFile.deleteOnExit();
-		Downloads.unBZip2(tempFile, tempTarFile);
+		Downloads.unBZip2(archive, tempTarFile);
 		File mambaBaseDir = new File(rootdir);
 		if (!mambaBaseDir.isDirectory() && !mambaBaseDir.mkdirs())
 			throw new IOException("Failed to create Micromamba default directory " +
@@ -198,22 +194,6 @@ public class Mamba extends Tool {
 				throw new IOException("Cannot set file as executable due to missing permissions, "
 					+ "please do it manually: " + mambaCommand);
 		}
-	}
-
-	/**
-	 * Downloads and installs Micromamba.
-	 *
-	 * @throws IOException
-	 *             If an I/O error occurs.
-	 * @throws InterruptedException
-	 *             If the current thread is interrupted by another thread while it
-	 *             is waiting, then the wait is ended and an InterruptedException is
-	 *             thrown.
-	 * @throws URISyntaxException  if there is any error with the micromamba url
-	 */
-	public void installMicromamba() throws IOException, InterruptedException, URISyntaxException {
-		if (isInstalled()) return;
-		decompressMicromamba(downloadMicromamba());
 	}
 
 	/**

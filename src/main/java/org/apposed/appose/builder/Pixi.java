@@ -37,7 +37,6 @@ import java.io.BufferedReader;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStreamReader;
-import java.net.URISyntaxException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
@@ -134,16 +133,13 @@ public class Pixi extends Tool {
 	 *  The root dir for Pixi installation.
 	 */
 	public Pixi(final String rootdir) {
-		super("pixi");
+		super("pixi", PIXI_URL);
 		this.rootdir = rootdir == null ? BASE_PATH : rootdir;
 		this.pixiCommand = Paths.get(this.rootdir).resolve(PIXI_RELATIVE_PATH).toAbsolutePath().toString();
 	}
 
-	private File downloadPixi() throws IOException, InterruptedException, URISyntaxException {
-		return Downloads.download("pixi", PIXI_URL, this::updateDownloadProgress);
-	}
-
-	private void decompressPixi(final File tempFile) throws IOException, InterruptedException {
+	@Override
+	protected void decompress(final File archive) throws IOException, InterruptedException {
 		File pixiBaseDir = new File(rootdir);
 		if (!pixiBaseDir.isDirectory() && !pixiBaseDir.mkdirs())
 			throw new IOException("Failed to create Pixi default directory " +
@@ -154,7 +150,7 @@ public class Pixi extends Tool {
 		if (!pixiBinDir.exists() && !pixiBinDir.mkdirs())
 			throw new IOException("Failed to create Pixi bin directory: " + pixiBinDir);
 
-		Downloads.unpack(tempFile, pixiBinDir);
+		Downloads.unpack(archive, pixiBinDir);
 		File pixiFile = new File(pixiCommand);
 		if (!pixiFile.exists()) throw new IOException("Expected pixi binary is missing: " + pixiCommand);
 		if (!pixiFile.canExecute()) {
@@ -163,19 +159,6 @@ public class Pixi extends Tool {
 				throw new IOException("Cannot set file as executable due to missing permissions, "
 					+ "please do it manually: " + pixiCommand);
 		}
-	}
-
-	/**
-	 * Downloads and installs Pixi.
-	 *
-	 * @throws IOException If an I/O error occurs.
-	 * @throws InterruptedException If the current thread is interrupted by another thread while it
-	 *             is waiting, then the wait is ended and an InterruptedException is thrown.
-	 * @throws URISyntaxException if there is any error with the pixi url
-	 */
-	public void installPixi() throws IOException, InterruptedException, URISyntaxException {
-		if (isInstalled()) return;
-		decompressPixi(downloadPixi());
 	}
 
 	/**

@@ -121,7 +121,7 @@ public final class MambaBuilder extends BaseBuilder<MambaBuilder> {
 		}
 
 		try {
-			mamba.installMicromamba();
+			mamba.install();
 
 			// Two-step build: create empty env, write config, then update
 			// Step 1: Create empty environment

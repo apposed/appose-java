@@ -29,11 +29,13 @@
 
 package org.apposed.appose.builder;
 
+import org.apposed.appose.util.Downloads;
 import org.apposed.appose.util.Processes;
 
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
+import java.net.URISyntaxException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -55,6 +57,9 @@ public abstract class Tool {
 	/** The name of the external tool (e.g. uv, pixi, micromamba). */
 	protected final String name;
 
+	/** Remote URL to use when downloading the tool. */
+	protected final String url;
+
 	/** Consumer that tracks the standard output stream produced by the tool process. */
 	protected Consumer<String> outputConsumer;
 
@@ -70,8 +75,9 @@ public abstract class Tool {
 	/** Additional command-line flags to pass to tool commands. */
 	protected List<String> flags = new ArrayList<>();
 
-	public Tool(String name) {
+	public Tool(String name, String url) {
 		this.name = name;
+		this.url = url;
 	}
 
 	/**
@@ -128,6 +134,22 @@ public abstract class Tool {
 	abstract String version() throws IOException, InterruptedException;
 
 	/**
+	 * Downloads and installs the external tool.
+	 *
+	 * @throws IOException
+	 *             If an I/O error occurs.
+	 * @throws InterruptedException
+	 *             If the current thread is interrupted by another thread while it
+	 *             is waiting, then the wait is ended and an InterruptedException is
+	 *             thrown.
+	 * @throws URISyntaxException  if there is an error with the URL
+	 */
+	public void install() throws IOException, InterruptedException, URISyntaxException {
+		if (isInstalled()) return;
+		decompress(download());
+	}
+
+	/**
 	 * Gets whether the tool is installed or not
 	 * @return whether the tool is installed or not
 	 */
@@ -147,6 +169,12 @@ public abstract class Tool {
 	protected void checkInstalled() {
 		if (!isInstalled()) throw new IllegalStateException(name + " is not installed");
 	}
+
+	protected File download() throws IOException, InterruptedException, URISyntaxException {
+		return Downloads.download(name, url, this::updateDownloadProgress);
+	}
+
+	protected abstract void decompress(final File archive) throws IOException, InterruptedException;
 
 	/**
 	 * Creates a ProcessBuilder configured with environment variables.

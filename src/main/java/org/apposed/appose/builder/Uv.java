@@ -38,7 +38,6 @@ import java.io.BufferedReader;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStreamReader;
-import java.net.URISyntaxException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
@@ -146,16 +145,13 @@ public class Uv extends Tool {
 	 *  The root dir for UV installation.
 	 */
 	public Uv(final String rootdir) {
-		super("uv");
+		super("uv", UV_URL);
 		this.rootdir = rootdir == null ? BASE_PATH : rootdir;
 		this.uvCommand = Paths.get(this.rootdir).resolve(UV_RELATIVE_PATH).toAbsolutePath().toString();
 	}
 
-	private File downloadUv() throws IOException, InterruptedException, URISyntaxException {
-		return Downloads.download("uv", UV_URL, this::updateDownloadProgress);
-	}
-
-	private void decompressUv(final File tempFile) throws IOException, InterruptedException {
+	@Override
+	protected void decompress(final File archive) throws IOException, InterruptedException {
 		File uvBaseDir = new File(rootdir);
 		if (!uvBaseDir.isDirectory() && !uvBaseDir.mkdirs())
 			throw new IOException("Failed to create UV default directory " +
@@ -167,7 +163,7 @@ public class Uv extends Tool {
 			throw new IOException("Failed to create UV bin directory: " + uvBinDir);
 
 		// Extract archive
-		Downloads.unpack(tempFile, uvBinDir);
+		Downloads.unpack(archive, uvBinDir);
 
 		String uvBinaryName = Platforms.isWindows() ? "uv.exe" : "uv";
 		File uvDest = new File(uvCommand);
@@ -218,19 +214,6 @@ public class Uv extends Tool {
 				throw new IOException("Cannot set file as executable due to missing permissions, "
 					+ "please do it manually: " + uvCommand);
 		}
-	}
-
-	/**
-	 * Downloads and installs UV.
-	 *
-	 * @throws IOException If an I/O error occurs.
-	 * @throws InterruptedException If the current thread is interrupted by another thread while it
-	 *             is waiting, then the wait is ended and an InterruptedException is thrown.
-	 * @throws URISyntaxException if there is any error with the uv url
-	 */
-	public void installUv() throws IOException, InterruptedException, URISyntaxException {
-		if (isInstalled()) return;
-		decompressUv(downloadUv());
 	}
 
 	/**

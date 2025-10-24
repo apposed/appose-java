@@ -122,7 +122,7 @@ public final class PixiBuilder extends BaseBuilder<PixiBuilder> {
 		pixi.setFlags(flags);
 
 		try {
-			pixi.installPixi();
+			pixi.install();
 
 			// Check if this is already a pixi project
 			boolean isPixiDir = new File(envDir, "pixi.toml").isFile() ||

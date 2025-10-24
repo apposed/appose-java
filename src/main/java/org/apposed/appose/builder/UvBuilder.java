@@ -132,7 +132,7 @@ public final class UvBuilder extends BaseBuilder<UvBuilder> {
 		}
 
 		try {
-			uv.installUv();
+			uv.install();
 
 			// Check if this is already a UV virtual environment
 			boolean isUvVenv = new File(envDir, "pyvenv.cfg").isFile();
