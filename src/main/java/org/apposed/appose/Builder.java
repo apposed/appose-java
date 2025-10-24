@@ -261,7 +261,7 @@ public interface Builder<T extends Builder<T>> {
 	 * @return This builder instance, for fluent-style programming.
 	 */
 	default T logDebug() {
-		return subscribeOutput(System.err::println).subscribeError(System.err::println);
+		return subscribeOutput(System.out::print).subscribeError(System.err::print);
 	}
 
 	/** Functional interface for progress callbacks. */
