@@ -146,29 +146,9 @@ public class Uv extends Tool {
 	 *  The root dir for UV installation.
 	 */
 	public Uv(final String rootdir) {
+		super("uv");
 		this.rootdir = rootdir == null ? BASE_PATH : rootdir;
 		this.uvCommand = Paths.get(this.rootdir).resolve(UV_RELATIVE_PATH).toAbsolutePath().toString();
-	}
-
-	/**
-	 * Gets whether uv is installed or not
-	 * @return whether uv is installed or not
-	 */
-	public boolean isUvInstalled() {
-		try {
-			version();
-			return true;
-		} catch (IOException | InterruptedException e) {
-			return false;
-		}
-	}
-
-	/**
-	 * Check whether uv is installed or not
-	 * @throws IllegalStateException if uv is not installed
-	 */
-	private void checkUvInstalled() {
-		if (!isUvInstalled()) throw new IllegalStateException("UV is not installed");
 	}
 
 	private File downloadUv() throws IOException, InterruptedException, URISyntaxException {
@@ -249,7 +229,7 @@ public class Uv extends Tool {
 	 * @throws URISyntaxException if there is any error with the uv url
 	 */
 	public void installUv() throws IOException, InterruptedException, URISyntaxException {
-		if (isUvInstalled()) return;
+		if (isInstalled()) return;
 		decompressUv(downloadUv());
 	}
 
@@ -263,7 +243,7 @@ public class Uv extends Tool {
 	 * @throws IllegalStateException if UV has not been installed
 	 */
 	public void createVenv(final File envDir, String pythonVersion) throws IOException, InterruptedException {
-		checkUvInstalled();
+		checkInstalled();
 		List<String> args = new ArrayList<>();
 		args.add("venv");
 		if (pythonVersion != null && !pythonVersion.isEmpty()) {
@@ -284,7 +264,7 @@ public class Uv extends Tool {
 	 * @throws IllegalStateException if UV has not been installed
 	 */
 	public void pipInstall(final File envDir, String... packages) throws IOException, InterruptedException {
-		checkUvInstalled();
+		checkInstalled();
 		List<String> args = new ArrayList<>();
 		args.add("pip");
 		args.add("install");
@@ -304,7 +284,7 @@ public class Uv extends Tool {
 	 * @throws IllegalStateException if UV has not been installed
 	 */
 	public void pipInstallFromRequirements(final File envDir, String requirementsFile) throws IOException, InterruptedException {
-		checkUvInstalled();
+		checkInstalled();
 		runUv("pip", "install", "--python", envDir.getAbsolutePath(), "-r", requirementsFile);
 	}
 
@@ -319,7 +299,7 @@ public class Uv extends Tool {
 	 * @throws IllegalStateException if UV has not been installed
 	 */
 	public void sync(final File projectDir, String pythonVersion) throws IOException, InterruptedException {
-		checkUvInstalled();
+		checkInstalled();
 
 		List<String> args = new ArrayList<>();
 		args.add("sync");
@@ -342,7 +322,7 @@ public class Uv extends Tool {
 	 * @throws IllegalStateException if UV has not been installed
 	 */
 	public void runUvInDirectory(final File workingDir, final String... args) throws IOException, InterruptedException {
-		checkUvInstalled();
+		checkInstalled();
 		final List<String> cmd = Platforms.baseCommand();
 		cmd.add(uvCommand);
 		cmd.addAll(flags);  // Add user-specified flags
@@ -379,7 +359,7 @@ public class Uv extends Tool {
 	 * @throws IllegalStateException if UV has not been installed
 	 */
 	public void runUv(final String... args) throws IOException, InterruptedException {
-		checkUvInstalled();
+		checkInstalled();
 		final List<String> cmd = Platforms.baseCommand();
 		cmd.add(uvCommand);
 		cmd.addAll(flags);  // Add user-specified flags

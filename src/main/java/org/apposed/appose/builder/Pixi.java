@@ -134,29 +134,9 @@ public class Pixi extends Tool {
 	 *  The root dir for Pixi installation.
 	 */
 	public Pixi(final String rootdir) {
+		super("pixi");
 		this.rootdir = rootdir == null ? BASE_PATH : rootdir;
 		this.pixiCommand = Paths.get(this.rootdir).resolve(PIXI_RELATIVE_PATH).toAbsolutePath().toString();
-	}
-
-	/**
-	 * Gets whether pixi is installed or not
-	 * @return whether pixi is installed or not
-	 */
-	public boolean isPixiInstalled() {
-		try {
-			version();
-			return true;
-		} catch (IOException | InterruptedException e) {
-			return false;
-		}
-	}
-
-	/**
-	 * Check whether pixi is installed or not
-	 * @throws IllegalStateException if pixi is not installed
-	 */
-	private void checkPixiInstalled() {
-		if (!isPixiInstalled()) throw new IllegalStateException("Pixi is not installed");
 	}
 
 	private File downloadPixi() throws IOException, InterruptedException, URISyntaxException {
@@ -194,7 +174,7 @@ public class Pixi extends Tool {
 	 * @throws URISyntaxException if there is any error with the pixi url
 	 */
 	public void installPixi() throws IOException, InterruptedException, URISyntaxException {
-		if (isPixiInstalled()) return;
+		if (isInstalled()) return;
 		decompressPixi(downloadPixi());
 	}
 
@@ -207,7 +187,7 @@ public class Pixi extends Tool {
 	 * @throws IllegalStateException if Pixi has not been installed
 	 */
 	public void init(final File projectDir) throws IOException, InterruptedException {
-		checkPixiInstalled();
+		checkInstalled();
 		runPixi("init", projectDir.getAbsolutePath());
 	}
 
@@ -221,7 +201,7 @@ public class Pixi extends Tool {
 	 * @throws IllegalStateException if Pixi has not been installed
 	 */
 	public void addChannels(final File projectDir, final String... channels) throws IOException, InterruptedException {
-		checkPixiInstalled();
+		checkInstalled();
 		if (channels.length == 0) return;
 		List<String> cmd = new ArrayList<>();
 		cmd.add("project");
@@ -243,7 +223,7 @@ public class Pixi extends Tool {
 	 * @throws IllegalStateException if Pixi has not been installed
 	 */
 	public void addCondaPackages(final File projectDir, final String... packages) throws IOException, InterruptedException {
-		checkPixiInstalled();
+		checkInstalled();
 		if (packages.length == 0) return;
 		List<String> cmd = new ArrayList<>();
 		cmd.add("add");
@@ -263,7 +243,7 @@ public class Pixi extends Tool {
 	 * @throws IllegalStateException if Pixi has not been installed
 	 */
 	public void addPypiPackages(final File projectDir, final String... packages) throws IOException, InterruptedException {
-		checkPixiInstalled();
+		checkInstalled();
 		if (packages.length == 0) return;
 		List<String> cmd = new ArrayList<>();
 		cmd.add("add");
@@ -297,7 +277,7 @@ public class Pixi extends Tool {
 	 * @throws IllegalStateException if Pixi has not been installed
 	 */
 	public void runPixi(final String... args) throws RuntimeException, IOException, InterruptedException {
-		checkPixiInstalled();
+		checkInstalled();
 		runPixi(false, args);
 	}
 
@@ -313,7 +293,7 @@ public class Pixi extends Tool {
 	 * @throws IllegalStateException if Pixi has not been installed
 	 */
 	public void runPixi(boolean isInheritIO, final String... args) throws RuntimeException, IOException, InterruptedException {
-		checkPixiInstalled();
+		checkInstalled();
 		Thread mainThread = Thread.currentThread();
 
 		final List<String> cmd = Platforms.baseCommand();

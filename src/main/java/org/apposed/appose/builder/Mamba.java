@@ -171,29 +171,9 @@ public class Mamba extends Tool {
 	 *  The root dir for Mamba installation.
 	 */
 	public Mamba(final String rootdir) {
+		super("micromamba");
 		this.rootdir = rootdir == null ? BASE_PATH : rootdir;
 		this.mambaCommand = Paths.get(this.rootdir).resolve(MICROMAMBA_RELATIVE_PATH).toAbsolutePath().toString();
-	}
-
-	/**
-	 * Gets whether micromamba is installed or not to be able to use the instance of {@link Mamba}
-	 * @return whether micromamba is installed or not to be able to use the instance of {@link Mamba}
-	 */
-	public boolean isMambaInstalled() {
-		try {
-			version();
-			return true;
-		} catch (IOException | InterruptedException e) {
-			return false;
-        }
-    }
-
-	/**
-	 * Check whether micromamba is installed or not to be able to use the instance of {@link Mamba}
-	 * @throws IllegalStateException if micromamba is not installed
-	 */
-	private void checkMambaInstalled() {
-		if (!isMambaInstalled()) throw new IllegalStateException("Micromamba is not installed");
 	}
 
 	private File downloadMicromamba() throws IOException, InterruptedException, URISyntaxException {
@@ -232,7 +212,7 @@ public class Mamba extends Tool {
 	 * @throws URISyntaxException  if there is any error with the micromamba url
 	 */
 	public void installMicromamba() throws IOException, InterruptedException, URISyntaxException {
-		if (isMambaInstalled()) return;
+		if (isInstalled()) return;
 		decompressMicromamba(downloadMicromamba());
 	}
 
@@ -255,7 +235,7 @@ public class Mamba extends Tool {
 	 */
 	public void updateIn(final File envDir, final String... args) throws IOException, InterruptedException
 	{
-		checkMambaInstalled();
+		checkInstalled();
 		final List< String > cmd = new ArrayList<>(Arrays.asList("update", "--prefix", envDir.getAbsolutePath()));
 		cmd.addAll(Arrays.asList(args));
 		if (!cmd.contains("--yes") && !cmd.contains("-y")) cmd.add("--yes");
@@ -279,7 +259,7 @@ public class Mamba extends Tool {
 	 */
 	public void createWithYaml(final File envDir, final String envYaml) throws IOException, InterruptedException
 	{
-		checkMambaInstalled();
+		checkInstalled();
 		runMamba("env", "create", "--prefix",
 				envDir.getAbsolutePath(), "-f", envYaml, "-y", "-vv", "--no-rc");
 	}
@@ -298,7 +278,7 @@ public class Mamba extends Tool {
 	 */
 	public void create(final File envDir) throws IOException, InterruptedException
 	{
-		checkMambaInstalled();
+		checkInstalled();
 		runMamba("create", "--prefix", envDir.getAbsolutePath(), "-y", "--no-rc");
 	}
 
@@ -317,7 +297,7 @@ public class Mamba extends Tool {
 	 */
 	public void update(final File envDir, final File envYaml) throws IOException, InterruptedException
 	{
-		checkMambaInstalled();
+		checkInstalled();
 		runMamba("env", "update", "-y", "--prefix",
 				envDir.getAbsolutePath(), "-f", envYaml.getAbsolutePath());
 	}
@@ -355,7 +335,7 @@ public class Mamba extends Tool {
 	 */
 	public void runMamba(boolean isInheritIO, final String... args) throws RuntimeException, IOException, InterruptedException
 	{
-		checkMambaInstalled();
+		checkInstalled();
 		Thread mainThread = Thread.currentThread();
 
 		final List< String > cmd = Platforms.baseCommand();
@@ -417,7 +397,7 @@ public class Mamba extends Tool {
 	 */
 	public void runMamba(final String... args) throws RuntimeException, IOException, InterruptedException
 	{
-		checkMambaInstalled();
+		checkInstalled();
 		runMamba(false, args);
 	}
 

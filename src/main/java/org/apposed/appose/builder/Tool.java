@@ -52,6 +52,9 @@ import java.util.function.Consumer;
  */
 public abstract class Tool {
 
+	/** The name of the external tool (e.g. uv, pixi, micromamba). */
+	protected final String name;
+
 	/** Consumer that tracks the standard output stream produced by the tool process. */
 	protected Consumer<String> outputConsumer;
 
@@ -66,6 +69,10 @@ public abstract class Tool {
 
 	/** Additional command-line flags to pass to tool commands. */
 	protected List<String> flags = new ArrayList<>();
+
+	public Tool(String name) {
+		this.name = name;
+	}
 
 	/**
 	 * Sets a consumer to receive standard output from the tool process.
@@ -119,6 +126,27 @@ public abstract class Tool {
 	 * @throws InterruptedException If the current thread is interrupted.
 	 */
 	abstract String version() throws IOException, InterruptedException;
+
+	/**
+	 * Gets whether the tool is installed or not
+	 * @return whether the tool is installed or not
+	 */
+	public boolean isInstalled() {
+		try {
+			version();
+			return true;
+		} catch (IOException | InterruptedException e) {
+			return false;
+		}
+	}
+
+	/**
+	 * Check whether the tool is installed or not
+	 * @throws IllegalStateException if the tool is not installed
+	 */
+	protected void checkInstalled() {
+		if (!isInstalled()) throw new IllegalStateException(name + " is not installed");
+	}
 
 	/**
 	 * Creates a ProcessBuilder configured with environment variables.
