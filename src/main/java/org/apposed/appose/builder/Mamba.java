@@ -61,30 +61,20 @@ package org.apposed.appose.builder;
 
 import org.apposed.appose.util.Downloads;
 import org.apposed.appose.util.Environments;
-import org.apposed.appose.util.FileDownloader;
 import org.apposed.appose.util.Platforms;
 import org.apposed.appose.util.Processes;
 
 import java.io.BufferedReader;
 import java.io.File;
-import java.io.FileOutputStream;
 import java.io.IOException;
-import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.net.URISyntaxException;
-import java.net.URL;
-import java.nio.channels.Channels;
-import java.nio.channels.ReadableByteChannel;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
-import java.util.UUID;
 import java.util.function.BiConsumer;
-import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
 /**
@@ -113,12 +103,6 @@ public class Mamba extends Tool {
 	 */
 	private final String rootdir;
 
-	/**
-	 * Consumer that tracks the progress in the download of micromamba,
-	 * the software used by this class to manage Conda environments.
-	 */
-	private BiConsumer<Long, Long> mambaDownloadProgressConsumer;
-
 	/** Relative path to the micromamba executable from the micromamba {@link #rootdir}. */
 	private final static Path MICROMAMBA_RELATIVE_PATH = Platforms.isWindows() ?
 			Paths.get("Library", "bin", "micromamba.exe") :
@@ -145,12 +129,6 @@ public class Mamba extends Tool {
 			default:              return null;
 		}
 	}
-
-	private void updateMambaDownloadProgress(long current, long total) {
-		if (mambaDownloadProgressConsumer != null)
-			mambaDownloadProgressConsumer.accept(current, total);
-	}
-
 
 	/**
 	 * Returns a {@link ProcessBuilder} with the working directory specified in the
@@ -235,44 +213,8 @@ public class Mamba extends Tool {
 		if (!isMambaInstalled()) throw new IllegalStateException("Micromamba is not installed");
 	}
 
-	/**
-	 * Registers the consumer for the standard error stream of every micromamba call.
-	 * @param consumer
-	 * 	callback function invoked for each stderr line of every micromamba call
-	 */
-	public void setMambaDownloadProgressConsumer(BiConsumer<Long, Long> consumer) {
-		this.mambaDownloadProgressConsumer = consumer;
-	}
-
-
 	private File downloadMicromamba() throws IOException, InterruptedException, URISyntaxException {
-		final File tempFile = File.createTempFile("micromamba", ".tar.bz2");
-		tempFile.deleteOnExit();
-		URL website = Downloads.redirectedURL(new URL(MICROMAMBA_URL));
-		long size = Downloads.getFileSize(website);
-		Thread currentThread = Thread.currentThread();
-		IOException[] ioe = {null};
-		InterruptedException[] ie = {null};
-		Thread dwnldThread = new Thread(() -> {
-			try (
-					ReadableByteChannel rbc = Channels.newChannel(website.openStream());
-					FileOutputStream fos = new FileOutputStream(tempFile)
-			) {
-				new FileDownloader(rbc, fos).call(currentThread);
-			}
-			catch (IOException e) { ioe[0] = e; }
-			catch (InterruptedException e) { ie[0] = e; }
-		});
-		dwnldThread.start();
-		while (dwnldThread.isAlive()) {
-			Thread.sleep(20); // 50 FPS update rate
-			updateMambaDownloadProgress(tempFile.length(), size);
-		}
-		if (ioe[0] != null) throw ioe[0];
-		if (ie[0] != null) throw ie[0];
-		if (tempFile.length() < size)
-			throw new IOException("Error downloading micromamba from: " + MICROMAMBA_URL);
-		return tempFile;
+		return Downloads.download("micromamba", MICROMAMBA_URL, this::updateDownloadProgress);
 	}
 
 	private void decompressMicromamba(final File tempFile) throws IOException, InterruptedException {

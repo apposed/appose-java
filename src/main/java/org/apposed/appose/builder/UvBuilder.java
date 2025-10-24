@@ -115,7 +115,7 @@ public final class UvBuilder extends BaseBuilder<UvBuilder> {
 		// Set up progress/output consumers.
 		uv.setOutputConsumer(msg -> outputSubscribers.forEach(sub -> sub.accept(msg)));
 		uv.setErrorConsumer(msg -> errorSubscribers.forEach(sub -> sub.accept(msg)));
-		uv.setUvDownloadProgressConsumer((cur, max) -> {
+		uv.setDownloadProgressConsumer((cur, max) -> {
 			progressSubscribers.forEach(subscriber -> subscriber.accept("Downloading uv", cur, max));
 		});
 

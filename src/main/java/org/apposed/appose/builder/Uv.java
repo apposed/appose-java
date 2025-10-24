@@ -31,29 +31,19 @@ package org.apposed.appose.builder;
 
 import org.apposed.appose.util.Downloads;
 import org.apposed.appose.util.Environments;
-import org.apposed.appose.util.FileDownloader;
-import org.apposed.appose.util.FilePaths;
 import org.apposed.appose.util.Platforms;
 import org.apposed.appose.util.Processes;
 
 import java.io.BufferedReader;
 import java.io.File;
-import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.net.URISyntaxException;
-import java.net.URL;
-import java.nio.channels.Channels;
-import java.nio.channels.ReadableByteChannel;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
-import java.util.function.BiConsumer;
-import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
 /**
@@ -79,9 +69,6 @@ public class Uv extends Tool {
 	 * </pre>
 	 */
 	private final String rootdir;
-
-	/** Consumer that tracks the progress in the download of uv. */
-	private BiConsumer<Long, Long> uvDownloadProgressConsumer;
 
 	/** Relative path to the uv executable from the uv {@link #rootdir}. */
 	private final static Path UV_RELATIVE_PATH = Platforms.isWindows() ?
@@ -124,12 +111,6 @@ public class Uv extends Tool {
 			default:              return null;
 		}
 	}
-
-	private void updateUvDownloadProgress(long current, long total) {
-		if (uvDownloadProgressConsumer != null)
-			uvDownloadProgressConsumer.accept(current, total);
-	}
-
 
 	/**
 	 * Returns a {@link ProcessBuilder} with the working directory specified in the constructor.
@@ -203,43 +184,8 @@ public class Uv extends Tool {
 		if (!isUvInstalled()) throw new IllegalStateException("UV is not installed");
 	}
 
-	/**
-	 * Registers the consumer for the download progress of uv.
-	 * @param consumer callback function invoked with (current, total) bytes
-	 */
-	public void setUvDownloadProgressConsumer(BiConsumer<Long, Long> consumer) {
-		this.uvDownloadProgressConsumer = consumer;
-	}
-
-
 	private File downloadUv() throws IOException, InterruptedException, URISyntaxException {
-		final File tempFile = File.createTempFile("uv-", FilePaths.fileType(UV_URL));
-		tempFile.deleteOnExit();
-		URL website = Downloads.redirectedURL(new URL(UV_URL));
-		long size = Downloads.getFileSize(website);
-		Thread currentThread = Thread.currentThread();
-		IOException[] ioe = {null};
-		InterruptedException[] ie = {null};
-		Thread dwnldThread = new Thread(() -> {
-			try (
-				ReadableByteChannel rbc = Channels.newChannel(website.openStream());
-				FileOutputStream fos = new FileOutputStream(tempFile)
-			) {
-				new FileDownloader(rbc, fos).call(currentThread);
-			}
-			catch (IOException e) { ioe[0] = e; }
-			catch (InterruptedException e) { ie[0] = e; }
-		});
-		dwnldThread.start();
-		while (dwnldThread.isAlive()) {
-			Thread.sleep(20); // 50 FPS update rate
-			updateUvDownloadProgress(tempFile.length(), size);
-		}
-		if (ioe[0] != null) throw ioe[0];
-		if (ie[0] != null) throw ie[0];
-		if (tempFile.length() < size)
-			throw new IOException("Error downloading uv from: " + UV_URL);
-		return tempFile;
+		return Downloads.download("uv", UV_URL, this::updateDownloadProgress);
 	}
 
 	private void decompressUv(final File tempFile) throws IOException, InterruptedException {

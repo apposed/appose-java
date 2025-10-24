@@ -52,6 +52,9 @@ import java.net.MalformedURLException;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.net.URL;
+import java.nio.channels.Channels;
+import java.nio.channels.ReadableByteChannel;
+import java.util.function.BiConsumer;
 
 /**
  * Utility methods supporting download and unpacking of remote archives.
@@ -60,9 +63,42 @@ import java.net.URL;
  * @author Curtis Rueden
  */
 public final class Downloads {
-	
+
 	private Downloads() {
 		// Prevent instantiation of utility class.
+	}
+
+	public static File download(String name, String urlPath, BiConsumer<Long, Long> progressConsumer)
+		throws IOException, InterruptedException, URISyntaxException
+	{
+		final File tempFile = File.createTempFile(name + "-", FilePaths.fileType(urlPath));
+		tempFile.deleteOnExit();
+		URL url = Downloads.redirectedURL(new URL(urlPath));
+		long size = Downloads.getFileSize(url);
+		Thread currentThread = Thread.currentThread();
+		IOException[] ioe = {null};
+		InterruptedException[] ie = {null};
+		Thread dwnldThread = new Thread(() -> {
+			try (
+				ReadableByteChannel rbc = Channels.newChannel(url.openStream());
+				FileOutputStream fos = new FileOutputStream(tempFile)
+			) {
+				new FileDownloader(rbc, fos).call(currentThread);
+			}
+			catch (IOException e) { ioe[0] = e; }
+			catch (InterruptedException e) { ie[0] = e; }
+		});
+		dwnldThread.start();
+		while (dwnldThread.isAlive()) {
+			Thread.sleep(20); // 50 FPS update rate
+			if (progressConsumer != null)
+				progressConsumer.accept(tempFile.length(), size);
+		}
+		if (ioe[0] != null) throw ioe[0];
+		if (ie[0] != null) throw ie[0];
+		if (tempFile.length() < size)
+			throw new IOException("Error downloading " + name + " from: " + urlPath);
+		return tempFile;
 	}
 
 	/**

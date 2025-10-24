@@ -113,7 +113,7 @@ public final class PixiBuilder extends BaseBuilder<PixiBuilder> {
 		// Set up progress/output consumers.
 		pixi.setOutputConsumer(msg -> outputSubscribers.forEach(sub -> sub.accept(msg)));
 		pixi.setErrorConsumer(msg -> errorSubscribers.forEach(sub -> sub.accept(msg)));
-		pixi.setPixiDownloadProgressConsumer((cur, max) -> {
+		pixi.setDownloadProgressConsumer((cur, max) -> {
 			progressSubscribers.forEach(subscriber -> subscriber.accept("Downloading pixi", cur, max));
 		});
 

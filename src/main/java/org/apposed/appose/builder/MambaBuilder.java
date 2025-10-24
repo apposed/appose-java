@@ -105,7 +105,7 @@ public final class MambaBuilder extends BaseBuilder<MambaBuilder> {
 		// Set up progress/output consumers.
 		mamba.setOutputConsumer(msg -> outputSubscribers.forEach(sub -> sub.accept(msg)));
 		mamba.setErrorConsumer(msg -> errorSubscribers.forEach(sub -> sub.accept(msg)));
-		mamba.setMambaDownloadProgressConsumer((cur, max) -> {
+		mamba.setDownloadProgressConsumer((cur, max) -> {
 			progressSubscribers.forEach(subscriber -> subscriber.accept("Downloading micromamba", cur, max));
 		});
 
