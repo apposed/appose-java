@@ -264,9 +264,7 @@ public interface Builder<T extends Builder<T>> {
 		return subscribeOutput(System.err::println).subscribeError(System.err::println);
 	}
 
-	/**
-	 * Functional interface for progress callbacks.
-	 */
+	/** Functional interface for progress callbacks. */
 	interface ProgressConsumer {
 		void accept(String title, long current, long maximum);
 	}
