@@ -119,6 +119,7 @@ public final class PixiBuilder extends BaseBuilder<PixiBuilder> {
 
 		// Pass along intended build configuration.
 		pixi.setEnvVars(envVars);
+		pixi.setFlags(flags);
 
 		try {
 			pixi.installPixi();

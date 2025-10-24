@@ -128,6 +128,9 @@ public class Mamba {
 	/** Environment variables to set when running micromamba commands. */
 	private Map<String, String> envVars = new HashMap<>();
 
+	/** Additional command-line flags to pass to micromamba commands. */
+	private List<String> flags = new ArrayList<>();
+
 	/** Relative path to the micromamba executable from the micromamba {@link #rootdir}. */
 	private final static Path MICROMAMBA_RELATIVE_PATH = Platforms.isWindows() ?
 			Paths.get("Library", "bin", "micromamba.exe") :
@@ -286,6 +289,16 @@ public class Mamba {
 	public void setEnvVars(Map<String, String> envVars) {
 		if (envVars != null) {
 			this.envVars = new HashMap<>(envVars);
+		}
+	}
+
+	/**
+	 * Sets additional command-line flags to pass to micromamba commands.
+	 * @param flags List of command-line flags (e.g., "-vv", "--json")
+	 */
+	public void setFlags(List<String> flags) {
+		if (flags != null) {
+			this.flags = new ArrayList<>(flags);
 		}
 	}
 
@@ -505,6 +518,12 @@ public class Mamba {
 		final List< String > cmd = getBaseCommand();
 		List<String> argsList = new ArrayList<>();
 		argsList.add(coverArgWithDoubleQuotes(mambaCommand));
+		// Add user-specified flags first
+		argsList.addAll(flags.stream().map(flag -> {
+			if (flag.contains(" ") && Platforms.isWindows()) return coverArgWithDoubleQuotes(flag);
+			else return flag;
+		}).collect(Collectors.toList()));
+		// Then add the command-specific args
 		argsList.addAll(Arrays.stream(args).map(aa -> {
 			if (aa.contains(" ") && Platforms.isWindows()) return coverArgWithDoubleQuotes(aa);
 			else return aa;

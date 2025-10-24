@@ -92,6 +92,9 @@ public class Uv {
 	/** Environment variables to set when running uv commands. */
 	private Map<String, String> envVars = new HashMap<>();
 
+	/** Additional command-line flags to pass to uv commands. */
+	private List<String> flags = new ArrayList<>();
+
 	/** Relative path to the uv executable from the uv {@link #rootdir}. */
 	private final static Path UV_RELATIVE_PATH = Platforms.isWindows() ?
 			Paths.get(".uv", "bin", "uv.exe") :
@@ -251,6 +254,16 @@ public class Uv {
 	public void setEnvVars(Map<String, String> envVars) {
 		if (envVars != null) {
 			this.envVars = new HashMap<>(envVars);
+		}
+	}
+
+	/**
+	 * Sets additional command-line flags to pass to uv commands.
+	 * @param flags List of command-line flags (e.g., "--color=always", "--verbose")
+	 */
+	public void setFlags(List<String> flags) {
+		if (flags != null) {
+			this.flags = new ArrayList<>(flags);
 		}
 	}
 
@@ -466,6 +479,7 @@ public class Uv {
 		checkUvInstalled();
 		final List<String> cmd = getBaseCommand();
 		cmd.add(uvCommand);
+		cmd.addAll(flags);  // Add user-specified flags
 		cmd.addAll(Arrays.asList(args));
 
 		final ProcessBuilder builder = Processes.builder(workingDir, envVars, false);
@@ -520,6 +534,7 @@ public class Uv {
 		checkUvInstalled();
 		final List<String> cmd = getBaseCommand();
 		cmd.add(uvCommand);
+		cmd.addAll(flags);  // Add user-specified flags
 		cmd.addAll(Arrays.asList(args));
 
 		final ProcessBuilder builder = getBuilder(false);
@@ -572,6 +587,7 @@ public class Uv {
 	public String getVersion() throws IOException, InterruptedException {
 		final List<String> cmd = getBaseCommand();
 		cmd.add(uvCommand);
+		// Don't add flags to --version command
 		cmd.add("--version");
 
 		final ProcessBuilder builder = getBuilder(false);

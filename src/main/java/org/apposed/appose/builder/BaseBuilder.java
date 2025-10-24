@@ -59,6 +59,7 @@ public abstract class BaseBuilder<T extends BaseBuilder<T>> implements Builder<T
 	public final List<Consumer<String>> errorSubscribers = new ArrayList<>();
 	public final Map<String, String> envVars = new HashMap<>();
 	public final List<String> channels = new ArrayList<>();
+	public final List<String> flags = new ArrayList<>();
 	protected String envName;
 	protected File envDir;
 	protected String sourceContent;  // Configuration file content
@@ -110,6 +111,12 @@ public abstract class BaseBuilder<T extends BaseBuilder<T>> implements Builder<T
 	@Override
 	public T channels(List<String> channels) {
 		this.channels.addAll(channels);
+		return (T) this;
+	}
+
+	@Override
+	public T flags(List<String> flags) {
+		this.flags.addAll(flags);
 		return (T) this;
 	}
 

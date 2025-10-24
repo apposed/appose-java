@@ -255,6 +255,46 @@ public interface Builder<T extends Builder<T>> {
 	T subscribeError(Consumer<String> subscriber);
 
 	/**
+	 * Adds command-line flags to be passed to the underlying tool during build operations.
+	 * <p>
+	 * These flags are passed directly to the tool's command-line invocation.
+	 * The interpretation of flags is tool-specific:
+	 * </p>
+	 * <ul>
+	 * <li>Pixi: flags like {@code --color=always}, {@code -v}</li>
+	 * <li>Mamba: flags like {@code -vv}, {@code --json}</li>
+	 * <li>UV: flags like {@code --color=always}, {@code --verbose}</li>
+	 * </ul>
+	 * <p>
+	 * Example usage:
+	 * </p>
+	 * <pre>
+	 * Appose.pixi()
+	 *     .flags("--color=always", "-v")
+	 *     .file("env.yml")
+	 *     .build()
+	 * </pre>
+	 *
+	 * @param flags Command-line flags to add.
+	 * @return This builder instance, for fluent-style programming.
+	 */
+	default T flags(String... flags) {
+		return flags(Arrays.asList(flags));
+	}
+
+	/**
+	 * Adds command-line flags to be passed to the underlying tool during build operations.
+	 * <p>
+	 * These flags are passed directly to the tool's command-line invocation.
+	 * The interpretation of flags is tool-specific.
+	 * </p>
+	 *
+	 * @param flags List of command-line flags to add.
+	 * @return This builder instance, for fluent-style programming.
+	 */
+	T flags(List<String> flags);
+
+	/**
 	 * Convenience method to log debug output to stderr.
 	 * Default implementation subscribes both output and error to stderr.
 	 *

@@ -111,6 +111,7 @@ public final class MambaBuilder extends BaseBuilder<MambaBuilder> {
 
 		// Pass along intended build configuration.
 		mamba.setEnvVars(envVars);
+		mamba.setFlags(flags);
 
 		// Check for unsupported features
 		if (!channels.isEmpty()) {

@@ -121,6 +121,7 @@ public final class UvBuilder extends BaseBuilder<UvBuilder> {
 
 		// Pass along intended build configuration.
 		uv.setEnvVars(envVars);
+		uv.setFlags(flags);
 
 		// Check for unsupported features
 		if (!channels.isEmpty()) {
