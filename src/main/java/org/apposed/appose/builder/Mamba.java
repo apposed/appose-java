@@ -185,8 +185,7 @@ public class Mamba {
 	 * @return The {@link ProcessBuilder} with the working directory specified in
 	 *         the constructor.
 	 */
-	private ProcessBuilder getBuilder( final boolean isInheritIO )
-	{
+	private ProcessBuilder getBuilder(final boolean isInheritIO) {
 		return Processes.builder(new File(rootdir), envVars, isInheritIO);
 	}
 
@@ -296,7 +295,7 @@ public class Mamba {
 	}
 
 	private File downloadMicromamba() throws IOException, InterruptedException, URISyntaxException {
-		final File tempFile = File.createTempFile( "micromamba", ".tar.bz2" );
+		final File tempFile = File.createTempFile("micromamba", ".tar.bz2");
 		tempFile.deleteOnExit();
 		URL website = Downloads.redirectedURL(new URL(MICROMAMBA_URL));
 		long size = Downloads.getFileSize(website);
@@ -326,7 +325,7 @@ public class Mamba {
 	}
 
 	private void decompressMicromamba(final File tempFile) throws IOException, InterruptedException {
-		final File tempTarFile = File.createTempFile( "micromamba", ".tar" );
+		final File tempTarFile = File.createTempFile("micromamba", ".tar");
 		tempTarFile.deleteOnExit();
 		Downloads.unBZip2(tempFile, tempTarFile);
 		File mambaBaseDir = new File(rootdir);
@@ -371,8 +370,8 @@ public class Mamba {
 	private static List< String > getBaseCommand()
 	{
 		final List< String > cmd = new ArrayList<>();
-		if ( Platforms.isWindows() )
-			cmd.addAll( Arrays.asList( "cmd.exe", "/c" ) );
+		if (Platforms.isWindows())
+			cmd.addAll(Arrays.asList("cmd.exe", "/c"));
 		return cmd;
 	}
 
@@ -393,11 +392,11 @@ public class Mamba {
 	 *             thrown.
 	 * @throws IllegalStateException if Micromamba has not been installed, thus the instance of {@link Mamba} cannot be used
 	 */
-	public void updateIn( final File envDir, final String... args ) throws IOException, InterruptedException
+	public void updateIn(final File envDir, final String... args) throws IOException, InterruptedException
 	{
 		checkMambaInstalled();
-		final List< String > cmd = new ArrayList<>( Arrays.asList( "update", "--prefix", envDir.getAbsolutePath() ) );
-		cmd.addAll( Arrays.asList( args ) );
+		final List< String > cmd = new ArrayList<>(Arrays.asList("update", "--prefix", envDir.getAbsolutePath()));
+		cmd.addAll(Arrays.asList(args));
 		if (!cmd.contains("--yes") && !cmd.contains("-y")) cmd.add("--yes");
 		runMamba(cmd.toArray(new String[0]));
 	}
@@ -417,11 +416,11 @@ public class Mamba {
 	 *             thrown.
 	 * @throws IllegalStateException if Micromamba has not been installed, thus the instance of {@link Mamba} cannot be used
 	 */
-	public void createWithYaml( final File envDir, final String envYaml ) throws IOException, InterruptedException
+	public void createWithYaml(final File envDir, final String envYaml) throws IOException, InterruptedException
 	{
 		checkMambaInstalled();
 		runMamba("env", "create", "--prefix",
-				envDir.getAbsolutePath(), "-f", envYaml, "-y", "-vv", "--no-rc" );
+				envDir.getAbsolutePath(), "-f", envYaml, "-y", "-vv", "--no-rc");
 	}
 
 	/**
@@ -476,13 +475,13 @@ public class Mamba {
 	public String getVersion() throws IOException, InterruptedException {
 		final List< String > cmd = getBaseCommand();
 		if (mambaCommand.contains(" ") && Platforms.isWindows())
-			cmd.add( surroundWithQuotes(Arrays.asList( coverArgWithDoubleQuotes(mambaCommand), "--version" )) );
+			cmd.add(surroundWithQuotes(Arrays.asList(coverArgWithDoubleQuotes(mambaCommand), "--version")));
 		else
-			cmd.addAll( Arrays.asList( coverArgWithDoubleQuotes(mambaCommand), "--version" ) );
-		final Process process = getBuilder( false ).command( cmd ).start();
-		if ( process.waitFor() != 0 )
+			cmd.addAll(Arrays.asList(coverArgWithDoubleQuotes(mambaCommand), "--version"));
+		final Process process = getBuilder(false).command(cmd).start();
+		if (process.waitFor() != 0)
 			throw new RuntimeException("Error getting Micromamba version");
-		return new BufferedReader( new InputStreamReader( process.getInputStream() ) ).readLine();
+		return new BufferedReader(new InputStreamReader(process.getInputStream())).readLine();
 	}
 
 	/**
@@ -503,7 +502,7 @@ public class Mamba {
 	 *             thrown.
 	 * @throws IllegalStateException if Micromamba has not been installed, thus the instance of {@link Mamba} cannot be used
 	 */
-	public void runMamba(boolean isInheritIO, final String... args ) throws RuntimeException, IOException, InterruptedException
+	public void runMamba(boolean isInheritIO, final String... args) throws RuntimeException, IOException, InterruptedException
 	{
 		checkMambaInstalled();
 		Thread mainThread = Thread.currentThread();
@@ -511,11 +510,11 @@ public class Mamba {
 		
 		final List< String > cmd = getBaseCommand();
 		List<String> argsList = new ArrayList<>();
-		argsList.add( coverArgWithDoubleQuotes(mambaCommand) );
-		argsList.addAll( Arrays.stream( args ).map(aa -> {
+		argsList.add(coverArgWithDoubleQuotes(mambaCommand));
+		argsList.addAll(Arrays.stream(args).map(aa -> {
 			if (aa.contains(" ") && Platforms.isWindows()) return coverArgWithDoubleQuotes(aa);
 			else return aa;
-		}).collect(Collectors.toList()) );
+		}).collect(Collectors.toList()));
 		boolean containsSpaces = argsList.stream().anyMatch(aa -> aa.contains(" "));
 		
 		if (!containsSpaces || !Platforms.isWindows()) cmd.addAll(argsList);
@@ -611,7 +610,7 @@ public class Mamba {
 	 *             thrown.
 	 * @throws IllegalStateException if Micromamba has not been installed, thus the instance of {@link Mamba} cannot be used
 	 */
-	public void runMamba(final String... args ) throws RuntimeException, IOException, InterruptedException
+	public void runMamba(final String... args) throws RuntimeException, IOException, InterruptedException
 	{
 		checkMambaInstalled();
 		runMamba(false, args);
