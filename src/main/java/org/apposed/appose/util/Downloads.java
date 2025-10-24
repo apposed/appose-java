@@ -33,6 +33,8 @@ import org.apache.commons.compress.archivers.ArchiveException;
 import org.apache.commons.compress.archivers.ArchiveStreamFactory;
 import org.apache.commons.compress.archivers.tar.TarArchiveEntry;
 import org.apache.commons.compress.archivers.tar.TarArchiveInputStream;
+import org.apache.commons.compress.archivers.zip.ZipArchiveEntry;
+import org.apache.commons.compress.archivers.zip.ZipArchiveInputStream;
 import org.apache.commons.compress.compressors.bzip2.BZip2CompressorInputStream;
 import org.apache.commons.compress.compressors.gzip.GzipCompressorInputStream;
 import org.apposed.appose.Appose;
@@ -50,7 +52,6 @@ import java.net.MalformedURLException;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.net.URL;
-import java.util.zip.ZipInputStream;
 
 /**
  * Utility methods supporting download and unpacking of remote archives.
@@ -121,7 +122,7 @@ public final class Downloads {
 	}
 
 	/**
-	 * Decompress a zip file into a new file.
+	 * Decompress a zip file into a directory.
 	 * @param source .zip file
 	 * @param destination
 	 * 	destination folder where the contents of the file are going to be decompressed
@@ -131,10 +132,32 @@ public final class Downloads {
 	 */
 	public static void unZip(File source, File destination) throws FileNotFoundException, IOException, InterruptedException {
 		try (
-			ZipInputStream input = new ZipInputStream(new BufferedInputStream(new FileInputStream(source)));
-			FileOutputStream output = new FileOutputStream(destination);
+			InputStream is = new FileInputStream(source);
+			ZipArchiveInputStream zipInputStream = new ZipArchiveInputStream(new BufferedInputStream(is));
 		) {
-			copy(input, output);
+			ZipArchiveEntry entry = null;
+			while ((entry = zipInputStream.getNextEntry()) != null) {
+				final File outputFile = new File(destination, entry.getName());
+				if (entry.isDirectory()) {
+					if (!outputFile.exists()) {
+						if (!outputFile.mkdirs()) {
+							throw new IOException(String.format("Couldn't create directory %s.", outputFile.getAbsolutePath()));
+						}
+					}
+				} else {
+					if (!outputFile.getParentFile().exists()) {
+						if (!outputFile.getParentFile().mkdirs())
+							throw new IOException("Failed to create directory " + outputFile.getParentFile().getAbsolutePath());
+					}
+					try (OutputStream outputFileStream = new FileOutputStream(outputFile)) {
+						copy(zipInputStream, outputFileStream);
+					}
+					// Set executable permission if the entry had it
+					if ((entry.getUnixMode() & 0100) != 0) {
+						outputFile.setExecutable(true);
+					}
+				}
+			}
 		}
 	}
 
@@ -160,7 +183,7 @@ public final class Downloads {
 		        if (entry.isDirectory()) {
 		            if (!outputFile.exists()) {
 		                if (!outputFile.mkdirs()) {
-		                    throw new IllegalStateException(String.format("Couldn't create directory %s.", outputFile.getAbsolutePath()));
+		                    throw new IOException(String.format("Couldn't create directory %s.", outputFile.getAbsolutePath()));
 		                }
 		            }
 		        } else {
@@ -201,7 +224,7 @@ public final class Downloads {
 		        if (entry.isDirectory()) {
 		            if (!outputFile.exists()) {
 		                if (!outputFile.mkdirs()) {
-		                    throw new IllegalStateException(String.format("Couldn't create directory %s.", outputFile.getAbsolutePath()));
+		                    throw new IOException(String.format("Couldn't create directory %s.", outputFile.getAbsolutePath()));
 		                }
 		            }
 		        } else {
