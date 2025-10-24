@@ -104,8 +104,9 @@ public class Service implements AutoCloseable {
 	 *
 	 * @param debugListener A function that accepts a single string argument.
 	 */
-	public void debug(Consumer<String> debugListener) {
+	public Service debug(Consumer<String> debugListener) {
 		this.debugListener = debugListener;
+		return this;
 	}
 
 	/**
@@ -496,6 +497,11 @@ public class Service implements AutoCloseable {
 			this.queue = queue;
 		}
 
+		/**
+		 * Begins executing the task.
+		 *
+		 * @return This task, for fluid method chaining.
+		 */
 		public synchronized Task start() {
 			if (status != TaskStatus.INITIAL) throw new IllegalStateException();
 			status = TaskStatus.QUEUED;
@@ -513,18 +519,25 @@ public class Service implements AutoCloseable {
 		 * Registers a listener to be notified of updates to the task.
 		 *
 		 * @param listener Function to invoke in response to task status updates.
+		 * @return This task, for fluid method chaining.
 		 */
-		public synchronized void listen(Consumer<TaskEvent> listener) {
+		public synchronized Task listen(Consumer<TaskEvent> listener) {
 			if (status != TaskStatus.INITIAL) {
 				throw new IllegalStateException("Task is not in the INITIAL state");
 			}
 			listeners.add(listener);
+			return this;
 		}
 
-		public synchronized void waitFor() throws InterruptedException {
+		/**
+		 * Blocks until the task has finished executing.
+		 *
+		 * @return This task, for fluid method chaining.
+		 */
+		public synchronized Task waitFor() throws InterruptedException {
 			if (status == TaskStatus.INITIAL) start();
-			if (status != TaskStatus.QUEUED && status != TaskStatus.RUNNING) return;
-			wait();
+			if (status == TaskStatus.QUEUED || status == TaskStatus.RUNNING) wait();
+			return this;
 		}
 
 		/** Sends a task cancelation request to the worker process. */
