@@ -32,6 +32,7 @@ package org.apposed.appose.builder;
 import org.apposed.appose.util.Downloads;
 import org.apposed.appose.util.Environments;
 import org.apposed.appose.util.FileDownloader;
+import org.apposed.appose.util.FilePaths;
 import org.apposed.appose.util.Platforms;
 import org.apposed.appose.util.Processes;
 
@@ -254,7 +255,7 @@ public class Uv {
 	}
 
 	private File downloadUv() throws IOException, InterruptedException, URISyntaxException {
-		final File tempFile = File.createTempFile("uv-", ".tar.gz");
+		final File tempFile = File.createTempFile("uv-", FilePaths.fileType(UV_URL));
 		tempFile.deleteOnExit();
 		URL website = Downloads.redirectedURL(new URL(UV_URL));
 		long size = Downloads.getFileSize(website);

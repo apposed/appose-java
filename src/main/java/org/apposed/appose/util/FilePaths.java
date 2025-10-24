@@ -37,6 +37,8 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.List;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 /**
  * Utility methods for working with files.
@@ -63,6 +65,13 @@ public final class FilePaths {
 		catch (URISyntaxException exc) {
 			return null;
 		}
+	}
+
+	private static final Pattern EXTENSION = Pattern.compile(".*?((\\.[a-zA-Z0-9]+)+)$");
+	public static String fileType(String name) {
+		Matcher m = EXTENSION.matcher(name);
+		if (!m.matches()) return "";
+		return m.group(1);
 	}
 
 	public static File findExe(List<String> dirs, List<String> exes) {

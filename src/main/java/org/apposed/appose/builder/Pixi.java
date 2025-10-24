@@ -32,6 +32,7 @@ package org.apposed.appose.builder;
 import org.apposed.appose.util.Downloads;
 import org.apposed.appose.util.Environments;
 import org.apposed.appose.util.FileDownloader;
+import org.apposed.appose.util.FilePaths;
 import org.apposed.appose.util.Platforms;
 import org.apposed.appose.util.Processes;
 
@@ -246,10 +247,7 @@ public class Pixi {
 	}
 
 	private File downloadPixi() throws IOException, InterruptedException, URISyntaxException {
-		// Hacky, but these are the only two cases.
-		String extension = PIXI_URL.endsWith(".zip") ? ".zip" : ".tar.gz";
-
-		final File tempFile = File.createTempFile("pixi", extension);
+		final File tempFile = File.createTempFile("pixi", FilePaths.fileType(PIXI_URL));
 		tempFile.deleteOnExit();
 		URL website = Downloads.redirectedURL(new URL(PIXI_URL));
 		long size = Downloads.getFileSize(website);
