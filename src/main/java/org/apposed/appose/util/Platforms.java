@@ -28,8 +28,6 @@
  */
 package org.apposed.appose.util;
 
-import com.sun.java.swing.plaf.windows.resources.windows;
-
 import java.io.File;
 import java.util.Arrays;
 

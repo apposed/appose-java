@@ -1,8 +1,5 @@
 package org.apposed.appose.util;
 
-import org.apposed.appose.SharedMemory;
-import org.apposed.appose.ShmFactory;
-
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Comparator;

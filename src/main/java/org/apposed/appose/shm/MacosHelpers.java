@@ -31,6 +31,7 @@ package org.apposed.appose.shm;
 
 import com.sun.jna.Library;
 import com.sun.jna.Native;
+
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;

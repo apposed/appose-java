@@ -41,7 +41,6 @@ import org.apposed.appose.util.Platforms;
 
 import static org.apposed.appose.shm.Shms.SHM_NAME_PREFIX_WIN;
 import static org.apposed.appose.shm.Shms.SHM_SAFE_NAME_LENGTH;
-import static org.apposed.appose.util.Platforms.OperatingSystem.WINDOWS;
 
 /**
  * Windows-specific shared memory implementation.

@@ -29,8 +29,9 @@
 
 package org.apposed.appose;
 
-import java.util.Map;
 import org.apposed.appose.Service.ResponseType;
+
+import java.util.Map;
 
 public class TaskEvent {
 

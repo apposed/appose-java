@@ -28,24 +28,13 @@
  */
 package org.apposed.appose.util;
 
-import groovy.json.JsonGenerator;
-import groovy.json.JsonSlurper;
-import org.apposed.appose.NDArray;
 import org.apposed.appose.Service;
-import org.apposed.appose.SharedMemory;
 
-import java.io.PrintWriter;
-import java.io.StringWriter;
 import java.lang.reflect.Proxy;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.HashMap;
-import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.function.BiConsumer;
-
-import static org.apposed.appose.NDArray.Shape.Order.C_ORDER;
 
 /**
  * Utility class for creating local proxy objects that provide strongly typed

@@ -35,8 +35,14 @@ import org.apposed.appose.SharedMemory;
 import org.apposed.appose.ShmFactory;
 import org.apposed.appose.util.Platforms;
 
-import static org.apposed.appose.shm.Shms.*;
-import static org.apposed.appose.util.Platforms.OperatingSystem.MACOS;
+import static org.apposed.appose.shm.Shms.MAP_SHARED;
+import static org.apposed.appose.shm.Shms.O_RDONLY;
+import static org.apposed.appose.shm.Shms.PROT_READ;
+import static org.apposed.appose.shm.Shms.PROT_WRITE;
+import static org.apposed.appose.shm.Shms.SHM_NAME_PREFIX_POSIX;
+import static org.apposed.appose.shm.Shms.SHM_SAFE_NAME_LENGTH;
+import static org.apposed.appose.shm.Shms.withLeadingSlash;
+import static org.apposed.appose.shm.Shms.withoutLeadingSlash;
 
 /**
  * MacOS-specific shared memory implementation.
