@@ -477,7 +477,7 @@ public class Uv {
 			try (BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()))) {
 				String line;
 				while ((line = reader.readLine()) != null) {
-					updateOutputConsumer(line);
+					updateOutputConsumer(line + System.lineSeparator());
 				}
 			} catch (IOException e) {
 				updateErrorConsumer("Error reading stdout: " + e.getMessage());
@@ -489,7 +489,7 @@ public class Uv {
 			try (BufferedReader reader = new BufferedReader(new InputStreamReader(process.getErrorStream()))) {
 				String line;
 				while ((line = reader.readLine()) != null) {
-					updateErrorConsumer(line);
+					updateErrorConsumer(line + System.lineSeparator());
 				}
 			} catch (IOException e) {
 				updateErrorConsumer("Error reading stderr: " + e.getMessage());
@@ -531,7 +531,7 @@ public class Uv {
 			try (BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()))) {
 				String line;
 				while ((line = reader.readLine()) != null) {
-					updateOutputConsumer(line);
+					updateOutputConsumer(line + System.lineSeparator());
 				}
 			} catch (IOException e) {
 				updateErrorConsumer("Error reading stdout: " + e.getMessage());
@@ -543,7 +543,7 @@ public class Uv {
 			try (BufferedReader reader = new BufferedReader(new InputStreamReader(process.getErrorStream()))) {
 				String line;
 				while ((line = reader.readLine()) != null) {
-					updateErrorConsumer(line);
+					updateErrorConsumer(line + System.lineSeparator());
 				}
 			} catch (IOException e) {
 				updateErrorConsumer("Error reading stderr: " + e.getMessage());

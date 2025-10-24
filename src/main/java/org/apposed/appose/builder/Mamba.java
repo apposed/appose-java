@@ -77,10 +77,8 @@ import java.nio.channels.Channels;
 import java.nio.channels.ReadableByteChannel;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Calendar;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -506,8 +504,7 @@ public class Mamba {
 	{
 		checkMambaInstalled();
 		Thread mainThread = Thread.currentThread();
-		SimpleDateFormat sdf = new SimpleDateFormat("HH:mm:ss");
-		
+
 		final List< String > cmd = getBaseCommand();
 		List<String> argsList = new ArrayList<>();
 		argsList.add(coverArgWithDoubleQuotes(mambaCommand));
@@ -523,8 +520,6 @@ public class Mamba {
 		ProcessBuilder builder = getBuilder(isInheritIO).command(cmd);
 		Process process = builder.start();
 		// Use separate threads to read each stream to avoid a deadlock.
-		updateOutputConsumer(sdf.format(Calendar.getInstance().getTime()) + " -- STARTING INSTALLATION" + System.lineSeparator());
-		long updatePeriod = 300;
 		Thread outputThread = new Thread(() -> {
 			try (
 			        InputStream inputStream = process.getInputStream();
@@ -533,10 +528,7 @@ public class Mamba {
 		        byte[] buffer = new byte[1024]; // Buffer size can be adjusted
 		        StringBuilder processBuff = new StringBuilder();
 		        StringBuilder errBuff = new StringBuilder();
-						String processChunk = "";
-		        String errChunk = "";
                 int newLineIndex;
-		        long t0 = System.currentTimeMillis();
 		        while (process.isAlive() || inputStream.available() > 0) {
 		        	if (!mainThread.isAlive()) {
 		        		process.destroyForcibly();
@@ -545,38 +537,36 @@ public class Mamba {
 		            if (inputStream.available() > 0) {
 		                processBuff.append(new String(buffer, 0, inputStream.read(buffer)));
 		                while ((newLineIndex = processBuff.indexOf(System.lineSeparator())) != -1) {
-											processChunk += sdf.format(Calendar.getInstance().getTime()) + " -- "
-												+ processBuff.substring(0, newLineIndex + 1).trim() + System.lineSeparator();
-		                	processBuff.delete(0, newLineIndex + 1);
+		                	String line = processBuff.substring(0, newLineIndex);
+		                	updateOutputConsumer(line + System.lineSeparator());
+		                	processBuff.delete(0, newLineIndex + System.lineSeparator().length());
 		                }
 		            }
 		            if (errStream.available() > 0) {
 		                errBuff.append(new String(buffer, 0, errStream.read(buffer)));
 		                while ((newLineIndex = errBuff.indexOf(System.lineSeparator())) != -1) {
-		                	errChunk += ERR_STREAM_UUID + errBuff.substring(0, newLineIndex + 1).trim() + System.lineSeparator();
-		                	errBuff.delete(0, newLineIndex + 1);
+		                	String line = errBuff.substring(0, newLineIndex);
+		                	updateErrorConsumer(ERR_STREAM_UUID + line + System.lineSeparator());
+		                	errBuff.delete(0, newLineIndex + System.lineSeparator().length());
 		                }
 		            }
 	                // Sleep for a bit to avoid busy waiting
 	                Thread.sleep(60);
-	                if (System.currentTimeMillis() - t0 > updatePeriod) {
-						updateOutputConsumer(processChunk);
-						processChunk = "";
-						errChunk = "";
-						t0 = System.currentTimeMillis();
-					}
 		        }
 		        if (inputStream.available() > 0) {
 	                processBuff.append(new String(buffer, 0, inputStream.read(buffer)));
-                	processChunk += sdf.format(Calendar.getInstance().getTime()) + " -- " + processBuff.toString().trim();
+	                String remaining = processBuff.toString();
+	                if (!remaining.isEmpty()) {
+                		updateOutputConsumer(remaining + System.lineSeparator());
+	                }
 	            }
 	            if (errStream.available() > 0) {
 	                errBuff.append(new String(buffer, 0, errStream.read(buffer)));
-	                errChunk += ERR_STREAM_UUID + errBuff.toString().trim();
+	                String remaining = errBuff.toString();
+	                if (!remaining.isEmpty()) {
+		                updateErrorConsumer(ERR_STREAM_UUID + remaining + System.lineSeparator());
+	                }
 	            }
-				updateErrorConsumer(errChunk);
-				updateOutputConsumer(processChunk + System.lineSeparator()
-								+ sdf.format(Calendar.getInstance().getTime()) + " -- TERMINATED PROCESS\n");
 		    } catch (IOException | InterruptedException e) {
 		        e.printStackTrace();
 		    }
