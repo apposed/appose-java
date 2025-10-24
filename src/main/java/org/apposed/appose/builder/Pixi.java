@@ -144,7 +144,7 @@ public class Pixi extends Tool {
 	 */
 	public boolean isPixiInstalled() {
 		try {
-			getVersion();
+			version();
 			return true;
 		} catch (IOException | InterruptedException e) {
 			return false;
@@ -274,14 +274,8 @@ public class Pixi extends Tool {
 		runPixi(cmd.toArray(new String[0]));
 	}
 
-	/**
-	 * Returns Pixi version as a {@code String}.
-	 *
-	 * @return The Pixi version as a {@code String}.
-	 * @throws IOException If an I/O error occurs.
-	 * @throws InterruptedException If the current thread is interrupted.
-	 */
-	public String getVersion() throws IOException, InterruptedException {
+	@Override
+	public String version() throws IOException, InterruptedException {
 		final List<String> cmd = Platforms.baseCommand();
 		if (pixiCommand.contains(" ") && Platforms.isWindows())
 			cmd.add(surroundWithQuotes(Arrays.asList(coverArgWithDoubleQuotes(pixiCommand), "--version")));

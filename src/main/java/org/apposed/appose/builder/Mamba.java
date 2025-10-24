@@ -181,7 +181,7 @@ public class Mamba extends Tool {
 	 */
 	public boolean isMambaInstalled() {
 		try {
-			getVersion();
+			version();
 			return true;
 		} catch (IOException | InterruptedException e) {
 			return false;
@@ -322,18 +322,8 @@ public class Mamba extends Tool {
 				envDir.getAbsolutePath(), "-f", envYaml.getAbsolutePath());
 	}
 
-	/**
-	 * Returns Conda version as a {@code String}.
-	 * 
-	 * @return The Conda version as a {@code String}.
-	 * @throws IOException
-	 *             If an I/O error occurs.
-	 * @throws InterruptedException
-	 *             If the current thread is interrupted by another thread while it
-	 *             is waiting, then the wait is ended and an InterruptedException is
-	 *             thrown.
-	 */
-	public String getVersion() throws IOException, InterruptedException {
+	@Override
+	public String version() throws IOException, InterruptedException {
 		final List< String > cmd = Platforms.baseCommand();
 		if (mambaCommand.contains(" ") && Platforms.isWindows())
 			cmd.add(surroundWithQuotes(Arrays.asList(coverArgWithDoubleQuotes(mambaCommand), "--version")));

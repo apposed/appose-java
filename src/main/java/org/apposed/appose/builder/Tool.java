@@ -111,6 +111,15 @@ public abstract class Tool {
 	}
 
 	/**
+	 * Get the version of the installed tool.
+	 *
+	 * @return The version string.
+	 * @throws IOException If an I/O error occurs.
+	 * @throws InterruptedException If the current thread is interrupted.
+	 */
+	abstract String version() throws IOException, InterruptedException;
+
+	/**
 	 * Creates a ProcessBuilder configured with environment variables.
 	 * @param cwd Path to the working directory
 	 * @param isInheritIO Whether to inherit I/O streams from parent process

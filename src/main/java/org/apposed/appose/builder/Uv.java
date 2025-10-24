@@ -156,7 +156,7 @@ public class Uv extends Tool {
 	 */
 	public boolean isUvInstalled() {
 		try {
-			getVersion();
+			version();
 			return true;
 		} catch (IOException | InterruptedException e) {
 			return false;
@@ -407,14 +407,8 @@ public class Uv extends Tool {
 		}
 	}
 
-	/**
-	 * Get the version of the installed UV.
-	 *
-	 * @return The UV version string.
-	 * @throws IOException If an I/O error occurs.
-	 * @throws InterruptedException If the current thread is interrupted.
-	 */
-	public String getVersion() throws IOException, InterruptedException {
+	@Override
+	public String version() throws IOException, InterruptedException {
 		final List<String> cmd = Platforms.baseCommand();
 		cmd.add(uvCommand);
 		// Don't add flags to --version command
