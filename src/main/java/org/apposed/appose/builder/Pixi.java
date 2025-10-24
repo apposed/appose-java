@@ -213,18 +213,6 @@ public class Pixi extends Tool {
 	}
 
 	/**
-	 * Returns {@code \{"cmd.exe", "/c"\}} for Windows and an empty list for Mac/Linux.
-	 *
-	 * @return {@code \{"cmd.exe", "/c"\}} for Windows and an empty list for Mac/Linux.
-	 */
-	private static List<String> getBaseCommand() {
-		final List<String> cmd = new ArrayList<>();
-		if (Platforms.isWindows())
-			cmd.addAll(Arrays.asList("cmd.exe", "/c"));
-		return cmd;
-	}
-
-	/**
 	 * Initialize a pixi project in the specified directory.
 	 *
 	 * @param projectDir The directory to initialize as a pixi project.
@@ -308,7 +296,7 @@ public class Pixi extends Tool {
 	 * @throws InterruptedException If the current thread is interrupted.
 	 */
 	public String getVersion() throws IOException, InterruptedException {
-		final List<String> cmd = getBaseCommand();
+		final List<String> cmd = Platforms.baseCommand();
 		if (pixiCommand.contains(" ") && Platforms.isWindows())
 			cmd.add(surroundWithQuotes(Arrays.asList(coverArgWithDoubleQuotes(pixiCommand), "--version")));
 		else
@@ -348,7 +336,7 @@ public class Pixi extends Tool {
 		checkPixiInstalled();
 		Thread mainThread = Thread.currentThread();
 
-		final List<String> cmd = getBaseCommand();
+		final List<String> cmd = Platforms.baseCommand();
 		List<String> argsList = new ArrayList<>();
 		argsList.add(coverArgWithDoubleQuotes(pixiCommand));
 		// Add user-specified flags first

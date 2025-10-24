@@ -267,18 +267,6 @@ public class Uv extends Tool {
 	}
 
 	/**
-	 * Returns {@code \{"cmd.exe", "/c"\}} for Windows and an empty list for Mac/Linux.
-	 *
-	 * @return {@code \{"cmd.exe", "/c"\}} for Windows and an empty list for Mac/Linux.
-	 */
-	private static List<String> getBaseCommand() {
-		final List<String> cmd = new ArrayList<>();
-		if (Platforms.isWindows())
-			cmd.addAll(Arrays.asList("cmd.exe", "/c"));
-		return cmd;
-	}
-
-	/**
 	 * Create a virtual environment using UV.
 	 *
 	 * @param envDir The directory for the virtual environment.
@@ -368,7 +356,7 @@ public class Uv extends Tool {
 	 */
 	public void runUvInDirectory(final File workingDir, final String... args) throws IOException, InterruptedException {
 		checkUvInstalled();
-		final List<String> cmd = getBaseCommand();
+		final List<String> cmd = Platforms.baseCommand();
 		cmd.add(uvCommand);
 		cmd.addAll(flags);  // Add user-specified flags
 		cmd.addAll(Arrays.asList(args));
@@ -405,7 +393,7 @@ public class Uv extends Tool {
 	 */
 	public void runUv(final String... args) throws IOException, InterruptedException {
 		checkUvInstalled();
-		final List<String> cmd = getBaseCommand();
+		final List<String> cmd = Platforms.baseCommand();
 		cmd.add(uvCommand);
 		cmd.addAll(flags);  // Add user-specified flags
 		cmd.addAll(Arrays.asList(args));
@@ -440,7 +428,7 @@ public class Uv extends Tool {
 	 * @throws InterruptedException If the current thread is interrupted.
 	 */
 	public String getVersion() throws IOException, InterruptedException {
-		final List<String> cmd = getBaseCommand();
+		final List<String> cmd = Platforms.baseCommand();
 		cmd.add(uvCommand);
 		// Don't add flags to --version command
 		cmd.add("--version");

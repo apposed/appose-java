@@ -30,7 +30,9 @@
 package org.apposed.appose.util;
 
 import java.io.File;
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.List;
 
 /**
  * Utility class housing platform-specific logic.
@@ -87,5 +89,17 @@ public final class Platforms {
 		return OS == OperatingSystem.WINDOWS ?
 			file.exists() && file.getName().toLowerCase().endsWith(".exe") :
 			file.canExecute();
+	}
+
+	/**
+	 * Gets the arguments to prefix to execute a command in a separate process.
+	 *
+	 * @return <code>{"cmd.exe", "/c"}</code> for Windows and an empty list otherwise.
+	 */
+	public static List< String > baseCommand() {
+		final List< String > cmd = new ArrayList<>();
+		if (Platforms.isWindows())
+			cmd.addAll(Arrays.asList("cmd.exe", "/c"));
+		return cmd;
 	}
 }

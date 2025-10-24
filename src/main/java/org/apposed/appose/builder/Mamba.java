@@ -74,7 +74,6 @@ import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
-import java.util.function.BiConsumer;
 import java.util.stream.Collectors;
 
 /**
@@ -254,21 +253,6 @@ public class Mamba extends Tool {
 	}
 
 	/**
-	 * Returns {@code \{"cmd.exe", "/c"\}} for Windows and an empty list for
-	 * Mac/Linux.
-	 * 
-	 * @return {@code \{"cmd.exe", "/c"\}} for Windows and an empty list for
-	 *         Mac/Linux.
-	 */
-	private static List< String > getBaseCommand()
-	{
-		final List< String > cmd = new ArrayList<>();
-		if (Platforms.isWindows())
-			cmd.addAll(Arrays.asList("cmd.exe", "/c"));
-		return cmd;
-	}
-
-	/**
 	 * Run {@code conda update} in the specified environment. A list of packages to
 	 * update and extra parameters can be specified as {@code args}.
 	 *
@@ -366,7 +350,7 @@ public class Mamba extends Tool {
 	 *             thrown.
 	 */
 	public String getVersion() throws IOException, InterruptedException {
-		final List< String > cmd = getBaseCommand();
+		final List< String > cmd = Platforms.baseCommand();
 		if (mambaCommand.contains(" ") && Platforms.isWindows())
 			cmd.add(surroundWithQuotes(Arrays.asList(coverArgWithDoubleQuotes(mambaCommand), "--version")));
 		else
@@ -400,7 +384,7 @@ public class Mamba extends Tool {
 		checkMambaInstalled();
 		Thread mainThread = Thread.currentThread();
 
-		final List< String > cmd = getBaseCommand();
+		final List< String > cmd = Platforms.baseCommand();
 		List<String> argsList = new ArrayList<>();
 		argsList.add(coverArgWithDoubleQuotes(mambaCommand));
 		// Add user-specified flags first
