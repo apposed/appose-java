@@ -82,23 +82,6 @@ import java.util.stream.Collectors;
  */
 class Mamba extends Tool {
 
-	/** String containing the path that points to the micromamba executable. */
-	public final String mambaCommand;
-
-	/**
-	 * Root directory of micromamba that also contains the environments folder
-	 *
-	 * <pre>
-	 * rootdir
-	 * ├── bin
-	 * │   ├── micromamba(.exe)
-	 * │   ...
-	 * ├── envs
-	 * │   ├── your_env
-	 * │   │   ├── python(.exe)
-	 * </pre>
-	 */
-	private final String rootdir;
 
 	/** Relative path to the micromamba executable from the micromamba {@link #rootdir}. */
 	private final static Path MICROMAMBA_RELATIVE_PATH = Platforms.isWindows() ?
@@ -150,8 +133,8 @@ class Mamba extends Tool {
 
 	/**
 	 * Create a new Mamba object. The root dir for Mamba installation can be
-	 * specified as {@code String}. 
-	 * If there is no Micromamba found at the specified path, it will be installed automatically 
+	 * specified as {@code String}.
+	 * If there is no Micromamba found at the specified path, it will be installed automatically
 	 * if the parameter 'installIfNeeded' is true. If not an {@link IllegalStateException} will be thrown.
 	 * <p>
 	 * It is expected that the Mamba installation has executable commands as shown below:
@@ -165,14 +148,17 @@ class Mamba extends Tool {
 	 * │   ├── your_env
 	 * │   │   ├── python(.exe)
 	 * </pre>
-	 * 
+	 *
 	 * @param rootdir
 	 *  The root dir for Mamba installation.
 	 */
 	public Mamba(final String rootdir) {
-		super("micromamba", MICROMAMBA_URL);
-		this.rootdir = rootdir == null ? BASE_PATH : rootdir;
-		this.mambaCommand = Paths.get(this.rootdir).resolve(MICROMAMBA_RELATIVE_PATH).toAbsolutePath().toString();
+		super(
+			"micromamba",
+			MICROMAMBA_URL,
+			Paths.get(rootdir == null ? BASE_PATH : rootdir).resolve(MICROMAMBA_RELATIVE_PATH).toAbsolutePath().toString(),
+			rootdir == null ? BASE_PATH : rootdir
+		);
 	}
 
 	@Override
@@ -186,13 +172,13 @@ class Mamba extends Tool {
 				mambaBaseDir.getParentFile().getAbsolutePath() +
 				". Please try installing it in another directory.");
 		Downloads.unTar(tempTarFile, mambaBaseDir);
-		File mmFile = new File(mambaCommand);
-		if (!mmFile.exists()) throw new IOException("Expected micromamba binary is missing: " + mambaCommand);
+		File mmFile = new File(command);
+		if (!mmFile.exists()) throw new IOException("Expected micromamba binary is missing: " + command);
 		if (!mmFile.canExecute()) {
-			boolean executableSet = new File(mambaCommand).setExecutable(true);
+			boolean executableSet = new File(command).setExecutable(true);
 			if (!executableSet)
 				throw new IOException("Cannot set file as executable due to missing permissions, "
-					+ "please do it manually: " + mambaCommand);
+					+ "please do it manually: " + command);
 		}
 	}
 
@@ -211,7 +197,7 @@ class Mamba extends Tool {
 	public void create(final File envDir) throws IOException, InterruptedException
 	{
 		checkInstalled();
-		runMamba("create", "--prefix", envDir.getAbsolutePath(), "-y", "--no-rc");
+		exec("create", "--prefix", envDir.getAbsolutePath(), "-y", "--no-rc");
 	}
 
 	/**
@@ -230,142 +216,18 @@ class Mamba extends Tool {
 	public void update(final File envDir, final File envYaml) throws IOException, InterruptedException
 	{
 		checkInstalled();
-		runMamba("env", "update", "-y", "--prefix",
+		exec("env", "update", "-y", "--prefix",
 				envDir.getAbsolutePath(), "-f", envYaml.getAbsolutePath());
 	}
 
 	@Override
 	public String version() throws IOException, InterruptedException {
-		final List< String > cmd = Platforms.baseCommand();
-		if (mambaCommand.contains(" ") && Platforms.isWindows())
-			cmd.add(surroundWithQuotes(Arrays.asList(coverArgWithDoubleQuotes(mambaCommand), "--version")));
-		else
-			cmd.addAll(Arrays.asList(coverArgWithDoubleQuotes(mambaCommand), "--version"));
+		final List<String> cmd = Platforms.baseCommand();
+		cmd.add(command);
+		cmd.add("--version");
 		final Process process = processBuilder(rootdir, false).command(cmd).start();
 		if (process.waitFor() != 0)
 			throw new RuntimeException("Error getting Micromamba version");
 		return new BufferedReader(new InputStreamReader(process.getInputStream())).readLine();
-	}
-
-	/**
-	 * Run a Mamba command with one or more arguments.
-	 * 
-	 * @param isInheritIO
-	 *            Sets the source and destination for subprocess standard I/O to be
-	 *            the same as those of the current Java process.
-	 * @param args
-	 *            One or more arguments for the Mamba command.
-	 * @throws RuntimeException
-	 *             If there is any error running the commands
-	 * @throws IOException
-	 *             If an I/O error occurs.
-	 * @throws InterruptedException
-	 *             If the current thread is interrupted by another thread while it
-	 *             is waiting, then the wait is ended and an InterruptedException is
-	 *             thrown.
-	 * @throws IllegalStateException if Micromamba has not been installed, thus the instance of {@link Mamba} cannot be used
-	 */
-	public void runMamba(boolean isInheritIO, final String... args) throws RuntimeException, IOException, InterruptedException
-	{
-		checkInstalled();
-		Thread mainThread = Thread.currentThread();
-
-		final List< String > cmd = Platforms.baseCommand();
-		List<String> argsList = new ArrayList<>();
-		argsList.add(coverArgWithDoubleQuotes(mambaCommand));
-		// Add user-specified flags first
-		argsList.addAll(flags.stream().map(flag -> {
-			if (flag.contains(" ") && Platforms.isWindows()) return coverArgWithDoubleQuotes(flag);
-			else return flag;
-		}).collect(Collectors.toList()));
-		// Then add the command-specific args
-		argsList.addAll(Arrays.stream(args).map(aa -> {
-			if (aa.contains(" ") && Platforms.isWindows()) return coverArgWithDoubleQuotes(aa);
-			else return aa;
-		}).collect(Collectors.toList()));
-		boolean containsSpaces = argsList.stream().anyMatch(aa -> aa.contains(" "));
-		
-		if (!containsSpaces || !Platforms.isWindows()) cmd.addAll(argsList);
-		else cmd.add(surroundWithQuotes(argsList));
-		
-		ProcessBuilder builder = processBuilder(rootdir, isInheritIO).command(cmd);
-		Process process = builder.start();
-		// Use separate threads to read each stream to avoid a deadlock.
-		Thread outputThread = new Thread(() -> {
-			try {
-				readStreams(process, mainThread);
-		    } catch (IOException | InterruptedException e) {
-		        e.printStackTrace();
-		    }
-		});
-		// Start reading threads
-		outputThread.start();
-		int processResult;
-		try {
-			processResult = process.waitFor();
-		} catch (InterruptedException ex) {
-			throw new InterruptedException("Mamba process stopped. The command being executed was: " + cmd);
-		}
-		// Wait for all output to be read
-		outputThread.join();
-		if (processResult != 0)
-			throw new RuntimeException("Exit code " + processResult + " from command execution: " + builder.command());
-	}
-
-	/**
-	 * Run a Mamba command with one or more arguments.
-	 * 
-	 * @param args
-	 *            One or more arguments for the Mamba command.
-	 * @throws RuntimeException
-	 *             If there is any error running the commands
-	 * @throws IOException
-	 *             If an I/O error occurs.
-	 * @throws InterruptedException
-	 *             If the current thread is interrupted by another thread while it
-	 *             is waiting, then the wait is ended and an InterruptedException is
-	 *             thrown.
-	 * @throws IllegalStateException if Micromamba has not been installed, thus the instance of {@link Mamba} cannot be used
-	 */
-	public void runMamba(final String... args) throws RuntimeException, IOException, InterruptedException
-	{
-		checkInstalled();
-		runMamba(false, args);
-	}
-
-	/**
-	 * In Windows, if a command prompt argument contains and space " " it needs to
-	 * start and end with double quotes
-	 * @param arg
-	 * 	the cmd argument
-	 * @return a robust argument
-	 */
-	private static String coverArgWithDoubleQuotes(String arg) {
-		String[] specialChars = new String[] {" "};
-        for (String schar : specialChars) {
-        	if (arg.startsWith("\"") && arg.endsWith("\""))
-        		continue;
-        	if (arg.contains(schar) && Platforms.isWindows()) {
-        		return "\"" + arg + "\"";
-        	}
-        }
-        return arg;
-	}
-	
-	/**
-	 * When an argument of a command prompt argument in Windows contains an space, not
-	 * only the argument needs to be surrounded by double quotes, but the whole sentence
-	 * @param args
-	 * 	arguments to be executed by the windows cmd
-	 * @return a complete Sting containing all the arguments and surrounded by double quotes
-	 */
-	private static String surroundWithQuotes(List<String> args) {
-		String arg = "\"";
-		for (String aa : args) {
-			arg += aa + " ";
-		}
-		arg = arg.substring(0, arg.length() - 1);
-		arg += "\"";
-		return arg;
 	}
 }

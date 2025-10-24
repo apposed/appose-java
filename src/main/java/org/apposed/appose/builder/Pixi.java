@@ -54,20 +54,6 @@ import java.util.stream.Collectors;
  */
 class Pixi extends Tool {
 
-	/** String containing the path that points to the pixi executable. */
-	public final String pixiCommand;
-
-	/**
-	 * Root directory where pixi is installed.
-	 *
-	 * <pre>
-	 * rootdir
-	 * ├── .pixi
-	 * │   ├── bin
-	 * │   │   ├── pixi(.exe)
-	 * </pre>
-	 */
-	private final String rootdir;
 
 	/** Relative path to the pixi executable from the pixi {@link #rootdir}. */
 	private final static Path PIXI_RELATIVE_PATH = Platforms.isWindows() ?
@@ -133,9 +119,12 @@ class Pixi extends Tool {
 	 *  The root dir for Pixi installation.
 	 */
 	public Pixi(final String rootdir) {
-		super("pixi", PIXI_URL);
-		this.rootdir = rootdir == null ? BASE_PATH : rootdir;
-		this.pixiCommand = Paths.get(this.rootdir).resolve(PIXI_RELATIVE_PATH).toAbsolutePath().toString();
+		super(
+			"pixi",
+			PIXI_URL,
+			Paths.get(rootdir == null ? BASE_PATH : rootdir).resolve(PIXI_RELATIVE_PATH).toAbsolutePath().toString(),
+			rootdir == null ? BASE_PATH : rootdir
+		);
 	}
 
 	@Override
@@ -151,13 +140,13 @@ class Pixi extends Tool {
 			throw new IOException("Failed to create Pixi bin directory: " + pixiBinDir);
 
 		Downloads.unpack(archive, pixiBinDir);
-		File pixiFile = new File(pixiCommand);
-		if (!pixiFile.exists()) throw new IOException("Expected pixi binary is missing: " + pixiCommand);
+		File pixiFile = new File(command);
+		if (!pixiFile.exists()) throw new IOException("Expected pixi binary is missing: " + command);
 		if (!pixiFile.canExecute()) {
 			boolean executableSet = pixiFile.setExecutable(true);
 			if (!executableSet)
 				throw new IOException("Cannot set file as executable due to missing permissions, "
-					+ "please do it manually: " + pixiCommand);
+					+ "please do it manually: " + command);
 		}
 	}
 
@@ -171,7 +160,7 @@ class Pixi extends Tool {
 	 */
 	public void init(final File projectDir) throws IOException, InterruptedException {
 		checkInstalled();
-		runPixi("init", projectDir.getAbsolutePath());
+		exec("init", projectDir.getAbsolutePath());
 	}
 
 	/**
@@ -193,7 +182,7 @@ class Pixi extends Tool {
 		cmd.add("--manifest-path");
 		cmd.add(new File(projectDir, "pixi.toml").getAbsolutePath());
 		cmd.addAll(Arrays.asList(channels));
-		runPixi(cmd.toArray(new String[0]));
+		exec(cmd.toArray(new String[0]));
 	}
 
 	/**
@@ -213,7 +202,7 @@ class Pixi extends Tool {
 		cmd.add("--manifest-path");
 		cmd.add(new File(projectDir, "pixi.toml").getAbsolutePath());
 		cmd.addAll(Arrays.asList(packages));
-		runPixi(cmd.toArray(new String[0]));
+		exec(cmd.toArray(new String[0]));
 	}
 
 	/**
@@ -234,124 +223,17 @@ class Pixi extends Tool {
 		cmd.add("--manifest-path");
 		cmd.add(new File(projectDir, "pixi.toml").getAbsolutePath());
 		cmd.addAll(Arrays.asList(packages));
-		runPixi(cmd.toArray(new String[0]));
+		exec(cmd.toArray(new String[0]));
 	}
 
 	@Override
 	public String version() throws IOException, InterruptedException {
 		final List<String> cmd = Platforms.baseCommand();
-		if (pixiCommand.contains(" ") && Platforms.isWindows())
-			cmd.add(surroundWithQuotes(Arrays.asList(coverArgWithDoubleQuotes(pixiCommand), "--version")));
-		else
-			cmd.addAll(Arrays.asList(coverArgWithDoubleQuotes(pixiCommand), "--version"));
+		cmd.add(command);
+		cmd.add("--version");
 		final Process process = processBuilder(rootdir, false).command(cmd).start();
 		if (process.waitFor() != 0)
 			throw new RuntimeException("Error getting Pixi version");
 		return new BufferedReader(new InputStreamReader(process.getInputStream())).readLine();
-	}
-
-	/**
-	 * Run a Pixi command with one or more arguments.
-	 *
-	 * @param args One or more arguments for the Pixi command.
-	 * @throws RuntimeException If there is any error running the commands
-	 * @throws IOException If an I/O error occurs.
-	 * @throws InterruptedException If the current thread is interrupted.
-	 * @throws IllegalStateException if Pixi has not been installed
-	 */
-	public void runPixi(final String... args) throws RuntimeException, IOException, InterruptedException {
-		checkInstalled();
-		runPixi(false, args);
-	}
-
-	/**
-	 * Run a Pixi command with one or more arguments.
-	 *
-	 * @param isInheritIO Sets the source and destination for subprocess standard I/O to be
-	 *            the same as those of the current Java process.
-	 * @param args One or more arguments for the Pixi command.
-	 * @throws RuntimeException If there is any error running the commands
-	 * @throws IOException If an I/O error occurs.
-	 * @throws InterruptedException If the current thread is interrupted.
-	 * @throws IllegalStateException if Pixi has not been installed
-	 */
-	public void runPixi(boolean isInheritIO, final String... args) throws RuntimeException, IOException, InterruptedException {
-		checkInstalled();
-		Thread mainThread = Thread.currentThread();
-
-		final List<String> cmd = Platforms.baseCommand();
-		List<String> argsList = new ArrayList<>();
-		argsList.add(coverArgWithDoubleQuotes(pixiCommand));
-		// Add user-specified flags first
-		argsList.addAll(flags.stream().map(flag -> {
-			if (flag.contains(" ") && Platforms.isWindows()) return coverArgWithDoubleQuotes(flag);
-			else return flag;
-		}).collect(Collectors.toList()));
-		// Then add the command-specific args
-		argsList.addAll(Arrays.stream(args).map(aa -> {
-			if (aa.contains(" ") && Platforms.isWindows()) return coverArgWithDoubleQuotes(aa);
-			else return aa;
-		}).collect(Collectors.toList()));
-		boolean containsSpaces = argsList.stream().anyMatch(aa -> aa.contains(" "));
-
-		if (!containsSpaces || !Platforms.isWindows()) cmd.addAll(argsList);
-		else cmd.add(surroundWithQuotes(argsList));
-
-		ProcessBuilder builder = processBuilder(rootdir, isInheritIO).command(cmd);
-		Process process = builder.start();
-		// Use separate threads to read each stream to avoid a deadlock.
-		Thread outputThread = new Thread(() -> {
-			try {
-				readStreams(process, mainThread);
-			} catch (IOException | InterruptedException e) {
-				e.printStackTrace();
-			}
-		});
-		// Start reading threads
-		outputThread.start();
-		int processResult;
-		try {
-			processResult = process.waitFor();
-		} catch (InterruptedException ex) {
-			throw new InterruptedException("Pixi process stopped. The command being executed was: " + cmd);
-		}
-		// Wait for all output to be read
-		outputThread.join();
-		if (processResult != 0)
-			throw new RuntimeException("Exit code " + processResult + " from command execution: " + builder.command());
-	}
-
-	/**
-	 * In Windows, if a command prompt argument contains a space " " it needs to
-	 * start and end with double quotes
-	 * @param arg the cmd argument
-	 * @return a robust argument
-	 */
-	private static String coverArgWithDoubleQuotes(String arg) {
-		String[] specialChars = new String[] {" "};
-		for (String schar : specialChars) {
-			if (arg.startsWith("\"") && arg.endsWith("\""))
-				continue;
-			if (arg.contains(schar) && Platforms.isWindows()) {
-				return "\"" + arg + "\"";
-			}
-		}
-		return arg;
-	}
-
-	/**
-	 * When an argument of a command prompt argument in Windows contains a space, not
-	 * only the argument needs to be surrounded by double quotes, but the whole sentence
-	 * @param args arguments to be executed by the windows cmd
-	 * @return a complete String containing all the arguments and surrounded by double quotes
-	 */
-	private static String surroundWithQuotes(List<String> args) {
-		String arg = "\"";
-		for (String aa : args) {
-			arg += aa + " ";
-		}
-		arg = arg.substring(0, arg.length() - 1);
-		arg += "\"";
-		return arg;
 	}
 }

@@ -30,6 +30,7 @@
 package org.apposed.appose.builder;
 
 import org.apposed.appose.util.Downloads;
+import org.apposed.appose.util.Platforms;
 import org.apposed.appose.util.Processes;
 
 import java.io.File;
@@ -37,6 +38,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.net.URISyntaxException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -60,6 +62,12 @@ public abstract class Tool {
 	/** Remote URL to use when downloading the tool. */
 	protected final String url;
 
+	/** Path to the tool's executable command. */
+	protected final String command;
+
+	/** Root directory where the tool is installed. */
+	protected final String rootdir;
+
 	/** Consumer that tracks the standard output stream produced by the tool process. */
 	protected Consumer<String> outputConsumer;
 
@@ -75,9 +83,11 @@ public abstract class Tool {
 	/** Additional command-line flags to pass to tool commands. */
 	protected List<String> flags = new ArrayList<>();
 
-	public Tool(String name, String url) {
+	public Tool(String name, String url, String command, String rootdir) {
 		this.name = name;
 		this.url = url;
+		this.command = command;
+		this.rootdir = rootdir;
 	}
 
 	/**
@@ -184,6 +194,43 @@ public abstract class Tool {
 	 */
 	protected ProcessBuilder processBuilder(String cwd, boolean isInheritIO) {
 		return Processes.builder(new File(cwd), envVars, isInheritIO);
+	}
+
+	/**
+	 * Execute a tool command with the specified arguments.
+	 *
+	 * @param args Command arguments for the tool.
+	 * @throws IOException If an I/O error occurs.
+	 * @throws InterruptedException If the current thread is interrupted.
+	 * @throws IllegalStateException if the tool has not been installed
+	 */
+	protected void exec(final String... args) throws IOException, InterruptedException {
+		checkInstalled();
+		final List<String> cmd = Platforms.baseCommand();
+		cmd.add(command);
+		cmd.addAll(flags);  // Add user-specified flags
+		cmd.addAll(Arrays.asList(args));
+
+		final ProcessBuilder builder = processBuilder(rootdir, false);
+		builder.command(cmd);
+		final Process process = builder.start();
+
+		Thread mainThread = Thread.currentThread();
+		Thread outputThread = new Thread(() -> {
+			try {
+				readStreams(process, mainThread);
+			} catch (IOException | InterruptedException e) {
+				updateErrorConsumer("Error reading streams: " + e.getMessage());
+			}
+		});
+
+		outputThread.start();
+		int exitCode = process.waitFor();
+		outputThread.join();
+
+		if (exitCode != 0) {
+			throw new IOException(name + " command failed with exit code " + exitCode + ": " + String.join(" ", args));
+		}
 	}
 
 	/**

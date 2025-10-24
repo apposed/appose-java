@@ -54,20 +54,6 @@ import java.util.stream.Collectors;
  */
 class Uv extends Tool {
 
-	/** String containing the path that points to the uv executable. */
-	public final String uvCommand;
-
-	/**
-	 * Root directory where uv is installed.
-	 *
-	 * <pre>
-	 * rootdir
-	 * ├── .uv
-	 * │   ├── bin
-	 * │   │   ├── uv(.exe)
-	 * </pre>
-	 */
-	private final String rootdir;
 
 	/** Relative path to the uv executable from the uv {@link #rootdir}. */
 	private final static Path UV_RELATIVE_PATH = Platforms.isWindows() ?
@@ -145,9 +131,12 @@ class Uv extends Tool {
 	 *  The root dir for UV installation.
 	 */
 	public Uv(final String rootdir) {
-		super("uv", UV_URL);
-		this.rootdir = rootdir == null ? BASE_PATH : rootdir;
-		this.uvCommand = Paths.get(this.rootdir).resolve(UV_RELATIVE_PATH).toAbsolutePath().toString();
+		super(
+			"uv",
+			UV_URL,
+			Paths.get(rootdir == null ? BASE_PATH : rootdir).resolve(UV_RELATIVE_PATH).toAbsolutePath().toString(),
+			rootdir == null ? BASE_PATH : rootdir
+		);
 	}
 
 	@Override
@@ -166,7 +155,7 @@ class Uv extends Tool {
 		Downloads.unpack(archive, uvBinDir);
 
 		String uvBinaryName = Platforms.isWindows() ? "uv.exe" : "uv";
-		File uvDest = new File(uvCommand);
+		File uvDest = new File(command);
 
 		// Check if uv binary is directly in bin dir (Windows ZIP case)
 		File uvDirectly = new File(uvBinDir, uvBinaryName);
@@ -207,12 +196,12 @@ class Uv extends Tool {
 			}
 		}
 
-		if (!uvDest.exists()) throw new IOException("Expected uv binary is missing: " + uvCommand);
+		if (!uvDest.exists()) throw new IOException("Expected uv binary is missing: " + command);
 		if (!uvDest.canExecute()) {
 			boolean executableSet = uvDest.setExecutable(true);
 			if (!executableSet)
 				throw new IOException("Cannot set file as executable due to missing permissions, "
-					+ "please do it manually: " + uvCommand);
+					+ "please do it manually: " + command);
 		}
 	}
 
@@ -234,7 +223,7 @@ class Uv extends Tool {
 			args.add(pythonVersion);
 		}
 		args.add(envDir.getAbsolutePath());
-		runUv(args.toArray(new String[0]));
+		exec(args.toArray(new String[0]));
 	}
 
 	/**
@@ -254,7 +243,7 @@ class Uv extends Tool {
 		args.add("--python");
 		args.add(envDir.getAbsolutePath());
 		args.addAll(Arrays.asList(packages));
-		runUv(args.toArray(new String[0]));
+		exec(args.toArray(new String[0]));
 	}
 
 	/**
@@ -268,7 +257,7 @@ class Uv extends Tool {
 	 */
 	public void pipInstallFromRequirements(final File envDir, String requirementsFile) throws IOException, InterruptedException {
 		checkInstalled();
-		runUv("pip", "install", "--python", envDir.getAbsolutePath(), "-r", requirementsFile);
+		exec("pip", "install", "--python", envDir.getAbsolutePath(), "-r", requirementsFile);
 	}
 
 	/**
@@ -307,7 +296,7 @@ class Uv extends Tool {
 	public void runUvInDirectory(final File workingDir, final String... args) throws IOException, InterruptedException {
 		checkInstalled();
 		final List<String> cmd = Platforms.baseCommand();
-		cmd.add(uvCommand);
+		cmd.add(command);
 		cmd.addAll(flags);  // Add user-specified flags
 		cmd.addAll(Arrays.asList(args));
 
@@ -333,47 +322,10 @@ class Uv extends Tool {
 		}
 	}
 
-	/**
-	 * Run a UV command with the specified arguments.
-	 *
-	 * @param args Command arguments for uv.
-	 * @throws IOException If an I/O error occurs.
-	 * @throws InterruptedException If the current thread is interrupted.
-	 * @throws IllegalStateException if UV has not been installed
-	 */
-	public void runUv(final String... args) throws IOException, InterruptedException {
-		checkInstalled();
-		final List<String> cmd = Platforms.baseCommand();
-		cmd.add(uvCommand);
-		cmd.addAll(flags);  // Add user-specified flags
-		cmd.addAll(Arrays.asList(args));
-
-		final ProcessBuilder builder = processBuilder(rootdir, false);
-		builder.command(cmd);
-		final Process process = builder.start();
-
-		Thread mainThread = Thread.currentThread();
-		Thread outputThread = new Thread(() -> {
-			try {
-				readStreams(process, mainThread);
-			} catch (IOException | InterruptedException e) {
-				updateErrorConsumer("Error reading streams: " + e.getMessage());
-			}
-		});
-
-		outputThread.start();
-		int exitCode = process.waitFor();
-		outputThread.join();
-
-		if (exitCode != 0) {
-			throw new IOException("UV command failed with exit code " + exitCode + ": " + String.join(" ", args));
-		}
-	}
-
 	@Override
 	public String version() throws IOException, InterruptedException {
 		final List<String> cmd = Platforms.baseCommand();
-		cmd.add(uvCommand);
+		cmd.add(command);
 		// Don't add flags to --version command
 		cmd.add("--version");
 

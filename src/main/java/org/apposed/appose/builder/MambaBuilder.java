@@ -170,7 +170,7 @@ public final class MambaBuilder extends BaseBuilder<MambaBuilder> {
 	private Environment createEnvironment(File envDir) {
 		Mamba mamba = new Mamba();
 		String base = envDir.getAbsolutePath();
-		List<String> launchArgs = Arrays.asList(mamba.mambaCommand, "run", "-p", base);
+		List<String> launchArgs = Arrays.asList(mamba.command, "run", "-p", base);
 		List<String> binPaths = Collections.singletonList(envDir.toPath().resolve("bin").toString());
 
 		return new Environment() {

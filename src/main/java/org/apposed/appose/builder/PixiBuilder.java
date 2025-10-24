@@ -160,7 +160,7 @@ public final class PixiBuilder extends BaseBuilder<PixiBuilder> {
 					// Write environment.yml and import
 					File environmentYamlFile = new File(envDir, "environment.yml");
 					Files.write(environmentYamlFile.toPath(), sourceContent.getBytes(StandardCharsets.UTF_8));
-					pixi.runPixi("init", "--import", environmentYamlFile.getAbsolutePath(), envDir.getAbsolutePath());
+					pixi.exec("init", "--import", environmentYamlFile.getAbsolutePath(), envDir.getAbsolutePath());
 				}
 
 				// Add any programmatic channels to augment source file
@@ -258,7 +258,7 @@ public final class PixiBuilder extends BaseBuilder<PixiBuilder> {
 			manifestFile = new File(envDir, "pixi.toml");
 		}
 		List<String> launchArgs = Arrays.asList(
-				pixi.pixiCommand, "run", "--manifest-path",
+				pixi.command, "run", "--manifest-path",
 				manifestFile.getAbsolutePath()
 		);
 		List<String> binPaths = Arrays.asList(
