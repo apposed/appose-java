@@ -143,9 +143,6 @@ public class Mamba {
 	public final static String MICROMAMBA_URL = MICROMAMBA_PLATFORM == null ? null :
 		"https://micro.mamba.pm/api/micromamba/" + MICROMAMBA_PLATFORM + "/latest";
 
-	/** ID used to identify the text retrieved from the error stream. */
-	public final static String ERR_STREAM_UUID = UUID.randomUUID().toString();
-
 	private static String microMambaPlatform() {
 		switch (Platforms.PLATFORM) {
 			case "LINUX|X64":     return "linux-64";
@@ -546,7 +543,7 @@ public class Mamba {
 		                errBuff.append(new String(buffer, 0, errStream.read(buffer)));
 		                while ((newLineIndex = errBuff.indexOf(System.lineSeparator())) != -1) {
 		                	String line = errBuff.substring(0, newLineIndex);
-		                	updateErrorConsumer(ERR_STREAM_UUID + line + System.lineSeparator());
+		                	updateErrorConsumer(line + System.lineSeparator());
 		                	errBuff.delete(0, newLineIndex + System.lineSeparator().length());
 		                }
 		            }
@@ -564,7 +561,7 @@ public class Mamba {
 	                errBuff.append(new String(buffer, 0, errStream.read(buffer)));
 	                String remaining = errBuff.toString();
 	                if (!remaining.isEmpty()) {
-		                updateErrorConsumer(ERR_STREAM_UUID + remaining + System.lineSeparator());
+		                updateErrorConsumer(remaining + System.lineSeparator());
 	                }
 	            }
 		    } catch (IOException | InterruptedException e) {
