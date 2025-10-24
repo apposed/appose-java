@@ -294,8 +294,8 @@ public class Uv {
 		if (!uvBinDir.exists() && !uvBinDir.mkdirs())
 			throw new IOException("Failed to create UV bin directory: " + uvBinDir);
 
-		// Extract tarball which contains uv-<platform>/uv structure
-		Downloads.unTarGz(tempFile, uvBinDir);
+		// Extract archive which contains uv-<platform>/uv structure
+		Downloads.unpack(tempFile, uvBinDir);
 
 		// Move the uv binary from uv-<platform>/ subdirectory to bin/
 		File platformDir = uvBinDir.listFiles(f -> f.isDirectory() && f.getName().startsWith("uv-"))[0];
