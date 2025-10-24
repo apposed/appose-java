@@ -29,17 +29,17 @@
 
 package org.apposed.appose;
 
-import org.apposed.appose.util.Types;
+import org.apposed.appose.Service.Task;
 import org.junit.jupiter.api.Test;
 
-import org.apposed.appose.Service.Task;
 import java.io.IOException;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-public class ProxyTest {
+/** Tests the {@link Service#proxy} feature. */
+public class ProxyTest extends TestBase {
 	interface Creature {
 		String walk(int speed);
 		boolean fly(int speed, long height);
@@ -76,7 +76,7 @@ public class ProxyTest {
 				"task.export([bird: new Bird(), fish: new Fish()])"
 			);
 			setup.waitFor();
-			assertEquals(Service.TaskStatus.COMPLETE, setup.status, setup.error);
+			assertComplete(setup);
 
 			// Validate bird behavior.
 			Creature bird = service.proxy("bird", Creature.class);
