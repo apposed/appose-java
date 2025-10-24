@@ -56,7 +56,7 @@ import java.net.URL;
 /**
  * Utility methods supporting download and unpacking of remote archives.
  *
- * @author Carlos Garcia
+ * @author Carlos Garcia Lopez de Haro
  * @author Curtis Rueden
  */
 public final class Downloads {

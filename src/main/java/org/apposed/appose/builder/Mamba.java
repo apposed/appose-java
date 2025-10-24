@@ -93,7 +93,7 @@ import java.util.stream.Collectors;
  * Conda-based environment manager, implemented by delegating to micromamba.
  * 
  * @author Ko Sugawara
- * @author Carlos Garcia
+ * @author Carlos Garcia Lopez de Haro
  */
 public class Mamba {
 
