@@ -150,12 +150,12 @@ public class Mamba extends Tool {
 	}
 
 	/**
-	 * Create a new Conda object. The root dir for Conda installation can be
+	 * Create a new Mamba object. The root dir for Mamba installation can be
 	 * specified as {@code String}. 
 	 * If there is no Micromamba found at the specified path, it will be installed automatically 
 	 * if the parameter 'installIfNeeded' is true. If not an {@link IllegalStateException} will be thrown.
 	 * <p>
-	 * It is expected that the Conda installation has executable commands as shown below:
+	 * It is expected that the Mamba installation has executable commands as shown below:
 	 * </p>
 	 * <pre>
 	 * MAMBA_ROOT
@@ -263,7 +263,7 @@ public class Mamba extends Tool {
 	}
 
 	/**
-	 * Run {@code conda create} to create a Conda environment defined by the input environment yaml file.
+	 * Run {@code mamba create} to create a Conda environment defined by the input environment yaml file.
 	 * 
 	 * @param envDir
 	 *            The directory within which the environment will be created.
@@ -336,7 +336,7 @@ public class Mamba extends Tool {
 	}
 
 	/**
-	 * Run a Conda command with one or more arguments.
+	 * Run a Mamba command with one or more arguments.
 	 * 
 	 * @param isInheritIO
 	 *            Sets the source and destination for subprocess standard I/O to be
@@ -401,10 +401,10 @@ public class Mamba extends Tool {
 	}
 
 	/**
-	 * Run a Conda command with one or more arguments.
+	 * Run a Mamba command with one or more arguments.
 	 * 
 	 * @param args
-	 *            One or more arguments for the Conda command.
+	 *            One or more arguments for the Mamba command.
 	 * @throws RuntimeException
 	 *             If there is any error running the commands
 	 * @throws IOException
