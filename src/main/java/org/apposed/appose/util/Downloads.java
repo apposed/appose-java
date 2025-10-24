@@ -178,7 +178,7 @@ public final class Downloads {
 				TarArchiveInputStream debInputStream = (TarArchiveInputStream) new ArchiveStreamFactory().createArchiveInputStream("tar", is);
 				) {
 		    TarArchiveEntry entry = null;
-		    while ((entry = (TarArchiveEntry)debInputStream.getNextEntry()) != null) {
+		    while ((entry = debInputStream.getNextEntry()) != null) {
 		        final File outputFile = new File(outputDir, entry.getName());
 		        if (entry.isDirectory()) {
 		            if (!outputFile.exists()) {
@@ -219,7 +219,7 @@ public final class Downloads {
 				TarArchiveInputStream tarInputStream = (TarArchiveInputStream) new ArchiveStreamFactory().createArchiveInputStream("tar", gzipIs);
 				) {
 		    TarArchiveEntry entry = null;
-		    while ((entry = (TarArchiveEntry)tarInputStream.getNextEntry()) != null) {
+		    while ((entry = tarInputStream.getNextEntry()) != null) {
 		        final File outputFile = new File(outputDir, entry.getName());
 		        if (entry.isDirectory()) {
 		            if (!outputFile.exists()) {
