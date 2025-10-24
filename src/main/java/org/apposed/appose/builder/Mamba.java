@@ -197,54 +197,6 @@ class Mamba extends Tool {
 	}
 
 	/**
-	 * Run {@code conda update} in the specified environment. A list of packages to
-	 * update and extra parameters can be specified as {@code args}.
-	 *
-	 * @param envDir
-	 *            The directory within which the environment will be updated.
-	 * @param args
-	 *            The list of packages to be updated and extra parameters as
-	 *            {@code String...}.
-	 * @throws IOException
-	 *             If an I/O error occurs.
-	 * @throws InterruptedException
-	 *             If the current thread is interrupted by another thread while it
-	 *             is waiting, then the wait is ended and an InterruptedException is
-	 *             thrown.
-	 * @throws IllegalStateException if Micromamba has not been installed, thus the instance of {@link Mamba} cannot be used
-	 */
-	public void updateIn(final File envDir, final String... args) throws IOException, InterruptedException
-	{
-		checkInstalled();
-		final List< String > cmd = new ArrayList<>(Arrays.asList("update", "--prefix", envDir.getAbsolutePath()));
-		cmd.addAll(Arrays.asList(args));
-		if (!cmd.contains("--yes") && !cmd.contains("-y")) cmd.add("--yes");
-		runMamba(cmd.toArray(new String[0]));
-	}
-
-	/**
-	 * Run {@code mamba create} to create a Conda environment defined by the input environment yaml file.
-	 * 
-	 * @param envDir
-	 *            The directory within which the environment will be created.
-	 * @param envYaml
-	 *            The environment yaml file containing the information required to build it 
-	 * @throws IOException
-	 *             If an I/O error occurs.
-	 * @throws InterruptedException
-	 *             If the current thread is interrupted by another thread while it
-	 *             is waiting, then the wait is ended and an InterruptedException is
-	 *             thrown.
-	 * @throws IllegalStateException if Micromamba has not been installed, thus the instance of {@link Mamba} cannot be used
-	 */
-	public void createWithYaml(final File envDir, final String envYaml) throws IOException, InterruptedException
-	{
-		checkInstalled();
-		runMamba("env", "create", "--prefix",
-				envDir.getAbsolutePath(), "-f", envYaml, "-y", "-vv", "--no-rc");
-	}
-
-	/**
 	 * Creates an empty conda environment at the specified directory.
 	 * This is useful for two-step builds: create empty, then update with environment.yml.
 	 *
