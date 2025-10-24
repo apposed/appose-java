@@ -32,6 +32,7 @@ package org.apposed.appose.builder;
 import org.apposed.appose.Builder;
 import org.apposed.appose.Environment;
 import org.apposed.appose.util.FilePaths;
+import org.apposed.appose.util.Platforms;
 import org.apposed.appose.util.Schemes;
 
 import java.io.File;
@@ -249,7 +250,7 @@ public final class UvBuilder extends BaseBuilder<UvBuilder> {
 		File actualVenvDir = venvDir.exists() ? venvDir : envDir;
 
 		// UV virtual environments use standard venv structure
-		String binDir = System.getProperty("os.name").toLowerCase().contains("windows") ? "Scripts" : "bin";
+		String binDir = Platforms.isWindows() ? "Scripts" : "bin";
 		List<String> binPaths = Collections.singletonList(
 				actualVenvDir.toPath().resolve(binDir).toString()
 		);

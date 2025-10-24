@@ -49,7 +49,7 @@ public class ShmLinux implements ShmFactory {
 
 	@Override
 	public SharedMemory create(final String name, final boolean create, final long rsize) {
-		if (Platforms.OS != LINUX) return null; // wrong platform
+		if (!Platforms.isLinux()) return null; // wrong platform
 		return new SharedMemoryLinux(name, create, rsize);
 	}
 

@@ -62,6 +62,7 @@ package org.apposed.appose.builder;
 import org.apposed.appose.util.Downloads;
 import org.apposed.appose.util.Environments;
 import org.apposed.appose.util.FileDownloader;
+import org.apposed.appose.util.Platforms;
 import org.apposed.appose.util.Processes;
 
 import java.io.BufferedReader;
@@ -140,7 +141,7 @@ public class Mamba {
 	/**
 	 * Relative path to the micromamba executable from the micromamba {@link #rootdir}
 	 */
-	private final static Path MICROMAMBA_RELATIVE_PATH = isWindowsOS() ?
+	private final static Path MICROMAMBA_RELATIVE_PATH = Platforms.isWindows() ?
 			Paths.get("Library", "bin", "micromamba.exe") :
 			Paths.get("bin", "micromamba");
 
@@ -161,21 +162,17 @@ public class Mamba {
 	public final static String ERR_STREAM_UUUID = UUID.randomUUID().toString();
 
 	/**
-	 * 
-	 * @return a String that identifies the current OS to download the correct Micromamba version
+	 * @return a String that identifies the filename to download for the current platform.
 	 */
 	private static String microMambaPlatform() {
-		String osName = System.getProperty("os.name");
-		if (osName.startsWith("Windows")) osName = "Windows";
-		String osArch = System.getProperty("os.arch");
-		switch (osName + "|" + osArch) {
-			case "Linux|amd64":      return "linux-64";
-			case "Linux|aarch64":    return "linux-aarch64";
-			case "Linux|ppc64le":    return "linux-ppc64le";
-			case "Mac OS X|x86_64":  return "osx-64";
-			case "Mac OS X|aarch64": return "osx-arm64";
-			case "Windows|amd64":    return "win-64";
-			default:                 return null;
+		switch (Platforms.PLATFORM) {
+			case "LINUX|X64":     return "linux-64";
+			case "LINUX|ARM64":   return "linux-aarch64";
+			case "LINUX|PPC64LE": return "linux-ppc64le";
+			case "MACOS|X64":     return "osx-64";
+			case "MACOS|ARM64":   return "osx-arm64";
+			case "WINDOWS|X64":   return "win-64";
+			default:              return null;
 		}
 	}
 
@@ -390,7 +387,7 @@ public class Mamba {
 	private static List< String > getBaseCommand()
 	{
 		final List< String > cmd = new ArrayList<>();
-		if ( isWindowsOS() )
+		if ( Platforms.isWindows() )
 			cmd.addAll( Arrays.asList( "cmd.exe", "/c" ) );
 		return cmd;
 	}
@@ -494,7 +491,7 @@ public class Mamba {
 	 */
 	public String getVersion() throws IOException, InterruptedException {
 		final List< String > cmd = getBaseCommand();
-		if (mambaCommand.contains(" ") && isWindowsOS())
+		if (mambaCommand.contains(" ") && Platforms.isWindows())
 			cmd.add( surroundWithQuotes(Arrays.asList( coverArgWithDoubleQuotes(mambaCommand), "--version" )) );
 		else
 			cmd.addAll( Arrays.asList( coverArgWithDoubleQuotes(mambaCommand), "--version" ) );
@@ -532,12 +529,12 @@ public class Mamba {
 		List<String> argsList = new ArrayList<>();
 		argsList.add( coverArgWithDoubleQuotes(mambaCommand) );
 		argsList.addAll( Arrays.stream( args ).map(aa -> {
-			if (aa.contains(" ") && isWindowsOS()) return coverArgWithDoubleQuotes(aa);
+			if (aa.contains(" ") && Platforms.isWindows()) return coverArgWithDoubleQuotes(aa);
 			else return aa;
 		}).collect(Collectors.toList()) );
 		boolean containsSpaces = argsList.stream().anyMatch(aa -> aa.contains(" "));
 		
-		if (!containsSpaces || !isWindowsOS()) cmd.addAll(argsList);
+		if (!containsSpaces || !Platforms.isWindows()) cmd.addAll(argsList);
 		else cmd.add(surroundWithQuotes(argsList));
 		
 		ProcessBuilder builder = getBuilder(isInheritIO).command(cmd);
@@ -648,7 +645,7 @@ public class Mamba {
         for (String schar : specialChars) {
         	if (arg.startsWith("\"") && arg.endsWith("\""))
         		continue;
-        	if (arg.contains(schar) && isWindowsOS()) {
+        	if (arg.contains(schar) && Platforms.isWindows()) {
         		return "\"" + arg + "\"";
         	}
         }
@@ -670,9 +667,5 @@ public class Mamba {
 		arg = arg.substring(0, arg.length() - 1);
 		arg += "\"";
 		return arg;
-	}
-
-	private static boolean isWindowsOS() {
-		return System.getProperty("os.name").startsWith("Windows");
 	}
 }

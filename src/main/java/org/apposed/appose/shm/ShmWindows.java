@@ -54,7 +54,7 @@ public class ShmWindows implements ShmFactory {
 	// name is WITHOUT prefix etc
 	@Override
 	public SharedMemory create(final String name, final boolean create, final long rsize) {
-		if (Platforms.OS != WINDOWS) return null; // wrong platform
+		if (!Platforms.isWindows()) return null; // wrong platform
 		return new SharedMemoryWindows(name, create, rsize);
 	}
 

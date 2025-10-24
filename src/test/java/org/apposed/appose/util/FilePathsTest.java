@@ -50,8 +50,8 @@ import static org.junit.jupiter.api.Assertions.*;
  */
 public class FilePathsTest {
 
-	private static final String EXT = Platforms.OS == WINDOWS ? ".exe" : "";
-	private static final boolean SET_EXEC_BIT = Platforms.OS != WINDOWS;
+	private static final String EXT = Platforms.isWindows() ? ".exe" : "";
+	private static final boolean SET_EXEC_BIT = !Platforms.isWindows();
 
 	/** Tests {@link FilePaths#findExe}. */
 	@Test

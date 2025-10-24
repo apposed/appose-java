@@ -64,13 +64,11 @@ import java.util.stream.Collectors;
  */
 public class Uv {
 
-	/**
-	 * String containing the path that points to the uv executable
-	 */
+	/** String containing the path that points to the uv executable. */
 	public final String uvCommand;
 
 	/**
-	 * Root directory where uv is installed
+	 * Root directory where uv is installed.
 	 *
 	 * <pre>
 	 * rootdir
@@ -81,63 +79,57 @@ public class Uv {
 	 */
 	private final String rootdir;
 
-	/**
-	 * Consumer that tracks the progress in the download of uv
-	 */
+	/** Consumer that tracks the progress in the download of uv. */
 	private BiConsumer<Long, Long> uvDownloadProgressConsumer;
 
-	/**
-	 * Consumer that tracks the standard output stream produced by the uv process when it is executed.
-	 */
+	/** Consumer that tracks the standard output stream produced by the uv process. */
 	private Consumer<String> outputConsumer;
 
-	/**
-	 * Consumer that tracks the standard error stream produced by the uv process when it is executed.
-	 */
+	/** Consumer that tracks the standard error stream produced by the uv process. */
 	private Consumer<String> errorConsumer;
 
-	/**
-	 * Environment variables to set when running uv commands.
-	 */
+	/** Environment variables to set when running uv commands. */
 	private Map<String, String> envVars = new HashMap<>();
 
-	/**
-	 * Relative path to the uv executable from the uv {@link #rootdir}
-	 */
-	private final static Path UV_RELATIVE_PATH = Platforms.OS == Platforms.OperatingSystem.WINDOWS ?
+	/** Relative path to the uv executable from the uv {@link #rootdir}. */
+	private final static Path UV_RELATIVE_PATH = Platforms.isWindows() ?
 			Paths.get(".uv", "bin", "uv.exe") :
 			Paths.get(".uv", "bin", "uv");
 
-	/**
-	 * Path where Appose installs uv by default ({@code .uv} subdirectory thereof).
-	 */
+	/** Path where Appose installs uv by default ({@code .uv} subdirectory thereof). */
 	public static final String BASE_PATH = Environments.apposeEnvsDir();
 
-	/**
-	 * UV version to download
-	 */
-	private static final String UV_VERSION = "0.5.25";
+	/** UV version to download. */
+	private static final String UV_VERSION = "0.9.5";
+
+	/** URL from where UV is downloaded to be installed. */
+	public final static String UV_URL =
+		"https://github.com/astral-sh/uv/releases/download/" + UV_VERSION + "/" + uvBinary();
 
 	/**
-	 * URL from where UV is downloaded to be installed
+	 * @return a String that identifies the filename to download for the current platform.
 	 */
-	public final static String UV_URL = "https://github.com/astral-sh/uv/releases/download/" +
-		UV_VERSION + "/uv-" + uvPlatform() + ".tar.gz";
-
-	/**
-	 * @return a String that identifies the current OS to download the correct UV version
-	 */
-	private static String uvPlatform() {
-		String osName = System.getProperty("os.name");
-		if (osName.startsWith("Windows")) osName = "Windows";
-		String osArch = System.getProperty("os.arch");
-		switch (osName + "|" + osArch) {
-			case "Linux|amd64":      return "x86_64-unknown-linux-gnu";
-			case "Linux|aarch64":    return "aarch64-unknown-linux-gnu";
-			case "Mac OS X|x86_64":  return "x86_64-apple-darwin";
-			case "Mac OS X|aarch64": return "aarch64-apple-darwin";
-			case "Windows|amd64":    return "x86_64-pc-windows-msvc";
-			default:                 return null;
+	private static String uvBinary() {
+		switch (Platforms.PLATFORM) {
+			case "MACOS|ARM64":   return "uv-aarch64-apple-darwin.tar.gz";           // Apple Silicon macOS
+			case "MACOS|X64":     return "uv-x86_64-apple-darwin.tar.gz";            // Intel macOS
+			case "WINDOWS|ARM64": return "uv-aarch64-pc-windows-msvc.zip";           // ARM64 Windows
+			case "WINDOWS|X32":   return "uv-i686-pc-windows-msvc.zip";              // x86 Windows
+			case "WINDOWS|X64":   return "uv-x86_64-pc-windows-msvc.zip";            // x64 Windows
+			case "LINUX|ARM64":   return "uv-aarch64-unknown-linux-gnu.tar.gz";      // ARM64 Linux
+			case "LINUX|X32":     return "uv-i686-unknown-linux-gnu.tar.gz";         // x86 Linux
+			case "LINUX|PPC64":   return "uv-powerpc64-unknown-linux-gnu.tar.gz";    // PPC64 Linux
+			case "LINUX|PPC64LE": return "uv-powerpc64le-unknown-linux-gnu.tar.gz";  // PPC64LE Linux
+			case "LINUX|RV64GC":  return "uv-riscv64gc-unknown-linux-gnu.tar.gz";    // RISCV Linux
+			case "LINUX|S390X":   return "uv-s390x-unknown-linux-gnu.tar.gz";        // S390x Linux
+			case "LINUX|X64":     return "uv-x86_64-unknown-linux-gnu.tar.gz";       // x64 Linux
+			case "LINUX|ARMV7":   return "uv-armv7-unknown-linux-gnueabihf.tar.gz";  // ARMv7 Linux
+			//case "LINUX|ARM64": return "uv-aarch64-unknown-linux-musl.tar.gz";     // ARM64 MUSL Linux
+			//case "LINUX|X32":   return "uv-i686-unknown-linux-musl.tar.gz";        // x86 MUSL Linux
+			//case "LINUX|X64":   return "uv-x86_64-unknown-linux-musl.tar.gz";      // x64 MUSL Linux
+			case "LINUX|ARMV6":   return "uv-arm-unknown-linux-musleabihf.tar.gz";   // ARMv6 MUSL Linux (Hardfloat)
+			//case "LINUX|ARMV7": return "uv-armv7-unknown-linux-musleabihf.tar.gz"; // ARMv7 MUSL Linux
+			default:              return null;
 		}
 	}
 
@@ -311,7 +303,7 @@ public class Uv {
 			throw new IOException("Expected uv platform directory not found in: " + uvBinDir);
 		}
 
-		File uvSource = new File(platformDir, Platforms.OS == Platforms.OperatingSystem.WINDOWS ? "uv.exe" : "uv");
+		File uvSource = new File(platformDir, Platforms.isWindows() ? "uv.exe" : "uv");
 		if (!uvSource.exists()) {
 			throw new IOException("Expected uv binary not found in: " + platformDir);
 		}
@@ -353,7 +345,7 @@ public class Uv {
 	 */
 	private static List<String> getBaseCommand() {
 		final List<String> cmd = new ArrayList<>();
-		if (Platforms.OS == Platforms.OperatingSystem.WINDOWS)
+		if (Platforms.isWindows())
 			cmd.addAll(Arrays.asList("cmd.exe", "/c"));
 		return cmd;
 	}

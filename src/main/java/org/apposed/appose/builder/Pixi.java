@@ -68,13 +68,11 @@ import java.util.stream.Collectors;
  */
 public class Pixi {
 
-	/**
-	 * String containing the path that points to the pixi executable
-	 */
+	/** String containing the path that points to the pixi executable. */
 	public final String pixiCommand;
 
 	/**
-	 * Root directory where pixi is installed
+	 * Root directory where pixi is installed.
 	 *
 	 * <pre>
 	 * rootdir
@@ -85,46 +83,30 @@ public class Pixi {
 	 */
 	private final String rootdir;
 
-	/**
-	 * Consumer that tracks the progress in the download of pixi
-	 */
+	/** Consumer that tracks the progress in the download of pixi. */
 	private BiConsumer<Long, Long> pixiDownloadProgressConsumer;
 
-	/**
-	 * Consumer that tracks the standard output stream produced by the pixi process when it is executed.
-	 */
+	/** Consumer that tracks the standard output stream produced by the pixi process. */
 	private Consumer<String> outputConsumer;
 
-	/**
-	 * Consumer that tracks the standard error stream produced by the pixi process when it is executed.
-	 */
+	/** Consumer that tracks the standard error stream produced by the pixi process. */
 	private Consumer<String> errorConsumer;
 
-	/**
-	 * Environment variables to set when running pixi commands.
-	 */
+	/** Environment variables to set when running pixi commands. */
 	private Map<String, String> envVars = new HashMap<>();
 
-	/**
-	 * Relative path to the pixi executable from the pixi {@link #rootdir}
-	 */
-	private final static Path PIXI_RELATIVE_PATH = Platforms.OS == Platforms.OperatingSystem.WINDOWS ?
+	/** Relative path to the pixi executable from the pixi {@link #rootdir}. */
+	private final static Path PIXI_RELATIVE_PATH = Platforms.isWindows() ?
 			Paths.get(".pixi", "bin", "pixi.exe") :
 			Paths.get(".pixi", "bin", "pixi");
 
-	/**
-	 * Path where Appose installs Pixi by default ({@code .pixi} subdirectory thereof).
-	 */
+	/** Path where Appose installs Pixi by default ({@code .pixi} subdirectory thereof). */
 	public static final String BASE_PATH = Environments.apposeEnvsDir();
 
-	/**
-	 * Pixi version to download
-	 */
-	private static final String PIXI_VERSION = "v0.39.5";
+	/** Pixi version to download. */
+	private static final String PIXI_VERSION = "v0.58.0";
 
-	/**
-	 * URL from where Pixi is downloaded to be installed
-	 */
+	/** URL from where Pixi is downloaded to be installed. */
 	public final static String PIXI_URL = "https://github.com/prefix-dev/pixi/releases/download/" +
 		PIXI_VERSION + "/" + pixiBinary();
 
@@ -132,16 +114,13 @@ public class Pixi {
 	 * @return a String that identifies the filename to download for the current platform.
 	 */
 	private static String pixiBinary() {
-		String osName = System.getProperty("os.name");
-		if (osName.startsWith("Windows")) osName = "Windows";
-		String osArch = System.getProperty("os.arch");
-		switch (osName + "|" + osArch) {
-			case "Linux|amd64":      return "pixi-x86_64-unknown-linux-musl.tar.gz";
-			case "Linux|aarch64":    return "pixi-aarch64-unknown-linux-musl.tar.gz";
-			case "Mac OS X|x86_64":  return "pixi-x86_64-apple-darwin.tar.gz";
-			case "Mac OS X|aarch64": return "pixi-aarch64-apple-darwin.tar.gz";
-			case "Windows|amd64":    return "pixi-x86_64-pc-windows-msvc.zip";
-			case "Windows|aarch64":  return "pixi-aarch64-pc-windows-msvc.zip";
+		switch (Platforms.PLATFORM) {
+			case "MACOS|ARM64":      return "pixi-aarch64-apple-darwin.tar.gz";       // Apple Silicon macOS
+			case "MACOS|X64":        return "pixi-x86_64-apple-darwin.tar.gz";        // Intel macOS
+			case "WINDOWS|ARM64":    return "pixi-aarch64-pc-windows-msvc.zip";       // ARM64 Windows
+			case "WINDOWS|X64":      return "pixi-x86_64-pc-windows-msvc.zip";        // x64 Windows
+			case "LINUX|ARM64":      return "pixi-aarch64-unknown-linux-musl.tar.gz"; // ARM64 MUSL Linux
+			case "LINUX|X64":        return "pixi-x86_64-unknown-linux-musl.tar.gz";  // x64 MUSL Linux
 			default:                 return null;
 		}
 	}
@@ -341,7 +320,7 @@ public class Pixi {
 	 */
 	private static List<String> getBaseCommand() {
 		final List<String> cmd = new ArrayList<>();
-		if (Platforms.OS == Platforms.OperatingSystem.WINDOWS)
+		if (Platforms.isWindows())
 			cmd.addAll(Arrays.asList("cmd.exe", "/c"));
 		return cmd;
 	}
@@ -431,7 +410,7 @@ public class Pixi {
 	 */
 	public String getVersion() throws IOException, InterruptedException {
 		final List<String> cmd = getBaseCommand();
-		if (pixiCommand.contains(" ") && Platforms.OS == Platforms.OperatingSystem.WINDOWS)
+		if (pixiCommand.contains(" ") && Platforms.isWindows())
 			cmd.add(surroundWithQuotes(Arrays.asList(coverArgWithDoubleQuotes(pixiCommand), "--version")));
 		else
 			cmd.addAll(Arrays.asList(coverArgWithDoubleQuotes(pixiCommand), "--version"));
@@ -475,12 +454,12 @@ public class Pixi {
 		List<String> argsList = new ArrayList<>();
 		argsList.add(coverArgWithDoubleQuotes(pixiCommand));
 		argsList.addAll(Arrays.stream(args).map(aa -> {
-			if (aa.contains(" ") && Platforms.OS == Platforms.OperatingSystem.WINDOWS) return coverArgWithDoubleQuotes(aa);
+			if (aa.contains(" ") && Platforms.isWindows()) return coverArgWithDoubleQuotes(aa);
 			else return aa;
 		}).collect(Collectors.toList()));
 		boolean containsSpaces = argsList.stream().anyMatch(aa -> aa.contains(" "));
 
-		if (!containsSpaces || Platforms.OS != Platforms.OperatingSystem.WINDOWS) cmd.addAll(argsList);
+		if (!containsSpaces || !Platforms.isWindows()) cmd.addAll(argsList);
 		else cmd.add(surroundWithQuotes(argsList));
 
 		ProcessBuilder builder = getBuilder(isInheritIO).command(cmd);
@@ -570,7 +549,7 @@ public class Pixi {
 		for (String schar : specialChars) {
 			if (arg.startsWith("\"") && arg.endsWith("\""))
 				continue;
-			if (arg.contains(schar) && Platforms.OS == Platforms.OperatingSystem.WINDOWS) {
+			if (arg.contains(schar) && Platforms.isWindows()) {
 				return "\"" + arg + "\"";
 			}
 		}

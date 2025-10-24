@@ -29,6 +29,7 @@
 
 package org.apposed.appose;
 
+import org.apposed.appose.util.Platforms;
 import org.junit.jupiter.api.Test;
 
 import java.io.BufferedReader;
@@ -144,8 +145,7 @@ public class SharedMemoryTest {
 	}
 
 	private static String runPython(String script) throws IOException {
-		boolean isWindows = System.getProperty("os.name").startsWith("Win");
-		String pythonCommand = isWindows ? "python.exe" : "python";
+		String pythonCommand = Platforms.isWindows() ? "python.exe" : "python";
 		ProcessBuilder pb = new ProcessBuilder().command(pythonCommand);
 		Process p = pb.start();
 		try (BufferedWriter os = new BufferedWriter(new OutputStreamWriter(p.getOutputStream()))) {
