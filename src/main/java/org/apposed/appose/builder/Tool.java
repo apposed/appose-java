@@ -47,6 +47,7 @@ import java.util.function.Consumer;
  * and progress tracking.
  *
  * @author Curtis Rueden
+ * @author Carlos Garcia Lopez de Haro
  * @author Claude Code
  */
 public abstract class Tool {
