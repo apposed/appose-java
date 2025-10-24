@@ -295,27 +295,50 @@ public class Uv {
 		if (!uvBinDir.exists() && !uvBinDir.mkdirs())
 			throw new IOException("Failed to create UV bin directory: " + uvBinDir);
 
-		// Extract archive which contains uv-<platform>/uv structure
+		// Extract archive
 		Downloads.unpack(tempFile, uvBinDir);
 
-		// Move the uv binary from uv-<platform>/ subdirectory to bin/
-		File platformDir = uvBinDir.listFiles(f -> f.isDirectory() && f.getName().startsWith("uv-"))[0];
-		if (platformDir == null || !platformDir.exists()) {
-			throw new IOException("Expected uv platform directory not found in: " + uvBinDir);
-		}
-
-		File uvSource = new File(platformDir, Platforms.isWindows() ? "uv.exe" : "uv");
-		if (!uvSource.exists()) {
-			throw new IOException("Expected uv binary not found in: " + platformDir);
-		}
-
+		String uvBinaryName = Platforms.isWindows() ? "uv.exe" : "uv";
 		File uvDest = new File(uvCommand);
-		if (!uvSource.renameTo(uvDest)) {
-			throw new IOException("Failed to move uv binary from " + uvSource + " to " + uvDest);
-		}
 
-		// Clean up the platform directory
-		platformDir.delete();
+		// Check if uv binary is directly in bin dir (Windows ZIP case)
+		File uvDirectly = new File(uvBinDir, uvBinaryName);
+		if (uvDirectly.exists()) {
+			// Windows case: binaries are directly in uvBinDir
+			// Just ensure uv.exe is in the right place (uvCommand)
+			if (!uvDirectly.equals(uvDest) && !uvDirectly.renameTo(uvDest)) {
+				throw new IOException("Failed to move uv binary from " + uvDirectly + " to " + uvDest);
+			}
+			// uvw.exe and uvx.exe are already in the right place (uvBinDir)
+		} else {
+			// Linux/macOS case: binaries are in uv-<platform>/ subdirectory
+			File[] platformDirs = uvBinDir.listFiles(f -> f.isDirectory() && f.getName().startsWith("uv-"));
+			if (platformDirs == null || platformDirs.length == 0) {
+				throw new IOException("Expected uv binary or uv-<platform> directory not found in: " + uvBinDir);
+			}
+
+			File platformDir = platformDirs[0];
+
+			// Move all binaries from platform subdirectory to bin directory
+			File[] binaries = platformDir.listFiles();
+			if (binaries != null) {
+				for (File binary : binaries) {
+					File dest = new File(uvBinDir, binary.getName());
+					if (!binary.renameTo(dest)) {
+						throw new IOException("Failed to move " + binary.getName() + " from " + binary + " to " + dest);
+					}
+					// Set executable permission
+					if (!dest.canExecute()) {
+						dest.setExecutable(true);
+					}
+				}
+			}
+
+			// Clean up the now-empty platform directory
+			if (!platformDir.delete()) {
+				throw new IOException("Failed to delete platform directory: " + platformDir);
+			}
+		}
 
 		if (!uvDest.exists()) throw new IOException("Expected uv binary is missing: " + uvCommand);
 		if (!uvDest.canExecute()) {
