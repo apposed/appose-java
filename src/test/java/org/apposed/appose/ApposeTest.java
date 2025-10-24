@@ -624,6 +624,23 @@ public class ApposeTest {
 		cowsayAndAssert(env3, "rebuilt");
 	}
 
+	@Test
+	public void testInit() throws IOException, InterruptedException {
+		// Test that init script is executed before tasks run
+		Environment env = Appose.system();
+		try (Service service = env.groovy().init("init_value = 'initialized'")) {
+			maybeDebug(service);
+
+			// Verify that the init script was executed and the variable is accessible
+			Task task = service.task("task.outputs['result'] = init_value");
+			task.waitFor();
+			assertComplete(task);
+
+			String result = (String) task.outputs.get("result");
+			assertEquals("initialized", result, "Init script should set init_value variable");
+		}
+	}
+
 	public void executeAndAssert(Service service, String script)
 		throws IOException, InterruptedException
 	{

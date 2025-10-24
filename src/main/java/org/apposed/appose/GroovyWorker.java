@@ -36,8 +36,11 @@ import org.apposed.appose.Service.ResponseType;
 import org.apposed.appose.util.Types;
 
 import java.io.BufferedReader;
+import java.io.File;
 import java.io.IOException;
 import java.io.InputStreamReader;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
 import java.util.ArrayDeque;
 import java.util.Collections;
 import java.util.Deque;
@@ -62,6 +65,7 @@ import java.util.stream.Collectors;
  */
 public class GroovyWorker {
 
+	private static final Map<String, Object> initVars = new ConcurrentHashMap<>();
 	private final Map<String, Task> tasks = new ConcurrentHashMap<>();
 	private final Deque<Task> queue = new ArrayDeque<>();
 	private final Map<String, Object> exports = new ConcurrentHashMap<>();
@@ -167,6 +171,29 @@ public class GroovyWorker {
 	}
 
 	public static void main(String... args) {
+		// Execute init script if provided via environment variable.
+		// This happens before the worker's I/O loop starts, which is useful
+		// for initialization that must happen before the worker begins processing tasks.
+		String initScriptPath = System.getenv("APPOSE_INIT_SCRIPT");
+		if (initScriptPath != null) {
+			File initFile = new File(initScriptPath);
+			if (initFile.exists()) {
+				try {
+					String initCode = new String(Files.readAllBytes(initFile.toPath()), StandardCharsets.UTF_8);
+					Binding binding = new Binding();
+					GroovyShell shell = new GroovyShell(binding);
+					shell.evaluate(initCode);
+					// Store all variables from the init script for use in tasks
+					initVars.putAll(binding.getVariables());
+					// Clean up the temp file
+					initFile.delete();
+				}
+				catch (Exception e) {
+					System.err.println("[WARNING] Init script failed: " + e.getMessage());
+				}
+			}
+		}
+
 		new GroovyWorker().run();
 	}
 
@@ -241,6 +268,7 @@ public class GroovyWorker {
 				// Populate script bindings.
 				Binding binding = new Binding();
 				binding.setVariable("task", Task.this);
+				initVars.forEach(binding::setVariable);
 				exports.forEach(binding::setVariable);
 				inputs.forEach(binding::setVariable);
 

@@ -38,6 +38,8 @@ import java.io.File;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.PrintWriter;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -86,6 +88,7 @@ public class Service implements AutoCloseable {
 	private Thread monitorThread;
 
 	private Consumer<String> debugListener;
+	private String initScript;
 
 	public Service(File cwd, String... args) {
 		this(cwd, null, args);
@@ -110,6 +113,26 @@ public class Service implements AutoCloseable {
 	}
 
 	/**
+	 * Registers a script to be executed when the worker process first starts up,
+	 * before any tasks are processed. This is useful for early initialization that
+	 * must happen before the worker's main loop begins, such as importing libraries
+	 * that may interfere with I/O operations.
+	 * <p>
+	 * Example: On Windows, importing numpy can hang when stdin is open for reading
+	 * (described at https://github.com/numpy/numpy/issues/24290).
+	 * Using {@code service.init("import numpy")} works around this by importing
+	 * numpy before the worker's I/O loop starts.
+	 * </p>
+	 *
+	 * @param script The script code to execute during worker initialization.
+	 * @return This service object, for chaining method calls.
+	 */
+	public Service init(String script) {
+		this.initScript = script;
+		return this;
+	}
+
+	/**
 	 * Launches the worker process associated with this service.
 	 *
 	 * @return This service object, for chaining method calls (typically with {@link #task}).
@@ -122,6 +145,16 @@ public class Service implements AutoCloseable {
 		}
 
 		String prefix = "Appose-Service-" + serviceID;
+
+		// If an init script is provided, write it to a temporary file
+		// and pass its path via environment variable.
+		if (initScript != null && !initScript.isEmpty()) {
+			File initFile = File.createTempFile("appose-init-", ".txt");
+			initFile.deleteOnExit();
+			Files.write(initFile.toPath(), initScript.getBytes(StandardCharsets.UTF_8));
+			envVars.put("APPOSE_INIT_SCRIPT", initFile.getAbsolutePath());
+		}
+
 		ProcessBuilder pb = Processes.builder(cwd, envVars, false, args);
 		process = pb.start();
 		stdin = new PrintWriter(process.getOutputStream());
