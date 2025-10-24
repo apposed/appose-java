@@ -223,23 +223,22 @@ public interface Environment {
 	default Service service(List<String> exes, String... args) throws IOException {
 		if (exes == null || exes.isEmpty()) throw new IllegalArgumentException("No executable given");
 
-		// Discern path to executable by searching the environment's binPaths.
-		File exeFile = FilePaths.findExe(binPaths(), exes);
-
 		// Calculate exe string.
 		List<String> launchArgs = launchArgs();
 		final String exe;
-		if (exeFile == null) {
-			if (launchArgs.isEmpty()) {
-				throw new IllegalArgumentException("No executables found amongst candidates: " + exes);
-			}
-			// No exeFile was found in the binPaths, but there are prefixed launchArgs.
-			// So we now try to use the first executable bare, because in this scenario
-			// we may have a situation like `pixi run python` where the intended executable
-			// becomes available on the system path while the environment is activated.
+		if (!launchArgs.isEmpty()) {
+			// When there are launchArgs (e.g., "pixi run" or "mamba run"), use the bare
+			// executable name. The launcher will activate the environment and find the
+			// executable. This approach also avoids issues with pixi/mamba not properly
+			// handling executable paths containing spaces.
 			exe = exes.get(0);
 		}
 		else {
+			// No launchArgs, so we need to find and use the full path to the executable.
+			File exeFile = FilePaths.findExe(binPaths(), exes);
+			if (exeFile == null) {
+				throw new IllegalArgumentException("No executables found amongst candidates: " + exes);
+			}
 			// Use getAbsolutePath() instead of getCanonicalPath() to preserve symlinks.
 			// This is important for Python virtual environments where the python symlink
 			// needs to be used directly (not the resolved target) for proper site-packages access.
