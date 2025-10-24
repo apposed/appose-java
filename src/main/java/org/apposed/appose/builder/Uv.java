@@ -102,13 +102,13 @@ public class Uv {
 	/** UV version to download. */
 	private static final String UV_VERSION = "0.9.5";
 
-	/** URL from where UV is downloaded to be installed. */
-	public final static String UV_URL =
-		"https://github.com/astral-sh/uv/releases/download/" + UV_VERSION + "/" + uvBinary();
+	/** The filename to download for the current platform. */
+	private static final String UV_BINARY = uvBinary();
 
-	/**
-	 * @return a String that identifies the filename to download for the current platform.
-	 */
+	/** URL from where UV is downloaded to be installed. */
+	public final static String UV_URL = UV_BINARY == null ? null :
+		"https://github.com/astral-sh/uv/releases/download/" + UV_VERSION + "/" + UV_BINARY;
+
 	private static String uvBinary() {
 		switch (Platforms.PLATFORM) {
 			case "MACOS|ARM64":   return "uv-aarch64-apple-darwin.tar.gz";           // Apple Silicon macOS

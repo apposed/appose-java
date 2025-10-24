@@ -106,13 +106,13 @@ public class Pixi {
 	/** Pixi version to download. */
 	private static final String PIXI_VERSION = "v0.58.0";
 
-	/** URL from where Pixi is downloaded to be installed. */
-	public final static String PIXI_URL = "https://github.com/prefix-dev/pixi/releases/download/" +
-		PIXI_VERSION + "/" + pixiBinary();
+	/** The filename to download for the current platform. */
+	private static final String PIXI_BINARY = pixiBinary();
 
-	/**
-	 * @return a String that identifies the filename to download for the current platform.
-	 */
+	/** URL from where Pixi is downloaded to be installed. */
+	public final static String PIXI_URL = PIXI_BINARY == null ? null :
+		"https://github.com/prefix-dev/pixi/releases/download/" + PIXI_VERSION + "/" + PIXI_BINARY;
+
 	private static String pixiBinary() {
 		switch (Platforms.PLATFORM) {
 			case "MACOS|ARM64":      return "pixi-aarch64-apple-darwin.tar.gz";       // Apple Silicon macOS

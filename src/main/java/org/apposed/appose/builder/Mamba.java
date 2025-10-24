@@ -97,9 +97,7 @@ import java.util.stream.Collectors;
  */
 public class Mamba {
 
-	/**
-	 * String containing the path that points to the micromamba executable
-	 */
+	/** String containing the path that points to the micromamba executable. */
 	public final String mambaCommand;
 
 	/**
@@ -118,52 +116,38 @@ public class Mamba {
 	private final String rootdir;
 
 	/**
-	 * Consumer that tracks the progress in the download of micromamba, the software used 
-	 * by this class to manage Conda environments.
+	 * Consumer that tracks the progress in the download of micromamba,
+	 * the software used by this class to manage Conda environments.
 	 */
 	private BiConsumer<Long, Long> mambaDownloadProgressConsumer;
 
-	/**
-	 * Consumer that tracks the standard output stream produced by the micromamba process when it is executed.
-	 */
+	/** Consumer that tracks the standard output stream produced by the micromamba process. */
 	private Consumer<String> outputConsumer;
 
-	/**
-	 * Consumer that tracks the standard error stream produced by the micromamba process when it is executed.
-	 */
+	/** Consumer that tracks the standard error stream produced by the micromamba process. */
 	private Consumer<String> errorConsumer;
 
-	/**
-	 * Environment variables to set when running micromamba commands.
-	 */
+	/** Environment variables to set when running micromamba commands. */
 	private Map<String, String> envVars = new HashMap<>();
 
-	/**
-	 * Relative path to the micromamba executable from the micromamba {@link #rootdir}
-	 */
+	/** Relative path to the micromamba executable from the micromamba {@link #rootdir}. */
 	private final static Path MICROMAMBA_RELATIVE_PATH = Platforms.isWindows() ?
 			Paths.get("Library", "bin", "micromamba.exe") :
 			Paths.get("bin", "micromamba");
 
-	/**
-	 * Path where Appose installs Micromamba by default
-	 */
+	/** Path where Appose installs Micromamba by default. */
 	public static final String BASE_PATH = Paths.get(Environments.apposeEnvsDir(), ".mamba").toString();
 
-	/**
-	 * URL from where Micromamba is downloaded to be installed
-	 */
-	public final static String MICROMAMBA_URL =
-		"https://micro.mamba.pm/api/micromamba/" + microMambaPlatform() + "/latest";
+	/** The filename to download for the current platform. */
+	public final static String MICROMAMBA_PLATFORM = microMambaPlatform();
 
-	/**
-	 * ID used to identify the text retrieved from the error stream when a consumer is used
-	 */
-	public final static String ERR_STREAM_UUUID = UUID.randomUUID().toString();
+	/** URL from where Micromamba is downloaded to be installed. */
+	public final static String MICROMAMBA_URL = MICROMAMBA_PLATFORM == null ? null :
+		"https://micro.mamba.pm/api/micromamba/" + MICROMAMBA_PLATFORM + "/latest";
 
-	/**
-	 * @return a String that identifies the filename to download for the current platform.
-	 */
+	/** ID used to identify the text retrieved from the error stream. */
+	public final static String ERR_STREAM_UUID = UUID.randomUUID().toString();
+
 	private static String microMambaPlatform() {
 		switch (Platforms.PLATFORM) {
 			case "LINUX|X64":     return "linux-64";
@@ -570,7 +554,7 @@ public class Mamba {
 		            if (errStream.available() > 0) {
 		                errBuff.append(new String(buffer, 0, errStream.read(buffer)));
 		                while ((newLineIndex = errBuff.indexOf(System.lineSeparator())) != -1) {
-		                	errChunk += ERR_STREAM_UUUID + errBuff.substring(0, newLineIndex + 1).trim() + System.lineSeparator();
+		                	errChunk += ERR_STREAM_UUID + errBuff.substring(0, newLineIndex + 1).trim() + System.lineSeparator();
 		                	errBuff.delete(0, newLineIndex + 1);
 		                }
 		            }
@@ -589,7 +573,7 @@ public class Mamba {
 	            }
 	            if (errStream.available() > 0) {
 	                errBuff.append(new String(buffer, 0, errStream.read(buffer)));
-	                errChunk += ERR_STREAM_UUUID + errBuff.toString().trim();
+	                errChunk += ERR_STREAM_UUID + errBuff.toString().trim();
 	            }
 				updateErrorConsumer(errChunk);
 				updateOutputConsumer(processChunk + System.lineSeparator()
