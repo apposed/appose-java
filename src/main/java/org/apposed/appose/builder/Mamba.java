@@ -62,7 +62,6 @@ package org.apposed.appose.builder;
 import org.apposed.appose.util.Downloads;
 import org.apposed.appose.util.Environments;
 import org.apposed.appose.util.Platforms;
-import org.apposed.appose.util.Processes;
 
 import java.io.BufferedReader;
 import java.io.File;
@@ -127,21 +126,6 @@ public class Mamba extends Tool {
 			case "WINDOWS|X64":   return "win-64";
 			default:              return null;
 		}
-	}
-
-	/**
-	 * Returns a {@link ProcessBuilder} with the working directory specified in the
-	 * constructor.
-	 *
-	 * @param isInheritIO
-	 *            Sets the source and destination for subprocess standard I/O to be
-	 *            the same as those of the current Java process.
-	 * @return The {@link ProcessBuilder} with the working directory specified in
-	 *         the constructor.
-	 */
-	@Override
-	protected ProcessBuilder getBuilder(final boolean isInheritIO) {
-		return Processes.builder(new File(rootdir), envVars, isInheritIO);
 	}
 
 	/**
@@ -355,7 +339,7 @@ public class Mamba extends Tool {
 			cmd.add(surroundWithQuotes(Arrays.asList(coverArgWithDoubleQuotes(mambaCommand), "--version")));
 		else
 			cmd.addAll(Arrays.asList(coverArgWithDoubleQuotes(mambaCommand), "--version"));
-		final Process process = getBuilder(false).command(cmd).start();
+		final Process process = processBuilder(rootdir, false).command(cmd).start();
 		if (process.waitFor() != 0)
 			throw new RuntimeException("Error getting Micromamba version");
 		return new BufferedReader(new InputStreamReader(process.getInputStream())).readLine();
@@ -402,7 +386,7 @@ public class Mamba extends Tool {
 		if (!containsSpaces || !Platforms.isWindows()) cmd.addAll(argsList);
 		else cmd.add(surroundWithQuotes(argsList));
 		
-		ProcessBuilder builder = getBuilder(isInheritIO).command(cmd);
+		ProcessBuilder builder = processBuilder(rootdir, isInheritIO).command(cmd);
 		Process process = builder.start();
 		// Use separate threads to read each stream to avoid a deadlock.
 		Thread outputThread = new Thread(() -> {

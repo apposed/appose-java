@@ -31,6 +31,7 @@ package org.apposed.appose.builder;
 
 import org.apposed.appose.util.Processes;
 
+import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
@@ -111,11 +112,12 @@ public abstract class Tool {
 
 	/**
 	 * Creates a ProcessBuilder configured with environment variables.
+	 * @param cwd Path to the working directory
 	 * @param isInheritIO Whether to inherit I/O streams from parent process
 	 * @return Configured ProcessBuilder
 	 */
-	protected ProcessBuilder getBuilder(boolean isInheritIO) {
-		return Processes.builder(null, envVars, isInheritIO);
+	protected ProcessBuilder processBuilder(String cwd, boolean isInheritIO) {
+		return Processes.builder(new File(cwd), envVars, isInheritIO);
 	}
 
 	/**

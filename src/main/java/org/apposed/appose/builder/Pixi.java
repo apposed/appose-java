@@ -32,7 +32,6 @@ package org.apposed.appose.builder;
 import org.apposed.appose.util.Downloads;
 import org.apposed.appose.util.Environments;
 import org.apposed.appose.util.Platforms;
-import org.apposed.appose.util.Processes;
 
 import java.io.BufferedReader;
 import java.io.File;
@@ -99,19 +98,6 @@ public class Pixi extends Tool {
 			case "LINUX|X64":        return "pixi-x86_64-unknown-linux-musl.tar.gz";  // x64 MUSL Linux
 			default:                 return null;
 		}
-	}
-
-	/**
-	 * Returns a {@link ProcessBuilder} with the working directory specified in the constructor.
-	 *
-	 * @param isInheritIO
-	 *            Sets the source and destination for subprocess standard I/O to be
-	 *            the same as those of the current Java process.
-	 * @return The {@link ProcessBuilder} with the working directory specified in the constructor.
-	 */
-	@Override
-	protected ProcessBuilder getBuilder(final boolean isInheritIO) {
-		return Processes.builder(new File(rootdir), envVars, isInheritIO);
 	}
 
 	/**
@@ -301,7 +287,7 @@ public class Pixi extends Tool {
 			cmd.add(surroundWithQuotes(Arrays.asList(coverArgWithDoubleQuotes(pixiCommand), "--version")));
 		else
 			cmd.addAll(Arrays.asList(coverArgWithDoubleQuotes(pixiCommand), "--version"));
-		final Process process = getBuilder(false).command(cmd).start();
+		final Process process = processBuilder(rootdir, false).command(cmd).start();
 		if (process.waitFor() != 0)
 			throw new RuntimeException("Error getting Pixi version");
 		return new BufferedReader(new InputStreamReader(process.getInputStream())).readLine();
@@ -354,7 +340,7 @@ public class Pixi extends Tool {
 		if (!containsSpaces || !Platforms.isWindows()) cmd.addAll(argsList);
 		else cmd.add(surroundWithQuotes(argsList));
 
-		ProcessBuilder builder = getBuilder(isInheritIO).command(cmd);
+		ProcessBuilder builder = processBuilder(rootdir, isInheritIO).command(cmd);
 		Process process = builder.start();
 		// Use separate threads to read each stream to avoid a deadlock.
 		Thread outputThread = new Thread(() -> {

@@ -113,19 +113,6 @@ public class Uv extends Tool {
 	}
 
 	/**
-	 * Returns a {@link ProcessBuilder} with the working directory specified in the constructor.
-	 *
-	 * @param isInheritIO
-	 *            Sets the source and destination for subprocess standard I/O to be
-	 *            the same as those of the current Java process.
-	 * @return The {@link ProcessBuilder} with the working directory specified in the constructor.
-	 */
-	@Override
-	protected ProcessBuilder getBuilder(final boolean isInheritIO) {
-		return Processes.builder(new File(rootdir), envVars, isInheritIO);
-	}
-
-	/**
 	 * Create a new {@link Uv} object. The root dir for the UV installation
 	 * will be the default base path defined at {@link #BASE_PATH}
 	 * <p>
@@ -398,7 +385,7 @@ public class Uv extends Tool {
 		cmd.addAll(flags);  // Add user-specified flags
 		cmd.addAll(Arrays.asList(args));
 
-		final ProcessBuilder builder = getBuilder(false);
+		final ProcessBuilder builder = processBuilder(rootdir, false);
 		builder.command(cmd);
 		final Process process = builder.start();
 
@@ -433,7 +420,7 @@ public class Uv extends Tool {
 		// Don't add flags to --version command
 		cmd.add("--version");
 
-		final ProcessBuilder builder = getBuilder(false);
+		final ProcessBuilder builder = processBuilder(rootdir, false);
 		builder.command(cmd);
 		final Process process = builder.start();
 
