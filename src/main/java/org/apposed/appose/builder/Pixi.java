@@ -52,7 +52,7 @@ import java.util.stream.Collectors;
  * @author Curtis Rueden
  * @author Claude Code
  */
-public class Pixi extends Tool {
+class Pixi extends Tool {
 
 	/** String containing the path that points to the pixi executable. */
 	public final String pixiCommand;

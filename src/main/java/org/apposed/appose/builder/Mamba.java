@@ -80,7 +80,7 @@ import java.util.stream.Collectors;
  * @author Ko Sugawara
  * @author Carlos Garcia Lopez de Haro
  */
-public class Mamba extends Tool {
+class Mamba extends Tool {
 
 	/** String containing the path that points to the micromamba executable. */
 	public final String mambaCommand;

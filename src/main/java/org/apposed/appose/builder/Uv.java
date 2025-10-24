@@ -52,7 +52,7 @@ import java.util.stream.Collectors;
  * @author Curtis Rueden
  * @author Claude Code
  */
-public class Uv extends Tool {
+class Uv extends Tool {
 
 	/** String containing the path that points to the uv executable. */
 	public final String uvCommand;
