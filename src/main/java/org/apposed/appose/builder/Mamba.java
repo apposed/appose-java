@@ -89,18 +89,18 @@ import java.util.stream.Collectors;
 
 /**
  * Conda-based environment manager, implemented by delegating to micromamba.
- * 
+ *
  * @author Ko Sugawara
  * @author Carlos Garcia Lopez de Haro
  */
-public class Mamba {
+public class Mamba extends Tool {
 
 	/** String containing the path that points to the micromamba executable. */
 	public final String mambaCommand;
 
 	/**
 	 * Root directory of micromamba that also contains the environments folder
-	 * 
+	 *
 	 * <pre>
 	 * rootdir
 	 * ├── bin
@@ -118,18 +118,6 @@ public class Mamba {
 	 * the software used by this class to manage Conda environments.
 	 */
 	private BiConsumer<Long, Long> mambaDownloadProgressConsumer;
-
-	/** Consumer that tracks the standard output stream produced by the micromamba process. */
-	private Consumer<String> outputConsumer;
-
-	/** Consumer that tracks the standard error stream produced by the micromamba process. */
-	private Consumer<String> errorConsumer;
-
-	/** Environment variables to set when running micromamba commands. */
-	private Map<String, String> envVars = new HashMap<>();
-
-	/** Additional command-line flags to pass to micromamba commands. */
-	private List<String> flags = new ArrayList<>();
 
 	/** Relative path to the micromamba executable from the micromamba {@link #rootdir}. */
 	private final static Path MICROMAMBA_RELATIVE_PATH = Platforms.isWindows() ?
@@ -163,15 +151,6 @@ public class Mamba {
 			mambaDownloadProgressConsumer.accept(current, total);
 	}
 
-	private void updateOutputConsumer(String str) {
-		if (outputConsumer != null)
-			outputConsumer.accept(str == null ? "" : str);
-	}
-
-	private void updateErrorConsumer(String str) {
-		if (errorConsumer != null)
-			errorConsumer.accept(str == null ? "" : str);
-	}
 
 	/**
 	 * Returns a {@link ProcessBuilder} with the working directory specified in the
@@ -183,7 +162,8 @@ public class Mamba {
 	 * @return The {@link ProcessBuilder} with the working directory specified in
 	 *         the constructor.
 	 */
-	private ProcessBuilder getBuilder(final boolean isInheritIO) {
+	@Override
+	protected ProcessBuilder getBuilder(final boolean isInheritIO) {
 		return Processes.builder(new File(rootdir), envVars, isInheritIO);
 	}
 
@@ -264,43 +244,6 @@ public class Mamba {
 		this.mambaDownloadProgressConsumer = consumer;
 	}
 
-	/**
-	 * Registers the consumer for the standard output stream of every micromamba call.
-	 * @param consumer
-	 * 	callback function invoked for each stdout line of every micromamba call
-	 */
-	public void setOutputConsumer(Consumer<String> consumer) {
-		this.outputConsumer = consumer;
-	}
-
-	/**
-	 * Registers the consumer for the standard error stream of every micromamba call.
-	 * @param consumer
-	 * 	callback function invoked for each stderr line of every micromamba call
-	 */
-	public void setErrorConsumer(Consumer<String> consumer) {
-		this.errorConsumer = consumer;
-	}
-
-	/**
-	 * Sets environment variables to be passed to micromamba processes.
-	 * @param envVars Map of environment variable names to values
-	 */
-	public void setEnvVars(Map<String, String> envVars) {
-		if (envVars != null) {
-			this.envVars = new HashMap<>(envVars);
-		}
-	}
-
-	/**
-	 * Sets additional command-line flags to pass to micromamba commands.
-	 * @param flags List of command-line flags (e.g., "-vv", "--json")
-	 */
-	public void setFlags(List<String> flags) {
-		if (flags != null) {
-			this.flags = new ArrayList<>(flags);
-		}
-	}
 
 	private File downloadMicromamba() throws IOException, InterruptedException, URISyntaxException {
 		final File tempFile = File.createTempFile("micromamba", ".tar.bz2");
@@ -537,52 +480,8 @@ public class Mamba {
 		Process process = builder.start();
 		// Use separate threads to read each stream to avoid a deadlock.
 		Thread outputThread = new Thread(() -> {
-			try (
-			        InputStream inputStream = process.getInputStream();
-			        InputStream errStream = process.getErrorStream()
-					){
-		        byte[] buffer = new byte[1024]; // Buffer size can be adjusted
-		        StringBuilder processBuff = new StringBuilder();
-		        StringBuilder errBuff = new StringBuilder();
-                int newLineIndex;
-		        while (process.isAlive() || inputStream.available() > 0) {
-		        	if (!mainThread.isAlive()) {
-		        		process.destroyForcibly();
-		        		return;
-		        	}
-		            if (inputStream.available() > 0) {
-		                processBuff.append(new String(buffer, 0, inputStream.read(buffer)));
-		                while ((newLineIndex = processBuff.indexOf(System.lineSeparator())) != -1) {
-		                	String line = processBuff.substring(0, newLineIndex);
-		                	updateOutputConsumer(line + System.lineSeparator());
-		                	processBuff.delete(0, newLineIndex + System.lineSeparator().length());
-		                }
-		            }
-		            if (errStream.available() > 0) {
-		                errBuff.append(new String(buffer, 0, errStream.read(buffer)));
-		                while ((newLineIndex = errBuff.indexOf(System.lineSeparator())) != -1) {
-		                	String line = errBuff.substring(0, newLineIndex);
-		                	updateErrorConsumer(line + System.lineSeparator());
-		                	errBuff.delete(0, newLineIndex + System.lineSeparator().length());
-		                }
-		            }
-	                // Sleep for a bit to avoid busy waiting
-	                Thread.sleep(60);
-		        }
-		        if (inputStream.available() > 0) {
-	                processBuff.append(new String(buffer, 0, inputStream.read(buffer)));
-	                String remaining = processBuff.toString();
-	                if (!remaining.isEmpty()) {
-                		updateOutputConsumer(remaining + System.lineSeparator());
-	                }
-	            }
-	            if (errStream.available() > 0) {
-	                errBuff.append(new String(buffer, 0, errStream.read(buffer)));
-	                String remaining = errBuff.toString();
-	                if (!remaining.isEmpty()) {
-		                updateErrorConsumer(remaining + System.lineSeparator());
-	                }
-	            }
+			try {
+				readStreams(process, mainThread);
 		    } catch (IOException | InterruptedException e) {
 		        e.printStackTrace();
 		    }

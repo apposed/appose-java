@@ -63,7 +63,7 @@ import java.util.stream.Collectors;
  * @author Curtis Rueden
  * @author Claude Code
  */
-public class Uv {
+public class Uv extends Tool {
 
 	/** String containing the path that points to the uv executable. */
 	public final String uvCommand;
@@ -82,18 +82,6 @@ public class Uv {
 
 	/** Consumer that tracks the progress in the download of uv. */
 	private BiConsumer<Long, Long> uvDownloadProgressConsumer;
-
-	/** Consumer that tracks the standard output stream produced by the uv process. */
-	private Consumer<String> outputConsumer;
-
-	/** Consumer that tracks the standard error stream produced by the uv process. */
-	private Consumer<String> errorConsumer;
-
-	/** Environment variables to set when running uv commands. */
-	private Map<String, String> envVars = new HashMap<>();
-
-	/** Additional command-line flags to pass to uv commands. */
-	private List<String> flags = new ArrayList<>();
 
 	/** Relative path to the uv executable from the uv {@link #rootdir}. */
 	private final static Path UV_RELATIVE_PATH = Platforms.isWindows() ?
@@ -142,15 +130,6 @@ public class Uv {
 			uvDownloadProgressConsumer.accept(current, total);
 	}
 
-	private void updateOutputConsumer(String str) {
-		if (outputConsumer != null)
-			outputConsumer.accept(str == null ? "" : str);
-	}
-
-	private void updateErrorConsumer(String str) {
-		if (errorConsumer != null)
-			errorConsumer.accept(str == null ? "" : str);
-	}
 
 	/**
 	 * Returns a {@link ProcessBuilder} with the working directory specified in the constructor.
@@ -160,7 +139,8 @@ public class Uv {
 	 *            the same as those of the current Java process.
 	 * @return The {@link ProcessBuilder} with the working directory specified in the constructor.
 	 */
-	private ProcessBuilder getBuilder(final boolean isInheritIO) {
+	@Override
+	protected ProcessBuilder getBuilder(final boolean isInheritIO) {
 		return Processes.builder(new File(rootdir), envVars, isInheritIO);
 	}
 
@@ -231,41 +211,6 @@ public class Uv {
 		this.uvDownloadProgressConsumer = consumer;
 	}
 
-	/**
-	 * Registers the consumer for the standard output stream of every uv call.
-	 * @param consumer callback function invoked for each stdout line
-	 */
-	public void setOutputConsumer(Consumer<String> consumer) {
-		this.outputConsumer = consumer;
-	}
-
-	/**
-	 * Registers the consumer for the standard error stream of every uv call.
-	 * @param consumer callback function invoked for each stderr line
-	 */
-	public void setErrorConsumer(Consumer<String> consumer) {
-		this.errorConsumer = consumer;
-	}
-
-	/**
-	 * Sets environment variables to be passed to uv processes.
-	 * @param envVars Map of environment variable names to values
-	 */
-	public void setEnvVars(Map<String, String> envVars) {
-		if (envVars != null) {
-			this.envVars = new HashMap<>(envVars);
-		}
-	}
-
-	/**
-	 * Sets additional command-line flags to pass to uv commands.
-	 * @param flags List of command-line flags (e.g., "--color=always", "--verbose")
-	 */
-	public void setFlags(List<String> flags) {
-		if (flags != null) {
-			this.flags = new ArrayList<>(flags);
-		}
-	}
 
 	private File downloadUv() throws IOException, InterruptedException, URISyntaxException {
 		final File tempFile = File.createTempFile("uv-", FilePaths.fileType(UV_URL));
@@ -486,36 +431,18 @@ public class Uv {
 		builder.command(cmd);
 		final Process process = builder.start();
 
-		// Read output
-		Thread stdoutThread = new Thread(() -> {
-			try (BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()))) {
-				String line;
-				while ((line = reader.readLine()) != null) {
-					updateOutputConsumer(line + System.lineSeparator());
-				}
-			} catch (IOException e) {
-				updateErrorConsumer("Error reading stdout: " + e.getMessage());
+		Thread mainThread = Thread.currentThread();
+		Thread outputThread = new Thread(() -> {
+			try {
+				readStreams(process, mainThread);
+			} catch (IOException | InterruptedException e) {
+				updateErrorConsumer("Error reading streams: " + e.getMessage());
 			}
 		});
 
-		// Read errors
-		Thread stderrThread = new Thread(() -> {
-			try (BufferedReader reader = new BufferedReader(new InputStreamReader(process.getErrorStream()))) {
-				String line;
-				while ((line = reader.readLine()) != null) {
-					updateErrorConsumer(line + System.lineSeparator());
-				}
-			} catch (IOException e) {
-				updateErrorConsumer("Error reading stderr: " + e.getMessage());
-			}
-		});
-
-		stdoutThread.start();
-		stderrThread.start();
-
+		outputThread.start();
 		int exitCode = process.waitFor();
-		stdoutThread.join();
-		stderrThread.join();
+		outputThread.join();
 
 		if (exitCode != 0) {
 			throw new IOException("UV command failed with exit code " + exitCode + ": " + String.join(" ", args));
@@ -541,36 +468,18 @@ public class Uv {
 		builder.command(cmd);
 		final Process process = builder.start();
 
-		// Read output
-		Thread stdoutThread = new Thread(() -> {
-			try (BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()))) {
-				String line;
-				while ((line = reader.readLine()) != null) {
-					updateOutputConsumer(line + System.lineSeparator());
-				}
-			} catch (IOException e) {
-				updateErrorConsumer("Error reading stdout: " + e.getMessage());
+		Thread mainThread = Thread.currentThread();
+		Thread outputThread = new Thread(() -> {
+			try {
+				readStreams(process, mainThread);
+			} catch (IOException | InterruptedException e) {
+				updateErrorConsumer("Error reading streams: " + e.getMessage());
 			}
 		});
 
-		// Read errors
-		Thread stderrThread = new Thread(() -> {
-			try (BufferedReader reader = new BufferedReader(new InputStreamReader(process.getErrorStream()))) {
-				String line;
-				while ((line = reader.readLine()) != null) {
-					updateErrorConsumer(line + System.lineSeparator());
-				}
-			} catch (IOException e) {
-				updateErrorConsumer("Error reading stderr: " + e.getMessage());
-			}
-		});
-
-		stdoutThread.start();
-		stderrThread.start();
-
+		outputThread.start();
 		int exitCode = process.waitFor();
-		stdoutThread.join();
-		stderrThread.join();
+		outputThread.join();
 
 		if (exitCode != 0) {
 			throw new IOException("UV command failed with exit code " + exitCode + ": " + String.join(" ", args));

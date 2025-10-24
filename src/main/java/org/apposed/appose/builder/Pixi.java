@@ -65,7 +65,7 @@ import java.util.stream.Collectors;
  * @author Curtis Rueden
  * @author Claude Code
  */
-public class Pixi {
+public class Pixi extends Tool {
 
 	/** String containing the path that points to the pixi executable. */
 	public final String pixiCommand;
@@ -84,18 +84,6 @@ public class Pixi {
 
 	/** Consumer that tracks the progress in the download of pixi. */
 	private BiConsumer<Long, Long> pixiDownloadProgressConsumer;
-
-	/** Consumer that tracks the standard output stream produced by the pixi process. */
-	private Consumer<String> outputConsumer;
-
-	/** Consumer that tracks the standard error stream produced by the pixi process. */
-	private Consumer<String> errorConsumer;
-
-	/** Environment variables to set when running pixi commands. */
-	private Map<String, String> envVars = new HashMap<>();
-
-	/** Additional command-line flags to pass to pixi commands. */
-	private List<String> flags = new ArrayList<>();
 
 	/** Relative path to the pixi executable from the pixi {@link #rootdir}. */
 	private final static Path PIXI_RELATIVE_PATH = Platforms.isWindows() ?
@@ -132,15 +120,6 @@ public class Pixi {
 			pixiDownloadProgressConsumer.accept(current, total);
 	}
 
-	private void updateOutputConsumer(String str) {
-		if (outputConsumer != null)
-			outputConsumer.accept(str == null ? "" : str);
-	}
-
-	private void updateErrorConsumer(String str) {
-		if (errorConsumer != null)
-			errorConsumer.accept(str == null ? "" : str);
-	}
 
 	/**
 	 * Returns a {@link ProcessBuilder} with the working directory specified in the constructor.
@@ -150,7 +129,8 @@ public class Pixi {
 	 *            the same as those of the current Java process.
 	 * @return The {@link ProcessBuilder} with the working directory specified in the constructor.
 	 */
-	private ProcessBuilder getBuilder(final boolean isInheritIO) {
+	@Override
+	protected ProcessBuilder getBuilder(final boolean isInheritIO) {
 		return Processes.builder(new File(rootdir), envVars, isInheritIO);
 	}
 
@@ -221,41 +201,6 @@ public class Pixi {
 		this.pixiDownloadProgressConsumer = consumer;
 	}
 
-	/**
-	 * Registers the consumer for the standard output stream of every pixi call.
-	 * @param consumer callback function invoked for each stdout line
-	 */
-	public void setOutputConsumer(Consumer<String> consumer) {
-		this.outputConsumer = consumer;
-	}
-
-	/**
-	 * Registers the consumer for the standard error stream of every pixi call.
-	 * @param consumer callback function invoked for each stderr line
-	 */
-	public void setErrorConsumer(Consumer<String> consumer) {
-		this.errorConsumer = consumer;
-	}
-
-	/**
-	 * Sets environment variables to be passed to pixi processes.
-	 * @param envVars Map of environment variable names to values
-	 */
-	public void setEnvVars(Map<String, String> envVars) {
-		if (envVars != null) {
-			this.envVars = new HashMap<>(envVars);
-		}
-	}
-
-	/**
-	 * Sets additional command-line flags to pass to pixi commands.
-	 * @param flags List of command-line flags (e.g., "--color=always", "-v")
-	 */
-	public void setFlags(List<String> flags) {
-		if (flags != null) {
-			this.flags = new ArrayList<>(flags);
-		}
-	}
 
 	private File downloadPixi() throws IOException, InterruptedException, URISyntaxException {
 		final File tempFile = File.createTempFile("pixi", FilePaths.fileType(PIXI_URL));
@@ -480,52 +425,8 @@ public class Pixi {
 		Process process = builder.start();
 		// Use separate threads to read each stream to avoid a deadlock.
 		Thread outputThread = new Thread(() -> {
-			try (
-				InputStream inputStream = process.getInputStream();
-				InputStream errStream = process.getErrorStream()
-			) {
-				byte[] buffer = new byte[1024]; // Buffer size can be adjusted
-				StringBuilder processBuff = new StringBuilder();
-				StringBuilder errBuff = new StringBuilder();
-				int newLineIndex;
-				while (process.isAlive() || inputStream.available() > 0) {
-					if (!mainThread.isAlive()) {
-						process.destroyForcibly();
-						return;
-					}
-					if (inputStream.available() > 0) {
-						processBuff.append(new String(buffer, 0, inputStream.read(buffer)));
-						while ((newLineIndex = processBuff.indexOf(System.lineSeparator())) != -1) {
-							String line = processBuff.substring(0, newLineIndex);
-							updateOutputConsumer(line + System.lineSeparator());
-							processBuff.delete(0, newLineIndex + System.lineSeparator().length());
-						}
-					}
-					if (errStream.available() > 0) {
-						errBuff.append(new String(buffer, 0, errStream.read(buffer)));
-						while ((newLineIndex = errBuff.indexOf(System.lineSeparator())) != -1) {
-							String line = errBuff.substring(0, newLineIndex);
-							updateErrorConsumer(line + System.lineSeparator());
-							errBuff.delete(0, newLineIndex + System.lineSeparator().length());
-						}
-					}
-					// Sleep for a bit to avoid busy waiting
-					Thread.sleep(60);
-				}
-				if (inputStream.available() > 0) {
-					processBuff.append(new String(buffer, 0, inputStream.read(buffer)));
-					String remaining = processBuff.toString();
-					if (!remaining.isEmpty()) {
-						updateOutputConsumer(remaining + System.lineSeparator());
-					}
-				}
-				if (errStream.available() > 0) {
-					errBuff.append(new String(buffer, 0, errStream.read(buffer)));
-					String remaining = errBuff.toString();
-					if (!remaining.isEmpty()) {
-						updateErrorConsumer(remaining + System.lineSeparator());
-					}
-				}
+			try {
+				readStreams(process, mainThread);
 			} catch (IOException | InterruptedException e) {
 				e.printStackTrace();
 			}
