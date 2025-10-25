@@ -63,7 +63,7 @@ jobs:
         uses: actions/cache@v4
         with:
           path: ~/.local/share/appose
-          key: ${{ runner.os }}-appose-${{ hashFiles('pom.xml') }}-${{ hashFiles('src/main/java/org/apposed/appose/builder/Pixi.java', 'src/main/java/org/apposed/appose/builder/Uv.java', 'src/main/java/org/apposed/appose/builder/Mamba.java') }}
+          key: ${{ runner.os }}-appose-${{ hashFiles('pom.xml') }}-${{ hashFiles('src/main/java/org/apposed/appose/builder/*.java') }}
           restore-keys: |
             ${{ runner.os }}-appose-${{ hashFiles('pom.xml') }}-
             ${{ runner.os }}-appose-
@@ -75,7 +75,7 @@ jobs:
             ~/.cache/rattler/cache
             ~/Library/Caches/rattler/cache
             ~/AppData/Local/rattler/cache
-          key: ${{ runner.os }}-pixi-pkgs-${{ hashFiles('pom.xml') }}
+          key: ${{ runner.os }}-pixi-pkgs-${{ hashFiles('src/test/resources/envs/*') }}
           restore-keys: |
             ${{ runner.os }}-pixi-pkgs-
 
@@ -86,7 +86,7 @@ jobs:
             ~/.cache/uv
             ~/Library/Caches/uv
             ~/AppData/Local/uv/cache
-          key: ${{ runner.os }}-uv-pkgs-${{ hashFiles('pom.xml') }}
+          key: ${{ runner.os }}-uv-pkgs-${{ hashFiles('src/test/resources/envs/*') }}
           restore-keys: |
             ${{ runner.os }}-uv-pkgs-
 
@@ -96,7 +96,9 @@ jobs:
           path: |
             ~/.local/share/mamba/pkgs
             ~/.mamba/pkgs
-          key: ${{ runner.os }}-mamba-pkgs-${{ hashFiles('pom.xml') }}
+            ~/AppData/Roaming/.mamba/pkgs
+            ~/AppData/Roaming/mamba/pkgs
+          key: ${{ runner.os }}-mamba-pkgs-${{ hashFiles('src/test/resources/envs/*') }}
           restore-keys: |
             ${{ runner.os }}-mamba-pkgs-
 
