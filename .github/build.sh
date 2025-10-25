@@ -9,33 +9,20 @@ case "$(uname)" in
 esac
 
 uv=$(find "$HOME/.local/share/appose" -name uv$EXE -type f | head -n1)
-if [ "$uv" ]; then (
-  echo
-  echo "===== uv ====="
-  set -x
-  "$uv" --version
-  "$uv" cache dir
-) else
+if [ "$uv" ]; then (set -x; "$uv" --version; "$uv" cache dir)
+else
   echo "No uv executable found!"
 fi
 
 pixi=$(find "$HOME/.local/share/appose" -name pixi$EXE -type f | head -n1)
-if [ "$pixi" ]; then (
-  echo
-  echo "===== pixi ====="
-  set -x
-  "$pixi" info
-) else
+if [ "$pixi" ]; then (set -x; "$pixi" info)
+else
   echo "No pixi executable found!"
 fi
 
 mamba=$(find "$HOME/.local/share/appose" -name micromamba$EXE -type f | head -n1)
-if [ "$mamba" ]; then (
-  echo
-  echo "===== mamba ====="
-  set -x
-  "$mamba" info
-) else
+if [ "$mamba" ]; then (set -x; "$mamba" info)
+else
   echo "No micromamba executable found!"
 fi
 

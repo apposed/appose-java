@@ -163,23 +163,26 @@ This directory contains:
 Each package manager maintains its own cache for downloaded packages:
 
 **Pixi** (uses Rattler cache):
-- Linux: `~/.cache/rattler`
-- macOS: `~/Library/Caches/rattler`
-- Windows: `%LOCALAPPDATA%\rattler\Cache`
 - Environment variable: `PIXI_CACHE_DIR` or `RATTLER_CACHE_DIR`
+- Linux: `~/.cache/rattler/cache`
+- macOS: `~/Library/Caches/rattler/cache`
+- Windows: `%LocalAppData%\rattler\cache`
+- Check location: `pixi info`
 
 **UV**:
-- Linux: `~/.cache/uv`
-- macOS: `~/Library/Caches/uv`
-- Windows: `%LOCALAPPDATA%\uv\Cache`
 - Environment variable: `UV_CACHE_DIR`
+- Linux: `~/.cache/uv`
+- macOS: `~/.cache/uv`
+- Windows: `%LocalAppData%\uv\cache`
 - Check location: `uv cache dir`
 
-**Micromamba**:
-- Default: `~/micromamba/pkgs/` (micromamba's default root prefix)
-- Alternative: `~/.conda/pkgs/` (if conda was installed previously)
-- Customizable via: `micromamba config append pkgs_dirs /path/to/cache`
+**Mamba**:
 - Environment variable: `MAMBA_ROOT_PREFIX` (changes the entire root, including `pkgs/` subdirectory)
+- Linux: `~/.local/share/mamba/pkgs`, `~/.mamba/pkgs`
+- macOS: `~/.local/share/mamba/pkgs`, `~/.mamba/pkgs`
+- Windows: `%AppData%\mamba\pkgs`, `~\.mamba\pkgs`, `%AppData%\.mamba\pkgs`
+- Check location: `micromamba info`
+- Customizable via: `micromamba config append pkgs_dirs /path/to/cache`
 
 ### Clearing caches
 
