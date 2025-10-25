@@ -7,15 +7,33 @@ case "$(uname)" in
   MINGW*|MSYS*) EXE=.exe ;;
   *) EXE= ;;
 esac
-echo
-echo "===== uv ====="
-~/.local/share/appose/.uv/bin/uv${EXE} --version
-~/.local/share/appose/.uv/bin/uv${EXE} cache dir
-echo
-echo "===== pixi ====="
-~/.local/share/appose/.pixi/bin/pixi${EXE} info
-echo
-echo "===== mamba ====="
-~/.local/share/appose/.mamba/bin/micromamba${EXE} info
+
+uv=$(find "$HOME/.local/share/appose" -name uv$EXE -type f | head -n1)
+if [ "$uv" ]; then
+  echo
+  echo "===== uv ====="
+  "$uv" --version
+  "$uv" cache dir
+else
+  echo "No uv executable found!"
+fi
+
+pixi=$(find "$HOME/.local/share/appose" -name pixi$EXE -type f | head -n1)
+if [ "$pixi" ]; then
+  echo
+  echo "===== pixi ====="
+  "$pixi" info
+else
+  echo "No pixi executable found!"
+fi
+
+mamba=$(find "$HOME/.local/share/appose" -name micromamba$EXE -type f | head -n1)
+if [ "$mamba" ]; then
+  echo
+  echo "===== mamba ====="
+  "$mamba" info
+else
+  echo "No micromamba executable found!"
+fi
 
 exit $result
