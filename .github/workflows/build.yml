@@ -5,9 +5,16 @@
 # 2. Appose environments and tool binaries (~/.local/share/appose)
 #    - Includes pixi, uv, and micromamba executables
 #    - Includes built environments
-# 3. Pixi package cache (~/.cache/rattler on Linux, ~/Library/Caches/rattler on macOS)
-# 4. UV package cache (~/.cache/uv on Linux, ~/Library/Caches/uv on macOS)
-# 5. Micromamba package cache (~/micromamba/pkgs and ~/.conda/pkgs)
+# 3. Pixi package cache (rattler cache):
+#    - Linux: ~/.cache/rattler/cache
+#    - macOS: ~/Library/Caches/rattler/cache
+#    - Windows: %LOCALAPPDATA%\rattler\cache
+# 4. UV package cache:
+#    - Linux: ~/.cache/uv
+#    - macOS: ~/.cache/uv
+#    - Windows: %LOCALAPPDATA%\uv\cache
+# 5. Micromamba package cache:
+#    - All platforms: ~/.local/share/mamba/pkgs and ~/.mamba/pkgs
 #
 # Cache keys are based on:
 # - pom.xml hash (dependencies change)
@@ -65,8 +72,9 @@ jobs:
         uses: actions/cache@v4
         with:
           path: |
-            ~/.cache/rattler
-            ~/Library/Caches/rattler
+            ~/.cache/rattler/cache
+            ~/Library/Caches/rattler/cache
+            ~/AppData/Local/rattler/cache
           key: ${{ runner.os }}-pixi-pkgs-${{ hashFiles('pom.xml') }}
           restore-keys: |
             ${{ runner.os }}-pixi-pkgs-
@@ -77,6 +85,7 @@ jobs:
           path: |
             ~/.cache/uv
             ~/Library/Caches/uv
+            ~/AppData/Local/uv/cache
           key: ${{ runner.os }}-uv-pkgs-${{ hashFiles('pom.xml') }}
           restore-keys: |
             ${{ runner.os }}-uv-pkgs-
@@ -85,8 +94,8 @@ jobs:
         uses: actions/cache@v4
         with:
           path: |
-            ~/micromamba/pkgs
-            ~/.conda/pkgs
+            ~/.local/share/mamba/pkgs
+            ~/.mamba/pkgs
           key: ${{ runner.os }}-mamba-pkgs-${{ hashFiles('pom.xml') }}
           restore-keys: |
             ${{ runner.os }}-mamba-pkgs-
