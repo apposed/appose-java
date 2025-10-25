@@ -88,6 +88,8 @@
 
 		<license.licenseName>bsd_2</license.licenseName>
 		<license.copyrightOwners>Appose developers.</license.copyrightOwners>
+
+		<javaparser-symbol-solver-core.version>3.26.2</javaparser-symbol-solver-core.version>
 	</properties>
 
 	<dependencies>
@@ -137,5 +139,12 @@
 			<artifactId>junit-jupiter-engine</artifactId>
 			<scope>test</scope>
 		</dependency>
+		<dependency>
+			<groupId>com.github.javaparser</groupId>
+			<artifactId>javaparser-symbol-solver-core</artifactId>
+			<version>${javaparser-symbol-solver-core.version}</version>
+			<scope>test</scope>
+		</dependency>
+
 	</dependencies>
 </project>
