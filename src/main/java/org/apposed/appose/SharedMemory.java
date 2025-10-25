@@ -103,7 +103,7 @@ public interface SharedMemory extends AutoCloseable {
 	 * @throws UnsupportedOperationException If support for shared memory is not
 	 *                                        implemented for this platform.
 	 */
-	static SharedMemory createOrAttach(String name, boolean create, long rsize) {
+	static SharedMemory createOrAttach(@Nullable String name, boolean create, long rsize) {
 		if (rsize < 0) {
 			throw new IllegalArgumentException("'rsize' must be a positive integer");
 		}

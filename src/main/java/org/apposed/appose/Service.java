@@ -97,7 +97,7 @@ public class Service implements AutoCloseable {
 		this(cwd, null, args);
 	}
 
-	public Service(File cwd, Map<String, String> envVars, String... args) {
+	public Service(File cwd, @Nullable Map<String, String> envVars, String... args) {
 		this.cwd = cwd;
 		this.envVars = envVars != null ? new HashMap<>(envVars) : new HashMap<>();
 		this.args = args.clone();

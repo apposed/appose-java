@@ -57,9 +57,9 @@ public class NDArray implements AutoCloseable {
 	 *
 	 * @param dType element data type
 	 * @param shape array shape
-	 * @param shm the flattened array data.
+	 * @param shm the flattened array data, or null to allocate new shared memory.
 	 */
-	public NDArray(final DType dType, final Shape shape, final SharedMemory shm) {
+	public NDArray(final DType dType, final Shape shape, @Nullable final SharedMemory shm) {
 		this.dType = dType;
 		this.shape = shape;
 		this.shm = shm == null

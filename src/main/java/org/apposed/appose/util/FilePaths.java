@@ -29,6 +29,8 @@
 
 package org.apposed.appose.util;
 
+import org.apposed.appose.Nullable;
+
 import java.io.File;
 import java.io.IOException;
 import java.net.URI;
@@ -60,8 +62,9 @@ public final class FilePaths {
 	 * assume it's going to be something you can put onto a classpath.
 	 *
 	 * @param c The class whose file path should be discerned.
-	 * @return File path of the JAR file containing the given class.
+	 * @return File path of the JAR file containing the given class, or null if it cannot be determined.
 	 */
+	@Nullable
 	public static File location(Class<?> c) {
 		try {
 			ProtectionDomain domain = c.getProtectionDomain();
@@ -84,6 +87,7 @@ public final class FilePaths {
 		return m.group(1);
 	}
 
+	@Nullable
 	public static File findExe(List<String> dirs, List<String> exes) {
 		for (String exe : exes) {
 			File exeFile = new File(exe);
@@ -196,11 +200,12 @@ public final class FilePaths {
 	 * </p>
 	 *
 	 * @param srcFile Source file to rename to a backup.
-	 * @param destDir Destination directory where the backup file will be created.
+	 * @param destDir Destination directory where the backup file will be created, or null to use the source file's parent directory.
 	 * @throws IOException If something goes wrong with the needed I/O operations.
 	 */
-	public static void renameToBackup(File srcFile, File destDir) throws IOException {
+	public static void renameToBackup(File srcFile, @Nullable File destDir) throws IOException {
 		if (!srcFile.exists()) return; // Nothing to back up!
+		if (destDir == null) destDir = srcFile.getParentFile();
 		String prefix = srcFile.getName();
 		String suffix = "old";
 		File backupFile = new File(destDir, prefix + "." + suffix);

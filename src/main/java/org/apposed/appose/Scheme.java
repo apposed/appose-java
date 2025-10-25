@@ -74,6 +74,7 @@ public interface Scheme {
 	 * @param content Configuration file content
 	 * @return The environment name, or {@code null} if not found
 	 */
+	@Nullable
 	String envName(String content);
 
 	/**
