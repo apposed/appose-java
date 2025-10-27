@@ -277,9 +277,9 @@ public class ServiceTest extends TestBase {
 		}
 	}
 
+	/** Tests that init script is executed before tasks run. */
 	@Test
 	public void testInit() throws IOException, InterruptedException {
-		// Test that init script is executed before tasks run
 		Environment env = Appose.system();
 		try (Service service = env.groovy().init("init_value = 'initialized'")) {
 			maybeDebug(service);
