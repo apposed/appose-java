@@ -31,11 +31,15 @@ package org.apposed.appose.util;
 
 import java.io.File;
 import java.io.IOException;
+import java.net.URI;
 import java.net.URISyntaxException;
+import java.net.URL;
 import java.nio.file.DirectoryStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.security.CodeSource;
+import java.security.ProtectionDomain;
 import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -60,7 +64,13 @@ public final class FilePaths {
 	 */
 	public static File location(Class<?> c) {
 		try {
-			return new File(c.getProtectionDomain().getCodeSource().getLocation().toURI());
+			ProtectionDomain domain = c.getProtectionDomain();
+			if (domain == null) return null;
+			CodeSource codeSource = domain.getCodeSource();
+			if (codeSource == null) return null;
+			URL location = codeSource.getLocation();
+			if (location == null) return null;
+			return new File(location.toURI());
 		}
 		catch (URISyntaxException exc) {
 			return null;
