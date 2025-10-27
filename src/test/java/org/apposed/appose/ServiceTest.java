@@ -333,4 +333,41 @@ public class ServiceTest extends TestBase {
 			assertNull(task.result());
 		}
 	}
+
+	/** Tests that NumPy works on every platform, even Windows. */
+	@Test
+	public void testInitNumpy() throws IOException, InterruptedException {
+		Environment env = Appose.pixi()
+			.base("target/envs/test-init-numpy")
+			.conda("numpy=2.3.4")
+			.pypi("appose==0.7.2")
+			.logDebug()
+			.build();
+		try (Service service = env.python().init("import numpy")) {
+			maybeDebug(service);
+
+			Task task = service.task(
+				"narr = numpy.random.default_rng(seed=1337).random([3, 5])\n" +
+				"[float(v) for v in narr.flatten()]"
+			).waitFor();
+			assertComplete(task);
+
+			Object result = task.outputs.get("result");
+			assertInstanceOf(List.class, result);
+			List<?> actual = (List<?>) result;
+			System.out.println(result.getClass());
+			System.out.println(result);
+			double[] expected = {
+				0.8781019003, 0.1855279616, 0.9209004548, 0.9465658637, 0.8745080903,
+				0.1157427629, 0.1937316623, 0.3417371975, 0.4957909002, 0.8983712328,
+				0.0064586191, 0.2274114670, 0.7936549524, 0.4142867178, 0.0838144031
+			};
+			for (int i = 0; i < expected.length; i++) {
+				Object element = actual.get(i);
+				assertInstanceOf(Number.class, element);
+				double value = ((Number) element).doubleValue();
+				assertEquals(expected[i], value, 1e-10);
+			}
+		}
+	}
 }
