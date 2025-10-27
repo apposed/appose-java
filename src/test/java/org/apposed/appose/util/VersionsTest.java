@@ -29,42 +29,23 @@
 
 package org.apposed.appose.util;
 
-import java.io.File;
-import java.io.IOException;
-import java.net.URL;
+import org.junit.jupiter.api.Test;
+
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 /**
- * Utility methods for working with version strings.
+ * Tests {@link Versions}.
  *
  * @author Curtis Rueden
  */
-public final class Versions {
+public class VersionsTest {
 
-	private Versions() {
-		// Prevent instantiation of utility class.
-	}
-
-	/** Gets the version of the resource (e.g. JAR file) containing the given class. */
-	public static String version(Class<?> c) {
-		// Extract version from embedded pom.xml.
-		XML xml = null;
-		URL pom = c.getResource("META-INF/org.apposed/appose/pom.xml");
-		try {
-			if (pom != null) xml = new XML(pom);
-		}
-		catch (IOException e) {
-			// No action needed.
-		}
-		if (xml == null) {
-			// Assume development working copy of appose.
-			try {
-				xml = new XML(new File("pom.xml"));
-			}
-			catch (IOException e) {
-				// No action needed.
-			}
-		}
-		if (xml == null) return null;
-		return xml.cdata("//project/version");
+	/** Tests {@link Versions#version}. */
+	@Test
+	public void testVersion() {
+		String version = Versions.version(getClass());
+		assertNotNull(version);
+		assertFalse(version.isEmpty());
 	}
 }

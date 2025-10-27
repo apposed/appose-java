@@ -406,6 +406,6 @@ public class Appose {
 	 */
 	public static String version() {
 		String v = Versions.version(Appose.class);
-		return v == null ? "<dev>" : v;
+		return v == null ? "(unknown)" : v;
 	}
 }
