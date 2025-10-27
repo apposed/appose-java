@@ -79,15 +79,13 @@ public class ServiceTest extends TestBase {
 
 			Map<String, Object> inputs = new HashMap<>();
 			inputs.put("age", 100);
-			Task task = service.task(CALC_SQRT_GROOVY, inputs);
-			task.waitFor();
+			Task task = service.task(CALC_SQRT_GROOVY, inputs).waitFor();
 			assertComplete(task);
 			Number result = (Number) task.outputs.get("result");
 			assertEquals(10, result.intValue());
 
 			inputs.put("age", 81);
-			task = service.task("task.outputs['result'] = sqrt_age(age)", inputs);
-			task.waitFor();
+			task = service.task("task.outputs['result'] = sqrt_age(age)", inputs).waitFor();
 			assertComplete(task);
 			result = (Number) task.outputs.get("result");
 			assertEquals(9, result.intValue());
@@ -114,8 +112,7 @@ public class ServiceTest extends TestBase {
 					"import sys\n" +
 						"task.outputs['executable'] = sys.executable\n" +
 						"task.outputs['version'] = sys.version"
-				);
-				task.waitFor();
+				).waitFor();
 				info += "\n- sys.executable = " + task.outputs.get("executable");
 				info += "\n- sys.version = " + task.outputs.get("version");
 			}
@@ -138,8 +135,7 @@ public class ServiceTest extends TestBase {
 		try (Service service = env.python()) {
 			maybeDebug(service);
 			String script = "whee\n";
-			Task task = service.task(script);
-			task.waitFor();
+			Task task = service.task(script).waitFor();
 			assertSame(TaskStatus.FAILED, task.status);
 			String expectedError = "NameError: name 'whee' is not defined";
 			assertTrue(task.error.contains(expectedError));
@@ -172,15 +168,12 @@ public class ServiceTest extends TestBase {
 		try (Service service = env.python()) {
 			maybeDebug(service);
 
-			// Create a task that calls sys.exit. This is a nasty thing to do
+			// Launch a task that calls sys.exit. This is a nasty thing to do
 			// because Python does not exit the worker process when sys.exit is
 			// called within a dedicated threading.Thread; the thread just dies.
 			// So in addition to testing the Java code here, we are also testing
 			// that Appose's python_worker handles this situation well.
-			Task task = service.task("import sys\nsys.exit(123)");
-
-			// Launch the task and wait for it to finish.
-			task.waitFor();
+			Task task = service.task("import sys\nsys.exit(123)").waitFor();
 
 			// Is the tag flagged as failed due to thread death?
 			assertSame(TaskStatus.FAILED, task.status);
@@ -260,13 +253,11 @@ public class ServiceTest extends TestBase {
 	public void testMainThreadQueueGroovy() throws IOException, InterruptedException {
 		Environment env = Appose.system();
 		try (Service service = env.groovy()) {
-			Task task = service.task(THREAD_CHECK_GROOVY, "main");
-			task.waitFor();
+			Task task = service.task(THREAD_CHECK_GROOVY, "main").waitFor();
 			String thread = (String) task.outputs.get("thread");
 			assertEquals("main", thread);
 
-			task = service.task(THREAD_CHECK_GROOVY);
-			task.waitFor();
+			task = service.task(THREAD_CHECK_GROOVY).waitFor();
 			thread = (String) task.outputs.get("thread");
 			assertNotEquals("main", thread);
 		}
@@ -276,13 +267,11 @@ public class ServiceTest extends TestBase {
 	public void testMainThreadQueuePython() throws IOException, InterruptedException {
 		Environment env = Appose.system();
 		try (Service service = env.python()) {
-			Task task = service.task(THREAD_CHECK_PYTHON, "main");
-			task.waitFor();
+			Task task = service.task(THREAD_CHECK_PYTHON, "main").waitFor();
 			String thread = (String) task.outputs.get("thread");
 			assertEquals("MainThread", thread);
 
-			task = service.task(THREAD_CHECK_PYTHON);
-			task.waitFor();
+			task = service.task(THREAD_CHECK_PYTHON).waitFor();
 			thread = (String) task.outputs.get("thread");
 			assertNotEquals("MainThread", thread);
 		}
@@ -295,9 +284,8 @@ public class ServiceTest extends TestBase {
 		try (Service service = env.groovy().init("init_value = 'initialized'")) {
 			maybeDebug(service);
 
-			// Verify that the init script was executed and the variable is accessible
-			Task task = service.task("task.outputs['result'] = init_value");
-			task.waitFor();
+			// Verify that the init script was executed and the variable is accessible.
+			Task task = service.task("task.outputs['result'] = init_value").waitFor();
 			assertComplete(task);
 
 			String result = (String) task.outputs.get("result");
