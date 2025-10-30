@@ -717,6 +717,20 @@ public class Service implements AutoCloseable {
 			request(RequestType.CANCEL, null);
 		}
 
+		/**
+		 * Returns the result of this task's execution.
+		 * <p>
+		 * This is a convenience method equivalent to {@code outputs.get("result")}.
+		 * The result will be {@code null} if the task has not completed successfully
+		 * or if no result was set.
+		 * </p>
+		 *
+		 * @return The task's result value, or {@code null} if none exists.
+		 */
+		public Object result() {
+			return outputs.get("result");
+		}
+
 		/** Sends a request to the worker process. */
 		private void request(RequestType requestType, Map<String, Object> args) {
 			Map<String, Object> request = new HashMap<>();

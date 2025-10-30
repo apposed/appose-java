@@ -82,13 +82,13 @@ public class ServiceTest extends TestBase {
 			inputs.put("age", 100);
 			Task task = service.task(CALC_SQRT_GROOVY, inputs).waitFor();
 			assertComplete(task);
-			Number result = (Number) task.outputs.get("result");
+			Number result = (Number) task.result();
 			assertEquals(10, result.intValue());
 
 			inputs.put("age", 81);
 			task = service.task("task.outputs['result'] = sqrt_age(age)", inputs).waitFor();
 			assertComplete(task);
-			result = (Number) task.outputs.get("result");
+			result = (Number) task.result();
 			assertEquals(9, result.intValue());
 		}
 	}
@@ -289,8 +289,45 @@ public class ServiceTest extends TestBase {
 			Task task = service.task("task.outputs['result'] = init_value").waitFor();
 			assertComplete(task);
 
-			String result = (String) task.outputs.get("result");
-			assertEquals("initialized", result, "Init script should set init_value variable");
+			String result = (String) task.result();
+			assertEquals("initialized", result,
+				"Init script should set init_value variable");
+		}
+	}
+
+	/** Tests {@link Task#result()} convenience method. */
+	@Test
+	public void testTaskResult() throws IOException, InterruptedException {
+		Environment env = Appose.system();
+		try (Service service = env.python()) {
+			maybeDebug(service);
+
+			// Create a task that produces a result.
+			Task task = service.task("task.outputs['result'] = 'success'").waitFor();
+			assertComplete(task);
+
+			// Test the result() convenience method.
+			Object result = task.result();
+			assertEquals("success", result);
+
+			// Verify it's the same as directly accessing outputs.
+			assertEquals(task.outputs.get("result"), result);
+		}
+	}
+
+	/** Tests {@link Task#result()} returns null when no result is set. */
+	@Test
+	public void testTaskResultNull() throws IOException, InterruptedException {
+		Environment env = Appose.system();
+		try (Service service = env.groovy()) {
+			maybeDebug(service);
+
+			// Create a task that doesn't set a result
+			Task task = service.task("println 'no result'").waitFor();
+			assertComplete(task);
+
+			// result() should return null
+			assertNull(task.result());
 		}
 	}
 }
