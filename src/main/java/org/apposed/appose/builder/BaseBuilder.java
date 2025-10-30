@@ -87,70 +87,75 @@ public abstract class BaseBuilder<T extends BaseBuilder<T>> implements Builder<T
 	@Override
 	public T env(String key, String value) {
 		envVars.put(key, value);
-		return (T) this;
+		return typedThis();
 	}
 
 	@Override
 	public T env(Map<String, String> vars) {
 		envVars.putAll(vars);
-		return (T) this;
+		return typedThis();
 	}
 
 	@Override
 	public T name(String envName) {
 		this.envName = envName;
-		return (T) this;
+		return typedThis();
 	}
 
 	@Override
 	public T base(File envDir) {
 		this.envDir = envDir;
-		return (T) this;
+		return typedThis();
 	}
 
 	@Override
 	public T channels(List<String> channels) {
 		this.channels.addAll(channels);
-		return (T) this;
+		return typedThis();
 	}
 
 	@Override
 	public T flags(List<String> flags) {
 		this.flags.addAll(flags);
-		return (T) this;
+		return typedThis();
 	}
 
 	@Override
 	public T content(String content) {
 		this.sourceContent = content;
-		return (T) this;
+		return typedThis();
 	}
 
 	@Override
 	public T scheme(String scheme) {
 		this.scheme = scheme;
-		return (T) this;
+		return typedThis();
 	}
 
 	@Override
 	public T subscribeProgress(ProgressConsumer subscriber) {
 		progressSubscribers.add(subscriber);
-		return (T) this;
+		return typedThis();
 	}
 
 	@Override
 	public T subscribeOutput(Consumer<String> subscriber) {
 		outputSubscribers.add(subscriber);
-		return (T) this;
+		return typedThis();
 	}
 
 	@Override
 	public T subscribeError(Consumer<String> subscriber) {
 		errorSubscribers.add(subscriber);
-		return (T) this;
+		return typedThis();
 	}
 
 	// -- Internal methods --
+
+	@SuppressWarnings("unchecked")
+	private T typedThis() {
+		return (T) this;
+	}
 
 	protected String envName() {
 		return envName != null ? envName :
