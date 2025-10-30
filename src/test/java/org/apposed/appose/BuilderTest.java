@@ -33,6 +33,7 @@ import org.apposed.appose.Service.Task;
 import org.apposed.appose.builder.MambaBuilder;
 import org.apposed.appose.builder.PixiBuilder;
 import org.apposed.appose.builder.UvBuilder;
+import org.apposed.appose.util.FilePaths;
 import org.junit.jupiter.api.Test;
 
 import java.io.File;
@@ -87,24 +88,28 @@ public class BuilderTest extends TestBase {
 	}
 
 	@Test
-	public void testPixiVacuous() {
+	public void testPixiVacuous() throws IOException {
+		String base = "target/envs/pixi-vacuous";
+		FilePaths.deleteRecursively(new File(base));
 		assertThrows(IllegalStateException.class, () -> {
 			Appose
 				.pixi()
-				.base("target/envs/pixi-vacuous")
+				.base(base)
 				.logDebug()
 				.build();
 		});
 	}
 
 	@Test
-	public void testPixiApposeRequirement() {
+	public void testPixiApposeRequirement() throws IOException {
+		String base = "target/envs/pixi-appose-requirement";
+		FilePaths.deleteRecursively(new File(base));
 		assertThrows(IllegalStateException.class, () -> {
 			Appose
 				.pixi()
 				.conda("python")
 				.pypi("cowsay==6.1")
-				.base("target/envs/pixi-appose-requirement")
+				.base(base)
 				.logDebug()
 				.build();
 		});
