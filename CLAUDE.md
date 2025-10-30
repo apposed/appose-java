@@ -151,7 +151,7 @@ The `Appose` class provides static factory methods for creating environments:
 
 - **Dependencies in pom.xml must stay in sync** with the classpath construction in `Environment.java:130-138`
 - When adding Appose dependencies, update both locations
-- The project uses scijava-pom-parent, which provides standard Maven lifecycle configuration
+- The project uses the pom-scijava parent POM, which provides standard Maven lifecycle configuration
 - Shared memory implementations are platform-specific; changes should be tested on Linux, macOS, and Windows
 - Worker scripts must be single expressions for task results, or must populate `task.outputs["result"]` explicitly
 - Builder classes are type-safe and builder-specific (no generic `include()` / `channel()` methods on base `Builder` interface)
