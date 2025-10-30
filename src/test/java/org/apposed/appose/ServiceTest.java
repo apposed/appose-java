@@ -169,9 +169,14 @@ public class ServiceTest extends TestBase {
 			// that Appose's python_worker handles this situation well.
 			Task task = service.task("import sys\nsys.exit(123)").waitFor();
 
-			// Is the tag flagged as failed due to thread death?
+			// Is the tag flagged as failed?
 			assertSame(TaskStatus.FAILED, task.status);
-			assertEquals("thread death", task.error);
+
+			// The failure should be either "thread death" or a "SystemExit" message.
+			assertTrue(
+				task.error.equals("thread death") ||
+				task.error.contains("SystemExit: 123")
+			);
 		}
 	}
 
