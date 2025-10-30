@@ -78,13 +78,26 @@ public interface Builder<T extends Builder<T>> {
 	 * using the current builder configuration. This is more robust than trying to
 	 * update an existing environment in place.
 	 * </p>
+	 * <p>
+	 * This method is a shorthand for {@link #delete()} then {@link #build()}.
+	 * </p>
 	 *
 	 * @return The newly rebuilt {@link Environment}.
 	 * @throws IOException If something goes wrong during rebuild.
 	 */
-	Environment rebuild() throws IOException;
+	default Environment rebuild() throws IOException {
+		delete();
+		return build();
+	}
 
 	/**
+	 * Deletes the builder's linked environment directory, if any.
+	 *
+	 * @throws IOException If something goes wrong during deletion.
+	 */
+	void delete() throws IOException;
+
+    /**
 	 * Wraps an existing environment directory, detecting and using any
 	 * configuration files present for future rebuild() calls.
 	 * <p>

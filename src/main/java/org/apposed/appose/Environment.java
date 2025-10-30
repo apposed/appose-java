@@ -88,6 +88,17 @@ public interface Environment {
 	}
 
 	/**
+	 * Deletes the existing environment directory, if any.
+	 *
+	 * @return This environment, for fluid chaining.
+	 * @throws IOException If something goes wrong during deletion.
+	 */
+	default Environment delete() throws IOException {
+		builder().delete();
+		return this;
+	}
+
+	/**
 	 * Creates a Python script service.
 	 * <p>
 	 * This is a <b>high level</b> way to create a service, enabling execution of

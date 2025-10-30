@@ -68,12 +68,9 @@ public abstract class BaseBuilder<T extends BaseBuilder<T>> implements Builder<T
 	// -- Builder methods --
 
 	@Override
-	public Environment rebuild() throws IOException {
+	public void delete() throws IOException {
 		File dir = envDir();
-		if (dir.exists()) {
-			FilePaths.deleteRecursively(dir);
-		}
-		return build();
+		if (dir.exists()) FilePaths.deleteRecursively(dir);
 	}
 
 	@Override
