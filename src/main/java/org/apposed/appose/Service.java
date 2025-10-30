@@ -119,7 +119,8 @@ public class Service implements AutoCloseable {
 	 * that may interfere with I/O operations.
 	 * <p>
 	 * Example: On Windows, importing numpy can hang when stdin is open for reading
-	 * (described at https://github.com/numpy/numpy/issues/24290).
+	 * (described at
+	 * <a href="https://github.com/numpy/numpy/issues/24290">numpy/numpy#24290</a>).
 	 * Using {@code service.init("import numpy")} works around this by importing
 	 * numpy before the worker's I/O loop starts.
 	 * </p>
