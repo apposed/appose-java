@@ -43,6 +43,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
 
@@ -76,13 +77,26 @@ public class BuilderTest extends TestBase {
 	public void testPixiBuilderAPI() throws IOException, InterruptedException {
 		Environment env = Appose
 			.pixi()
-			.conda("python>=3.8", "pip")
+			.conda("python>=3.8", "appose")
 			.pypi("cowsay==6.1")
 			.base("target/envs/pixi-cowsay-builder")
 			.logDebug()
 			.build();
 		assertInstanceOf(PixiBuilder.class, env.builder());
 		cowsayAndAssert(env, "ooh");
+	}
+
+	@Test
+	public void testPixiApposeRequirement() {
+		assertThrows(IllegalStateException.class, () -> {
+			Appose
+				.pixi()
+				.conda("python")
+				.pypi("cowsay==6.1")
+				.base("target/envs/pixi-appose-requirement")
+				.logDebug()
+				.build();
+		});
 	}
 
 	@Test

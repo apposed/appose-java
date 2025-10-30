@@ -83,6 +83,12 @@ public abstract class Tool {
 	/** Additional command-line flags to pass to tool commands. */
 	protected List<String> flags = new ArrayList<>();
 
+	/** Captured stdout from the last command execution. */
+	private final StringBuilder capturedOutput = new StringBuilder();
+
+	/** Captured stderr from the last command execution. */
+	private final StringBuilder capturedError = new StringBuilder();
+
 	public Tool(String name, String url, String command, String rootdir) {
 		this.name = name;
 		this.url = url;
@@ -206,6 +212,11 @@ public abstract class Tool {
 	 */
 	protected void exec(final String... args) throws IOException, InterruptedException {
 		checkInstalled();
+
+		// Clear captured output from previous command
+		capturedOutput.setLength(0);
+		capturedError.setLength(0);
+
 		final List<String> cmd = Platforms.baseCommand();
 		cmd.add(command);
 		cmd.addAll(flags);  // Add user-specified flags
@@ -220,7 +231,7 @@ public abstract class Tool {
 			try {
 				readStreams(process, mainThread);
 			} catch (IOException | InterruptedException e) {
-				updateErrorConsumer("Error reading streams: " + e.getMessage());
+				error("Error reading streams: " + e.getMessage());
 			}
 		});
 
@@ -229,27 +240,57 @@ public abstract class Tool {
 		outputThread.join();
 
 		if (exitCode != 0) {
-			throw new IOException(name + " command failed with exit code " + exitCode + ": " + String.join(" ", args));
+			StringBuilder errorMsg = new StringBuilder();
+			errorMsg.append(name).append(" command failed with exit code ").append(exitCode);
+			errorMsg.append(": ").append(String.join(" ", args));
+
+			// Include stderr if available
+			String stderr = capturedError.toString().trim();
+			if (!stderr.isEmpty()) {
+				errorMsg.append("\n\nError output:\n").append(stderr);
+			}
+
+			// Include stdout if available and stderr was empty
+			String stdout = capturedOutput.toString().trim();
+			if (stderr.isEmpty() && !stdout.isEmpty()) {
+				errorMsg.append("\n\nOutput:\n").append(stdout);
+			}
+
+			throw new IOException(errorMsg.toString());
 		}
 	}
 
 	/**
-	 * Updates the output consumer with a message, if one is registered.
-	 * @param message The message to send to the output consumer
+	 * Handles a line from the tool's standard output stream.
+	 * <ul>
+	 * <li>Captures the output for later inclusion in error messages.</li>
+	 * <li>Updates the output consumer with a message, if one is registered.</li>
+	 * </ul>
+	 * @param line The line of stdout to process
 	 */
-	protected void updateOutputConsumer(String message) {
-		if (outputConsumer != null && message != null && !message.isEmpty()) {
-			outputConsumer.accept(message);
+	protected void output(String line) {
+		if (line != null && !line.isEmpty()) {
+			capturedOutput.append(line);
+			if (outputConsumer != null) {
+				outputConsumer.accept(line);
+			}
 		}
 	}
 
 	/**
-	 * Updates the error consumer with a message, if one is registered.
-	 * @param message The message to send to the error consumer
+	 * Handles a line from the tool's standard error stream.
+	 * <ul>
+	 * <li>Captures the error for later inclusion in error messages.</li>
+	 * <li>Updates the error consumer with a message, if one is registered.</li>
+	 * </ul>
+	 * @param line The line of stderr to process
 	 */
-	protected void updateErrorConsumer(String message) {
-		if (errorConsumer != null && message != null && !message.isEmpty()) {
-			errorConsumer.accept(message);
+	protected void error(String line) {
+		if (line != null && !line.isEmpty()) {
+			capturedError.append(line);
+			if (errorConsumer != null) {
+				errorConsumer.accept(line);
+			}
 		}
 	}
 
@@ -294,7 +335,7 @@ public abstract class Tool {
 					processBuff.append(new String(buffer, 0, inputStream.read(buffer)));
 					while ((newLineIndex = processBuff.indexOf(System.lineSeparator())) != -1) {
 						String line = processBuff.substring(0, newLineIndex);
-						updateOutputConsumer(line + System.lineSeparator());
+						output(line + System.lineSeparator());
 						processBuff.delete(0, newLineIndex + System.lineSeparator().length());
 					}
 				}
@@ -304,7 +345,7 @@ public abstract class Tool {
 					errBuff.append(new String(buffer, 0, errStream.read(buffer)));
 					while ((newLineIndex = errBuff.indexOf(System.lineSeparator())) != -1) {
 						String line = errBuff.substring(0, newLineIndex);
-						updateErrorConsumer(line + System.lineSeparator());
+						error(line + System.lineSeparator());
 						errBuff.delete(0, newLineIndex + System.lineSeparator().length());
 					}
 				}
@@ -318,7 +359,7 @@ public abstract class Tool {
 				processBuff.append(new String(buffer, 0, inputStream.read(buffer)));
 				String remaining = processBuff.toString();
 				if (!remaining.isEmpty()) {
-					updateOutputConsumer(remaining + System.lineSeparator());
+					output(remaining + System.lineSeparator());
 				}
 			}
 
@@ -327,7 +368,7 @@ public abstract class Tool {
 				errBuff.append(new String(buffer, 0, errStream.read(buffer)));
 				String remaining = errBuff.toString();
 				if (!remaining.isEmpty()) {
-					updateErrorConsumer(remaining + System.lineSeparator());
+					error(remaining + System.lineSeparator());
 				}
 			}
 		}

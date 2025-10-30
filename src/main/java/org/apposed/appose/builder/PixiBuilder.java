@@ -192,17 +192,21 @@ public final class PixiBuilder extends BaseBuilder<PixiBuilder> {
 
 				// Add PyPI packages.
 				if (!pypiPackages.isEmpty()) {
-					// Ensure python and pip are available
-					List<String> basePackages = new ArrayList<>();
-					basePackages.add("python");
-					basePackages.add("pip");
-					pixi.addCondaPackages(envDir, basePackages.toArray(new String[0]));
 					pixi.addPypiPackages(envDir, pypiPackages.toArray(new String[0]));
 				}
 
-				// Add appose package if we're building programmatically with packages.
-				if (!condaPackages.isEmpty() || !pypiPackages.isEmpty()) {
-					pixi.addCondaPackages(envDir, "appose");
+				// Verify that appose was included when building programmatically.
+				boolean progBuild = !condaPackages.isEmpty() || !pypiPackages.isEmpty();
+				if (progBuild) {
+					boolean hasAppose =
+						condaPackages.stream().anyMatch(pkg -> pkg.matches("^appose\\b.*")) ||
+						pypiPackages.stream().anyMatch(pkg -> pkg.matches("^appose\\b.*"));
+					if (!hasAppose) {
+						throw new IllegalStateException(
+							"Appose package must be explicitly included when building programmatically. " +
+							"Add .conda(\"appose\") or .pypi(\"appose\") to your builder."
+						);
+					}
 				}
 			}
 

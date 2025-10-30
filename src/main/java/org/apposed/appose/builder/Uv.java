@@ -309,7 +309,7 @@ class Uv extends Tool {
 			try {
 				readStreams(process, mainThread);
 			} catch (IOException | InterruptedException e) {
-				updateErrorConsumer("Error reading streams: " + e.getMessage());
+				error("Error reading streams: " + e.getMessage());
 			}
 		});
 
