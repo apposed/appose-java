@@ -180,6 +180,14 @@ public final class PixiBuilder extends BaseBuilder<PixiBuilder> {
 
 				pixi.init(envDir);
 
+				// Fail fast for vacuous environments
+				if (condaPackages.isEmpty() && pypiPackages.isEmpty()) {
+					throw new IllegalStateException(
+						"Cannot build empty environment programmatically. " +
+						"Either provide a source file via Appose.pixi(source), or add packages via .conda() or .pypi()."
+					);
+				}
+
 				// Add channels.
 				if (!channels.isEmpty()) {
 					pixi.addChannels(envDir, channels.toArray(new String[0]));

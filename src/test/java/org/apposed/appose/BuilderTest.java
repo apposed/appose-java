@@ -87,6 +87,17 @@ public class BuilderTest extends TestBase {
 	}
 
 	@Test
+	public void testPixiVacuous() {
+		assertThrows(IllegalStateException.class, () -> {
+			Appose
+				.pixi()
+				.base("target/envs/pixi-vacuous")
+				.logDebug()
+				.build();
+		});
+	}
+
+	@Test
 	public void testPixiApposeRequirement() {
 		assertThrows(IllegalStateException.class, () -> {
 			Appose
