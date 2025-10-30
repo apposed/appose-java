@@ -42,14 +42,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertNotEquals;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertNull;
-import static org.junit.jupiter.api.Assertions.assertSame;
-import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.junit.jupiter.api.Assertions.fail;
+import static org.junit.jupiter.api.Assertions.*;
 
 /** Tests creation of {@link Service}s and execution of {@link Task}s. */
 public class ServiceTest extends TestBase {
@@ -204,8 +197,12 @@ public class ServiceTest extends TestBase {
 				"print('six')\n" +
 				"sys.stdout.flush()\n" +
 				"sys.stderr.write('seven\\n')\n" +
+				"task.update(\"crash-me\")\n" +
 				"import time; time.sleep(999)\n";
-			Task task = service.task(script);
+			boolean[] ready = {false};
+			Task task = service.task(script).listen(e -> {
+				if ("crash-me".equals(e.message)) ready[0] = true;
+			});
 
 			// Record any crash reported in the task notifications.
 			String[] reportedError = {null};
@@ -216,8 +213,9 @@ public class ServiceTest extends TestBase {
 			});
 			// Launch the task.
 			task.start();
-			// Simulate a crash after 500ms has gone by.
-			Thread.sleep(500);
+
+			// Simulate a crash after the script has emitted its output.
+			while (!ready[0]) Thread.sleep(5);
 			service.kill();
 
 			// Wait for the service to fully shut down after the crash.
