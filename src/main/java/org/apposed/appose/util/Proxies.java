@@ -30,6 +30,7 @@
 package org.apposed.appose.util;
 
 import org.apposed.appose.Service;
+import org.apposed.appose.syntax.Syntaxes;
 
 import java.lang.reflect.Proxy;
 import java.util.ArrayList;
@@ -160,12 +161,10 @@ public final class Proxies {
 				argNames.add(name);
 			}
 
-			// Script generation assumes dot-notation method syntax: obj.method(arg0, arg1)
-			// This works for Python, Groovy, JavaScript, Ruby, and most dynamic languages.
-			// If Appose adds support for languages with different syntax, this will need
-			// to become language-aware (possibly via some sort of script generator plugin).
-			String script = var + "." + method.getName() +
-				"(" + String.join(",", argNames) + ")";
+			// Use the service's ScriptSyntax to generate the method invocation script.
+			// This allows support for different languages with varying syntax.
+			Syntaxes.validate(service);
+			String script = service.syntax().invokeMethod(var, method.getName(), argNames);
 
 			Service.Task task = service.task(script, inputs, queue);
 			task.waitFor();

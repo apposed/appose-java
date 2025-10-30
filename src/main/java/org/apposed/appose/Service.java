@@ -29,6 +29,7 @@
 
 package org.apposed.appose;
 
+import org.apposed.appose.syntax.Syntaxes;
 import org.apposed.appose.util.Processes;
 import org.apposed.appose.util.Proxies;
 import org.apposed.appose.util.Types;
@@ -89,6 +90,8 @@ public class Service implements AutoCloseable {
 
 	private Consumer<String> debugListener;
 	private String initScript;
+	private ScriptSyntax syntax;
+
 
 	public Service(File cwd, String... args) {
 		this(cwd, null, args);
@@ -215,6 +218,140 @@ public class Service implements AutoCloseable {
 	public Task task(String script, Map<String, Object> inputs, String queue) throws IOException {
 		start();
 		return new Task(script, inputs, queue);
+	}
+
+	/**
+	 * Declares the script syntax of this service.
+	 * <p>
+	 * This value determines which {@link ScriptSyntax} implementation is used for
+	 * generating language-specific scripts.
+	 * </p>
+	 * <p>
+	 * This method is called directly by {@link Environment#python} and
+	 * {@link Environment#groovy} when creating services of those types.
+	 * It can also be called manually to support custom languages with
+	 * registered {@link ScriptSyntax} plugins.
+	 * </p>
+	 *
+	 * @param syntax The type identifier (e.g., "python", "groovy").
+	 * @return This service object, for chaining method calls.
+	 * @throws IllegalArgumentException If no syntax plugin is found for the given type.
+	 */
+	public Service syntax(String syntax) {
+		this.syntax = Syntaxes.get(syntax);
+		return this;
+	}
+
+	/**
+	 * Sets the script syntax strategy for this service directly.
+	 * <p>
+	 * This method is provided for advanced use cases where you want to use
+	 * a custom syntax implementation without registering it as a plugin.
+	 * Most users should use {@link #syntax(String)} instead.
+	 * </p>
+	 *
+	 * @param syntax The script syntax strategy to use.
+	 * @return This service object, for chaining method calls.
+	 */
+	public Service syntax(ScriptSyntax syntax) {
+		this.syntax = syntax;
+		return this;
+	}
+
+	/**
+	 * Gets the script syntax strategy for this service.
+	 *
+	 * @return The script syntax strategy, or {@code null} if not set.
+	 */
+	public ScriptSyntax syntax() {
+		return syntax;
+	}
+
+	/**
+	 * Retrieves a variable from the worker process's global scope.
+	 * <p>
+	 * This is a convenience method that creates a task to evaluate the variable
+	 * by name and returns its value. The variable must have been previously
+	 * exported using {@code task.export()} to be accessible across tasks.
+	 * </p>
+	 *
+	 * @param name The name of the variable to retrieve from the worker process.
+	 * @return The value of the variable.
+	 * @throws IOException If something goes wrong communicating with the worker.
+	 * @throws InterruptedException If the current thread is interrupted while waiting.
+	 * @throws IllegalStateException If the task fails to retrieve the variable, or if
+	 *                               no script syntax has been configured for this service.
+	 */
+	public Object getVar(String name) throws IOException, InterruptedException {
+		Syntaxes.validate(this);
+		String script = syntax.getVar(name);
+		Task task = task(script).waitFor();
+		if (task.status == TaskStatus.COMPLETE) return task.outputs.get("result");
+		throw new IllegalStateException("Failed to get variable '" + name + "': " + task.error);
+	}
+
+	/**
+	 * Sets a variable in the worker process's global scope and exports it for
+	 * future use across tasks.
+	 * <p>
+	 * This is a convenience method that creates a task to assign the given value
+	 * to a variable in the worker's global scope, making it accessible to
+	 * subsequent tasks. The variable is automatically exported using
+	 * {@code task.export()}.
+	 * </p>
+	 *
+	 * @param name The name of the variable to set in the worker process.
+	 * @param value The value to assign to the variable.
+	 * @throws IOException If something goes wrong communicating with the worker.
+	 * @throws InterruptedException If the current thread is interrupted while waiting.
+	 * @throws RuntimeException If the task fails to set the variable.
+	 * @throws IllegalStateException If no script syntax has been configured for this service.
+	 */
+	public void putVar(String name, Object value) throws IOException, InterruptedException {
+		Syntaxes.validate(this);
+		Map<String, Object> inputs = new HashMap<>();
+		inputs.put("_value", value);
+		String script = syntax.putVar(name, "_value");
+		Task task = task(script, inputs).waitFor();
+		if (task.status != TaskStatus.COMPLETE) {
+			throw new RuntimeException("Failed to put variable '" + name + "': " + task.error);
+		}
+	}
+
+	/**
+	 * Calls a function in the worker process with the given arguments and returns
+	 * the result.
+	 * <p>
+	 * This is a convenience method that creates a task to invoke a function by
+	 * name with the specified arguments. The function must be accessible in the
+	 * worker's global scope (either built-in or previously defined/imported).
+	 * </p>
+	 * <p>
+	 * Arguments are passed as inputs to the task and referenced by name in the
+	 * generated script (arg0, arg1, etc.).
+	 * </p>
+	 *
+	 * @param function The name of the function to call in the worker process.
+	 * @param args The arguments to pass to the function.
+	 * @return The result of the function call.
+	 * @throws IOException If something goes wrong communicating with the worker.
+	 * @throws InterruptedException If the current thread is interrupted while waiting.
+	 * @throws IllegalStateException If the function call fails, or if no script syntax
+	 *                               has been configured for this service.
+	 */
+	public Object call(String function, Object... args) throws IOException, InterruptedException {
+		Syntaxes.validate(this);
+		Map<String, Object> inputs = new HashMap<>();
+		List<String> varNames = new ArrayList<>();
+		for (int i=0; i<args.length; i++) {
+			String varName = "arg" + i;
+			inputs.put(varName, args[i]);
+			varNames.add(varName);
+		}
+		String script = syntax.call(function, varNames);
+		Task task = task(script, inputs).waitFor();
+		if (task.status == TaskStatus.COMPLETE) return task.outputs.get("result");
+		throw new IllegalStateException("Failed to call function '" + function + "': " + task.error);
 	}
 
 	/**
@@ -367,6 +504,7 @@ public class Service implements AutoCloseable {
 	public List<String> errorLines() {
 		return Collections.unmodifiableList(errorLines);
 	}
+
 	/** Input loop processing lines from the worker stdout stream. */
 	private void stdoutLoop() {
 		BufferedReader stdout = new BufferedReader(new InputStreamReader(process.getInputStream()));

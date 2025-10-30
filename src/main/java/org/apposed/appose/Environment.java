@@ -102,7 +102,8 @@ public interface Environment {
 	default Service python() throws IOException {
 		List<String> pythonExes = Arrays.asList("python", "python3", "python.exe");
 		return service(pythonExes, "-c",
-			"import appose.python_worker; appose.python_worker.main()");
+			"import appose.python_worker; appose.python_worker.main()")
+			.syntax("python");
 	}
 
 	/**
@@ -152,7 +153,8 @@ public interface Environment {
 	default Service groovy(List<String> classPath, String... jvmArgs)
 		throws IOException
 	{
-		return java(GroovyWorker.class.getName(), classPath, jvmArgs);
+		return java(GroovyWorker.class.getName(), classPath, jvmArgs)
+			.syntax("groovy");
 	}
 
 	default Service java(String mainClass, String... jvmArgs)
