@@ -29,6 +29,8 @@
 
 package org.apposed.appose;
 
+import org.apposed.appose.scheme.Schemes;
+
 /**
  * Represents a configuration file scheme for environment builders.
  * <p>
@@ -37,7 +39,7 @@ package org.apposed.appose;
  * </p>
  * <p>
  * Implementations are discovered at runtime and managed by the
- * {@link org.apposed.appose.util.Schemes} utility class.
+ * {@link Schemes} utility class.
  * </p>
  *
  * @author Curtis Rueden

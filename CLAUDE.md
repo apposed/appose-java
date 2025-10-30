@@ -99,7 +99,7 @@ The project uses Java's ServiceLoader mechanism for extensibility, with utility 
   - `findFactoryForWrapping(envDir)` - Detect builder for existing environment
   - Factories cached and sorted by priority
 
-- **Schemes** (`org.apposed.appose.util.Schemes`) - Configuration file format detection
+- **Schemes** (`org.apposed.appose.scheme.Schemes`) - Configuration file format detection
   - `fromFilename(filename)` - Detect scheme from filename (e.g., "pixi.toml" → PixiTomlScheme)
   - `fromContent(content)` - Detect scheme from file contents
   - `fromName(name)` - Get scheme by name (e.g., "pixi-toml")

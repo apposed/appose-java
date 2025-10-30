@@ -27,9 +27,10 @@
  * #L%
  */
 
-package org.apposed.appose.util;
+package org.apposed.appose.scheme;
 
 import org.apposed.appose.Scheme;
+import org.apposed.appose.util.Plugins;
 
 import java.util.List;
 
