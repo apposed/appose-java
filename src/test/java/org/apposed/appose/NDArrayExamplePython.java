@@ -59,7 +59,7 @@ public class NDArrayExamplePython {
 			inputs.put( "img", ndArray);
 			Service.Task task = service.task(PRINT_INPUT, inputs );
 			task.waitFor();
-			final String result = ( String ) task.outputs.get( "result" );
+			final String result = ( String ) task.result();
 			System.out.println( "result = \n" + result );
 		}
 		ndArray.close();
@@ -68,6 +68,6 @@ public class NDArrayExamplePython {
 
 	private static final String PRINT_INPUT = "" + //
 		"import numpy as np\n" + //
-		"task.outputs['result'] = str(img.ndarray())";
+		"str(img.ndarray())";
 
 }

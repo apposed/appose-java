@@ -286,7 +286,7 @@ public class Service implements AutoCloseable {
 		Syntaxes.validate(this);
 		String script = syntax.getVar(name);
 		Task task = task(script).waitFor();
-		if (task.status == TaskStatus.COMPLETE) return task.outputs.get("result");
+		if (task.status == TaskStatus.COMPLETE) return task.result();
 		throw new IllegalStateException("Failed to get variable '" + name + "': " + task.error);
 	}
 
@@ -350,7 +350,7 @@ public class Service implements AutoCloseable {
 		}
 		String script = syntax.call(function, varNames);
 		Task task = task(script, inputs).waitFor();
-		if (task.status == TaskStatus.COMPLETE) return task.outputs.get("result");
+		if (task.status == TaskStatus.COMPLETE) return task.result();
 		throw new IllegalStateException("Failed to call function '" + function + "': " + task.error);
 	}
 

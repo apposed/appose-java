@@ -112,7 +112,7 @@ public final class Proxies {
 	 * Each method invocation on the returned proxy generates a script of the form
 	 * {@code var.methodName(arg0, arg1, ...)} and submits it as a task to the worker.
 	 * Arguments are passed via the task's {@code inputs} map, and the return value
-	 * is retrieved from {@code task.outputs["result"]}.
+	 * is retrieved from {@code task.result()}.
 	 * </p>
 	 * <p>
 	 * <strong>Variable export requirement:</strong> The variable must have been previously
@@ -141,7 +141,7 @@ public final class Proxies {
 	 * @param queue Optional queue identifier for task execution. Pass {@code "main"} to ensure
 	 *              execution on the worker's main thread, or {@code null} for default behavior.
 	 * @return A proxy object implementing the specified interface. Method calls block until
-	 *         the remote execution completes and return the value from {@code task.outputs["result"]}.
+	 *         the remote execution completes and return the value from {@code task.result()}.
 	 * @throws RuntimeException If a proxied method call fails in the worker process.
 	 * @see Service#proxy(String, Class, String) Convenience method available on Service instances.
 	 * @see Service#task(String, String) For understanding queue behavior.
@@ -171,7 +171,7 @@ public final class Proxies {
 			if (task.status != Service.TaskStatus.COMPLETE) {
 				throw new RuntimeException(task.error);
 			}
-			return task.outputs.get("result");
+			return task.result();
 		});
 	}
 }

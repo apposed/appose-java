@@ -76,8 +76,7 @@ Environment env = Appose.system();
 try (Service python = env.python()) {
     Task task = python.task("5 + 6");
     task.waitFor();
-    Object result = task.outputs.get("result");
-    assertEquals(11, result);
+    assertEquals(11, task.result());
 }
 ```
 

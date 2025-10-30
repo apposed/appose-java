@@ -79,7 +79,7 @@ public class ServiceTest extends TestBase {
 			assertEquals(10, result.intValue());
 
 			inputs.put("age", 81);
-			task = service.task("task.outputs['result'] = sqrt_age(age)", inputs).waitFor();
+			task = service.task("sqrt_age(age)", inputs).waitFor();
 			assertComplete(task);
 			result = (Number) task.result();
 			assertEquals(9, result.intValue());
@@ -284,7 +284,7 @@ public class ServiceTest extends TestBase {
 			maybeDebug(service);
 
 			// Verify that the init script was executed and the variable is accessible.
-			Task task = service.task("task.outputs['result'] = init_value").waitFor();
+			Task task = service.task("init_value").waitFor();
 			assertComplete(task);
 
 			String result = (String) task.result();
@@ -301,7 +301,7 @@ public class ServiceTest extends TestBase {
 			maybeDebug(service);
 
 			// Create a task that produces a result.
-			Task task = service.task("task.outputs['result'] = 'success'").waitFor();
+			Task task = service.task("'success'").waitFor();
 			assertComplete(task);
 
 			// Test the result() convenience method.

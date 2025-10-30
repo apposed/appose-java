@@ -105,9 +105,9 @@ public class SyntaxTest extends TestBase {
 			service.putVar("my_number", 123);
 
 			// Verify the variable is accessible in subsequent tasks
-			Task task = service.task("task.outputs['result'] = my_number * 2").waitFor();
+			Task task = service.task("my_number * 2").waitFor();
 			assertComplete(task);
-			Number result = (Number) task.outputs.get("result");
+			Number result = (Number) task.result();
 			assertEquals(246, result.intValue());
 		}
 	}
@@ -123,9 +123,9 @@ public class SyntaxTest extends TestBase {
 			service.putVar("my_string", "test");
 
 			// Verify the variable is accessible in subsequent tasks
-			Task task = service.task("task.outputs['result'] = my_string.toUpperCase()").waitFor();
+			Task task = service.task("my_string.toUpperCase()").waitFor();
 			assertComplete(task);
-			String result = (String) task.outputs.get("result");
+			String result = (String) task.result();
 			assertEquals("TEST", result);
 		}
 	}
@@ -142,9 +142,9 @@ public class SyntaxTest extends TestBase {
 			service.putVar("my_list", values);
 
 			// Verify the list is accessible and can be manipulated
-			Task task = service.task("task.outputs['result'] = sum(my_list)").waitFor();
+			Task task = service.task("sum(my_list)").waitFor();
 			assertComplete(task);
-			Number result = (Number) task.outputs.get("result");
+			Number result = (Number) task.result();
 			assertEquals(15, result.intValue());
 		}
 	}

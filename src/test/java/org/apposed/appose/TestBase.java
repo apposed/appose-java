@@ -113,7 +113,7 @@ public abstract class TestBase {
 
 		// Validate the execution result.
 		assertComplete(task);
-		Number result = (Number) task.outputs.get("result");
+		Number result = (Number) task.result();
 		assertEquals(91, result.intValue());
 
 		// Validate the events received.
@@ -148,13 +148,13 @@ public abstract class TestBase {
 			maybeDebug(service);
 			Task task = service.task(
 				"import cowsay\n" +
-				"task.outputs['result'] = cowsay.get_output_string('cow', '" + greeting + "')\n"
+				"cowsay.get_output_string('cow', '" + greeting + "')\n"
 			);
 			task.waitFor();
 			assertComplete(task);
 			// Verify cowsay output contains the greeting and key elements
 			// (exact spacing can vary between cowsay versions).
-			String actual = (String) task.outputs.get("result");
+			String actual = (String) task.result();
 			assertNotNull(actual, "Cowsay output should not be null");
 			assertTrue(actual.contains(greeting), "Output should contain the greeting: " + greeting);
 			assertTrue(actual.contains("^__^"), "Output should contain cow face");

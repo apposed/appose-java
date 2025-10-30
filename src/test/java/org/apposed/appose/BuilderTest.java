@@ -234,10 +234,10 @@ public class BuilderTest extends TestBase {
 		// Verify that the custom environment can execute Python tasks.
 		try (Service service = env.python()) {
 			maybeDebug(service);
-			Task task = service.task("task.outputs['result'] = 2 + 2");
+			Task task = service.task("2 + 2");
 			task.waitFor();
 			assertComplete(task);
-			Number result = (Number) task.outputs.get("result");
+			Number result = (Number) task.result();
 			assertEquals(4, result.intValue());
 		}
 

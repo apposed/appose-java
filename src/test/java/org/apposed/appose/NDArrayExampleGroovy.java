@@ -62,9 +62,9 @@ public class NDArrayExampleGroovy {
 		try (Service service = env.groovy()) {
 			final Map< String, Object > inputs = new HashMap<>();
 			inputs.put( "img", ndArray);
-			Service.Task task = service.task(PRINT_INPUT, inputs );
+			Service.Task task = service.task(PRINT_INPUT, inputs);
 			task.waitFor();
-			System.out.println( "result = " + task.outputs.get("result") );
+			System.out.println("result = " + task.result());
 		}
 		ndArray.close();
 	}

@@ -69,8 +69,7 @@ import java.io.IOException;
  *     5 + 6
  *     """);
  * task.waitFor();
- * Object result = task.outputs.get("result");
- * assertEquals(11, result);
+ * assertEquals(11, task.result());
  * }</pre>
  * <p>
  * And here is an example using a few more of Appose's features:
@@ -163,7 +162,7 @@ import java.io.IOException;
  * {
  *    "task" : "87427f91-d193-4b25-8d35-e1292a34b5c4",
  *    "requestType" : "EXECUTE",
- *    "script" : "task.outputs[\"result\"] = computeResult(gamma)\n",
+ *    "script" : "task.outputs[\"answer\"] = computeResult(gamma)\n",
  *    "inputs" : {"gamma": 2.2}
  * }
  * </code></pre>
