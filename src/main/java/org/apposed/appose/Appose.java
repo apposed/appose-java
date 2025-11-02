@@ -322,6 +322,19 @@ public class Appose {
 		return new DynamicBuilder(source);
 	}
 
+	/**
+	 * Creates a builder that auto-detects the appropriate handler
+	 * based on configuration file content. The scheme is inferred
+	 * by analyzing the content structure.
+	 *
+	 * @param content Configuration file content (e.g., environment.yml or pixi.toml content).
+	 * @return A new DynamicBuilder instance pre-configured with the detected scheme.
+	 * @throws IllegalArgumentException If the scheme cannot be detected from the content.
+	 */
+	public static DynamicBuilder content(String content) {
+		return new DynamicBuilder().content(content);
+	}
+
 	// -- Direct Environment shortcuts --
 
 	/**

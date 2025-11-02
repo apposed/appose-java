@@ -180,7 +180,7 @@ public class BuilderTest extends TestBase {
 		cowsayAndAssert(env, "pyproject");
 	}
 
-	/** Tests building environment from content string.*/
+	/** Tests building environment from content string using type-specific builder.*/
 	@Test
 	public void testContentAPI() throws IOException, InterruptedException {
 		String pixiToml =
@@ -203,6 +203,54 @@ public class BuilderTest extends TestBase {
 			.build();
 
 		cowsayAndAssert(env, "content!");
+	}
+
+	/** Tests auto-detecting builder from environment.yml content string. */
+	@Test
+	public void testContentEnvironmentYml() throws IOException, InterruptedException {
+		String envYml =
+			"name: content-env-yml\n" +
+			"channels:\n" +
+			"  - conda-forge\n" +
+			"dependencies:\n" +
+			"  - python>=3.8\n" +
+			"  - appose\n" +
+			"  - pip\n" +
+			"  - pip:\n" +
+			"    - cowsay==6.1\n";
+
+		Environment env = Appose.content(envYml)
+			.base("target/envs/content-env-yml")
+			.logDebug()
+			.build();
+
+		assertInstanceOf(PixiBuilder.class, env.builder());
+		cowsayAndAssert(env, "yml!");
+	}
+
+	/** Tests auto-detecting builder from pixi.toml content string. */
+	@Test
+	public void testContentPixiToml() throws IOException, InterruptedException {
+		String pixiToml =
+			"[project]\n" +
+			"name = \"content-pixi-toml\"\n" +
+			"channels = [\"conda-forge\"]\n" +
+			"platforms = [\"linux-64\", \"osx-64\", \"osx-arm64\", \"win-64\"]\n" +
+			"\n" +
+			"[dependencies]\n" +
+			"python = \">=3.8\"\n" +
+			"appose = \"*\"\n" +
+			"\n" +
+			"[pypi-dependencies]\n" +
+			"cowsay = \"==6.1\"\n";
+
+		Environment env = Appose.content(pixiToml)
+			.base("target/envs/content-pixi-toml")
+			.logDebug()
+			.build();
+
+		assertInstanceOf(PixiBuilder.class, env.builder());
+		cowsayAndAssert(env, "toml!");
 	}
 
 	/**
