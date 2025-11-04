@@ -244,15 +244,15 @@ public final class FilePaths {
 	/**
 	 * Checks that the given file is an existing directory, throwing an exception if not.
 	 *
-	 * @param envDir The file to check.
+	 * @param file The file to check.
 	 * @throws IOException If the given file does not exist, or is not a directory.
 	 */
-	public static void ensureDirectory(File envDir) throws IOException {
-		if (!envDir.exists()) {
-			throw new IOException("Environment directory does not exist: " + envDir);
+	public static void ensureDirectory(File file) throws IOException {
+		if (!file.exists()) {
+			throw new IOException("Directory does not exist: " + file);
 		}
-		if (!envDir.isDirectory()) {
-			throw new IOException("Not a directory: " + envDir);
+		if (!file.isDirectory()) {
+			throw new IOException("Not a directory: " + file);
 		}
 	}
 }
