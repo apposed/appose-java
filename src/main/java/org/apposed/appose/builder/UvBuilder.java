@@ -37,7 +37,6 @@ import org.apposed.appose.scheme.Schemes;
 
 import java.io.File;
 import java.io.IOException;
-import java.net.URISyntaxException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.util.ArrayList;
@@ -197,7 +196,7 @@ public final class UvBuilder extends BaseBuilder<UvBuilder> {
 			}
 
 			return createEnvironment(envDir);
-		} catch (InterruptedException | URISyntaxException e) {
+		} catch (InterruptedException e) {
 			throw new IOException(e);
 		}
 	}

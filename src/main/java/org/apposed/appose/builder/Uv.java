@@ -32,18 +32,14 @@ package org.apposed.appose.builder;
 import org.apposed.appose.util.Downloads;
 import org.apposed.appose.util.Environments;
 import org.apposed.appose.util.Platforms;
-import org.apposed.appose.util.Processes;
 
-import java.io.BufferedReader;
 import java.io.File;
 import java.io.IOException;
-import java.io.InputStreamReader;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
-import java.util.stream.Collectors;
 
 /**
  * UV-based environment manager.
@@ -53,7 +49,6 @@ import java.util.stream.Collectors;
  * @author Claude Code
  */
 class Uv extends Tool {
-
 
 	/** Relative path to the uv executable from the uv {@link #rootdir}. */
 	private final static Path UV_RELATIVE_PATH = Platforms.isWindows() ?
@@ -215,7 +210,6 @@ class Uv extends Tool {
 	 * @throws IllegalStateException if UV has not been installed
 	 */
 	public void createVenv(final File envDir, String pythonVersion) throws IOException, InterruptedException {
-		checkInstalled();
 		List<String> args = new ArrayList<>();
 		args.add("venv");
 		if (pythonVersion != null && !pythonVersion.isEmpty()) {
@@ -236,7 +230,6 @@ class Uv extends Tool {
 	 * @throws IllegalStateException if UV has not been installed
 	 */
 	public void pipInstall(final File envDir, String... packages) throws IOException, InterruptedException {
-		checkInstalled();
 		List<String> args = new ArrayList<>();
 		args.add("pip");
 		args.add("install");
@@ -256,7 +249,6 @@ class Uv extends Tool {
 	 * @throws IllegalStateException if UV has not been installed
 	 */
 	public void pipInstallFromRequirements(final File envDir, String requirementsFile) throws IOException, InterruptedException {
-		checkInstalled();
 		exec("pip", "install", "--python", envDir.getAbsolutePath(), "-r", requirementsFile);
 	}
 
@@ -271,8 +263,6 @@ class Uv extends Tool {
 	 * @throws IllegalStateException if UV has not been installed
 	 */
 	public void sync(final File projectDir, String pythonVersion) throws IOException, InterruptedException {
-		checkInstalled();
-
 		List<String> args = new ArrayList<>();
 		args.add("sync");
 		if (pythonVersion != null && !pythonVersion.isEmpty()) {
@@ -280,69 +270,7 @@ class Uv extends Tool {
 			args.add(pythonVersion);
 		}
 
-		// Run uv sync with working directory set to projectDir
-		runUvInDirectory(projectDir, args.toArray(new String[0]));
-	}
-
-	/**
-	 * Run a UV command with the specified arguments in a specific directory.
-	 *
-	 * @param workingDir The working directory for the command.
-	 * @param args Command arguments for uv.
-	 * @throws IOException If an I/O error occurs.
-	 * @throws InterruptedException If the current thread is interrupted.
-	 * @throws IllegalStateException if UV has not been installed
-	 */
-	public void runUvInDirectory(final File workingDir, final String... args) throws IOException, InterruptedException {
-		checkInstalled();
-		final List<String> cmd = Platforms.baseCommand();
-		cmd.add(command);
-		cmd.addAll(flags);  // Add user-specified flags
-		cmd.addAll(Arrays.asList(args));
-
-		final ProcessBuilder builder = Processes.builder(workingDir, envVars, false);
-		builder.command(cmd);
-		final Process process = builder.start();
-
-		Thread mainThread = Thread.currentThread();
-		Thread outputThread = new Thread(() -> {
-			try {
-				readStreams(process, mainThread);
-			} catch (IOException | InterruptedException e) {
-				error("Error reading streams: " + e.getMessage());
-			}
-		});
-
-		outputThread.start();
-		int exitCode = process.waitFor();
-		outputThread.join();
-
-		if (exitCode != 0) {
-			throw new IOException("UV command failed with exit code " + exitCode + ": " + String.join(" ", args));
-		}
-	}
-
-	@Override
-	public String version() throws IOException, InterruptedException {
-		final List<String> cmd = Platforms.baseCommand();
-		cmd.add(command);
-		// Don't add flags to --version command
-		cmd.add("--version");
-
-		final ProcessBuilder builder = processBuilder(rootdir, false);
-		builder.command(cmd);
-		final Process process = builder.start();
-
-		String version;
-		try (BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()))) {
-			version = reader.lines().collect(Collectors.joining("\n"));
-		}
-
-		int exitCode = process.waitFor();
-		if (exitCode != 0) {
-			throw new IOException("Failed to get UV version");
-		}
-
-		return version.trim();
+		// Run uv sync with working directory set to projectDir.
+		exec(projectDir, args.toArray(new String[0]));
 	}
 }

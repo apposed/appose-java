@@ -33,16 +33,13 @@ import org.apposed.appose.util.Downloads;
 import org.apposed.appose.util.Environments;
 import org.apposed.appose.util.Platforms;
 
-import java.io.BufferedReader;
 import java.io.File;
 import java.io.IOException;
-import java.io.InputStreamReader;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
-import java.util.stream.Collectors;
 
 /**
  * Pixi-based environment manager.
@@ -53,7 +50,6 @@ import java.util.stream.Collectors;
  * @author Claude Code
  */
 class Pixi extends Tool {
-
 
 	/** Relative path to the pixi executable from the pixi {@link #rootdir}. */
 	private final static Path PIXI_RELATIVE_PATH = Platforms.isWindows() ?
@@ -159,7 +155,6 @@ class Pixi extends Tool {
 	 * @throws IllegalStateException if Pixi has not been installed
 	 */
 	public void init(final File projectDir) throws IOException, InterruptedException {
-		checkInstalled();
 		exec("init", projectDir.getAbsolutePath());
 	}
 
@@ -173,7 +168,6 @@ class Pixi extends Tool {
 	 * @throws IllegalStateException if Pixi has not been installed
 	 */
 	public void addChannels(final File projectDir, final String... channels) throws IOException, InterruptedException {
-		checkInstalled();
 		if (channels.length == 0) return;
 		List<String> cmd = new ArrayList<>();
 		cmd.add("project");
@@ -195,7 +189,6 @@ class Pixi extends Tool {
 	 * @throws IllegalStateException if Pixi has not been installed
 	 */
 	public void addCondaPackages(final File projectDir, final String... packages) throws IOException, InterruptedException {
-		checkInstalled();
 		if (packages.length == 0) return;
 		List<String> cmd = new ArrayList<>();
 		cmd.add("add");
@@ -215,7 +208,6 @@ class Pixi extends Tool {
 	 * @throws IllegalStateException if Pixi has not been installed
 	 */
 	public void addPypiPackages(final File projectDir, final String... packages) throws IOException, InterruptedException {
-		checkInstalled();
 		if (packages.length == 0) return;
 		List<String> cmd = new ArrayList<>();
 		cmd.add("add");
@@ -224,16 +216,5 @@ class Pixi extends Tool {
 		cmd.add(new File(projectDir, "pixi.toml").getAbsolutePath());
 		cmd.addAll(Arrays.asList(packages));
 		exec(cmd.toArray(new String[0]));
-	}
-
-	@Override
-	public String version() throws IOException, InterruptedException {
-		final List<String> cmd = Platforms.baseCommand();
-		cmd.add(command);
-		cmd.add("--version");
-		final Process process = processBuilder(rootdir, false).command(cmd).start();
-		if (process.waitFor() != 0)
-			throw new RuntimeException("Error getting Pixi version");
-		return new BufferedReader(new InputStreamReader(process.getInputStream())).readLine();
 	}
 }

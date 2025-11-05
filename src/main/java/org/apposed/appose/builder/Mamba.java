@@ -63,25 +63,19 @@ import org.apposed.appose.util.Downloads;
 import org.apposed.appose.util.Environments;
 import org.apposed.appose.util.Platforms;
 
-import java.io.BufferedReader;
 import java.io.File;
 import java.io.IOException;
-import java.io.InputStreamReader;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
-import java.util.stream.Collectors;
 
 /**
  * Conda-based environment manager, implemented by delegating to micromamba.
  *
  * @author Ko Sugawara
  * @author Carlos Garcia Lopez de Haro
+ * @author Curtis Rueden
  */
 class Mamba extends Tool {
-
 
 	/** Relative path to the micromamba executable from the micromamba {@link #rootdir}. */
 	private final static Path MICROMAMBA_RELATIVE_PATH = Platforms.isWindows() ?
@@ -196,7 +190,6 @@ class Mamba extends Tool {
 	 */
 	public void create(final File envDir) throws IOException, InterruptedException
 	{
-		checkInstalled();
 		exec("create", "--prefix", envDir.getAbsolutePath(), "-y", "--no-rc");
 	}
 
@@ -215,19 +208,7 @@ class Mamba extends Tool {
 	 */
 	public void update(final File envDir, final File envYaml) throws IOException, InterruptedException
 	{
-		checkInstalled();
 		exec("env", "update", "-y", "--prefix",
-				envDir.getAbsolutePath(), "-f", envYaml.getAbsolutePath());
-	}
-
-	@Override
-	public String version() throws IOException, InterruptedException {
-		final List<String> cmd = Platforms.baseCommand();
-		cmd.add(command);
-		cmd.add("--version");
-		final Process process = processBuilder(rootdir, false).command(cmd).start();
-		if (process.waitFor() != 0)
-			throw new RuntimeException("Error getting Micromamba version");
-		return new BufferedReader(new InputStreamReader(process.getInputStream())).readLine();
+			envDir.getAbsolutePath(), "-f", envYaml.getAbsolutePath());
 	}
 }

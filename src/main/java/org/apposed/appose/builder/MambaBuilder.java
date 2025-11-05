@@ -36,7 +36,6 @@ import org.apposed.appose.scheme.Schemes;
 
 import java.io.File;
 import java.io.IOException;
-import java.net.URISyntaxException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.util.Arrays;
@@ -135,7 +134,7 @@ public final class MambaBuilder extends BaseBuilder<MambaBuilder> {
 			mamba.update(envDir, envYaml);
 
 			return createEnvironment(envDir);
-		} catch (InterruptedException | URISyntaxException e) {
+		} catch (InterruptedException e) {
 			throw new IOException(e);
 		}
 	}

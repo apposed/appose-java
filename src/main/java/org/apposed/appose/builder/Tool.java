@@ -35,7 +35,6 @@ import org.apposed.appose.util.Processes;
 
 import java.io.File;
 import java.io.IOException;
-import java.io.InputStream;
 import java.net.URISyntaxException;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -84,10 +83,10 @@ public abstract class Tool {
 	protected List<String> flags = new ArrayList<>();
 
 	/** Captured stdout from the last command execution. */
-	private final StringBuilder capturedOutput = new StringBuilder();
+	protected final StringBuilder capturedOutput = new StringBuilder();
 
 	/** Captured stderr from the last command execution. */
-	private final StringBuilder capturedError = new StringBuilder();
+	protected final StringBuilder capturedError = new StringBuilder();
 
 	public Tool(String name, String url, String command, String rootdir) {
 		this.name = name;
@@ -142,12 +141,30 @@ public abstract class Tool {
 
 	/**
 	 * Get the version of the installed tool.
+	 * <p>
+	 * This default implementation calls the tool with {@code --version} and
+	 * extracts the first whitespace-delimited token that starts with a digit.
+	 * Subclasses can override this method if their tool uses a different
+	 * version reporting format.
+	 * </p>
 	 *
 	 * @return The version string.
 	 * @throws IOException If an I/O error occurs.
 	 * @throws InterruptedException If the current thread is interrupted.
 	 */
-	abstract String version() throws IOException, InterruptedException;
+	public String version() throws IOException, InterruptedException {
+		// Example output of supported tools with --version flag:
+		// - 2.3.3
+		// - pixi 0.58.0
+		// - uv 0.5.25 (9c07c3fc5 2025-01-28)
+		execDirect("--version");
+		String output = capturedOutput.toString();
+		for (String token : output.split(" ")) {
+			char c = token.isEmpty() ? '\0' : token.charAt(0);
+			if (c >= '0' && c <= '9') return token; // starts with a digit
+		}
+		return output;
+	}
 
 	/**
 	 * Downloads and installs the external tool.
@@ -158,9 +175,8 @@ public abstract class Tool {
 	 *             If the current thread is interrupted by another thread while it
 	 *             is waiting, then the wait is ended and an InterruptedException is
 	 *             thrown.
-	 * @throws URISyntaxException  if there is an error with the URL
 	 */
-	public void install() throws IOException, InterruptedException, URISyntaxException {
+	public void install() throws IOException, InterruptedException {
 		if (isInstalled()) return;
 		decompress(download());
 	}
@@ -178,79 +194,100 @@ public abstract class Tool {
 		}
 	}
 
-	/**
-	 * Check whether the tool is installed or not
-	 * @throws IllegalStateException if the tool is not installed
-	 */
-	protected void checkInstalled() {
-		if (!isInstalled()) throw new IllegalStateException(name + " is not installed");
-	}
-
-	protected File download() throws IOException, InterruptedException, URISyntaxException {
-		return Downloads.download(name, url, this::updateDownloadProgress);
+	protected File download() throws IOException, InterruptedException {
+		try {
+			return Downloads.download(name, url, this::updateDownloadProgress);
+		}
+		catch (URISyntaxException exc) {
+			// If this happens, it's a bug in the Tool implementation: the
+			// URL being used internally to download the tool is malformed.
+			// Let's not propagate that URISyntaxException downstream.
+			throw new RuntimeException(exc);
+		}
 	}
 
 	protected abstract void decompress(final File archive) throws IOException, InterruptedException;
 
 	/**
-	 * Creates a ProcessBuilder configured with environment variables.
-	 * @param cwd Path to the working directory
-	 * @param isInheritIO Whether to inherit I/O streams from parent process
-	 * @return Configured ProcessBuilder
-	 */
-	protected ProcessBuilder processBuilder(String cwd, boolean isInheritIO) {
-		return Processes.builder(new File(cwd), envVars, isInheritIO);
-	}
-
-	/**
-	 * Execute a tool command with the specified arguments.
+	 * Executes a tool command with the specified arguments in the tool's root directory.
 	 *
 	 * @param args Command arguments for the tool.
 	 * @throws IOException If an I/O error occurs.
 	 * @throws InterruptedException If the current thread is interrupted.
-	 * @throws IllegalStateException if the tool has not been installed
+	 * @throws IllegalStateException If the tool has not been installed.
 	 */
-	protected void exec(final String... args) throws IOException, InterruptedException {
-		checkInstalled();
+	protected void exec(String... args) throws IOException, InterruptedException {
+		exec(null, args);
+	}
 
-		// Clear captured output from previous command
+	/**
+	 * Executes a tool command with the specified arguments.
+	 *
+	 * @param cwd Working directory for the command (null to use tool's root directory).
+	 * @param args Command arguments for the tool.
+	 * @throws IOException If an I/O error occurs.
+	 * @throws InterruptedException If the current thread is interrupted.
+	 * @throws IllegalStateException If the tool has not been installed.
+	 */
+	protected void exec(File cwd, String... args) throws IOException, InterruptedException {
+		if (!isInstalled()) throw new IllegalStateException(name + " is not installed");
+		doExec(cwd, false, true, args); // silent=false, includeFlags=true
+	}
+
+	/**
+	 * Executes a tool command with the specified arguments, without validating the tool installation beforehand,
+	 * without passing output to external listeners (see {@link #setOutputConsumer} and {@link #setErrorConsumer}),
+	 * and
+	 *
+	 * @param args Command arguments for the tool.
+	 * @throws IOException If an I/O error occurs.
+	 * @throws InterruptedException If the current thread is interrupted.
+	 */
+	protected void execDirect(String... args) throws IOException, InterruptedException {
+		doExec(null, true, false, args); // silent=true, includeFlags=false
+	}
+
+	/**
+	 * Executes a tool command with the specified arguments,
+	 * without validating the tool installation beforehand.
+	 *
+	 * @param cwd Working directory for the command (null to use tool's root directory).
+	 * @param silent If false, pass command output along to external listeners
+	 *                  (see {@link #setOutputConsumer} and {@link #setErrorConsumer}).
+	 * @param includeFlags If true, include {@link #flags} in the command argument list (see {@link #setFlags}).
+	 * @param args Command arguments for the tool.
+	 * @throws IOException If an I/O error occurs.
+	 * @throws InterruptedException If the current thread is interrupted.
+	 */
+	private void doExec(File cwd, boolean silent, boolean includeFlags, String... args) throws IOException, InterruptedException {
+		// Clear captured output from previous command.
 		capturedOutput.setLength(0);
 		capturedError.setLength(0);
 
 		final List<String> cmd = Platforms.baseCommand();
 		cmd.add(command);
-		cmd.addAll(flags);  // Add user-specified flags
+		if (includeFlags) cmd.addAll(flags);
 		cmd.addAll(Arrays.asList(args));
 
-		final ProcessBuilder builder = processBuilder(rootdir, false);
+		final String workingDir = cwd != null ? cwd.getAbsolutePath() : rootdir;
+		final ProcessBuilder builder = Processes.builder(new File(workingDir), envVars);
 		builder.command(cmd);
-		final Process process = builder.start();
-
-		Thread mainThread = Thread.currentThread();
-		Thread outputThread = new Thread(() -> {
-			try {
-				readStreams(process, mainThread);
-			} catch (IOException | InterruptedException e) {
-				error("Error reading streams: " + e.getMessage());
-			}
-		});
-
-		outputThread.start();
-		int exitCode = process.waitFor();
-		outputThread.join();
+		int exitCode = Processes.run(builder,
+			silent ? capturedOutput::append : this::output,
+			silent ? capturedError::append : this::error);
 
 		if (exitCode != 0) {
 			StringBuilder errorMsg = new StringBuilder();
 			errorMsg.append(name).append(" command failed with exit code ").append(exitCode);
 			errorMsg.append(": ").append(String.join(" ", args));
 
-			// Include stderr if available
+			// Include stderr if available.
 			String stderr = capturedError.toString().trim();
 			if (!stderr.isEmpty()) {
 				errorMsg.append("\n\nError output:\n").append(stderr);
 			}
 
-			// Include stdout if available and stderr was empty
+			// Include stdout if available and stderr was empty.
 			String stdout = capturedOutput.toString().trim();
 			if (stderr.isEmpty() && !stdout.isEmpty()) {
 				errorMsg.append("\n\nOutput:\n").append(stdout);
@@ -269,12 +306,9 @@ public abstract class Tool {
 	 * @param line The line of stdout to process
 	 */
 	protected void output(String line) {
-		if (line != null && !line.isEmpty()) {
-			capturedOutput.append(line);
-			if (outputConsumer != null) {
-				outputConsumer.accept(line);
-			}
-		}
+		if (line == null || line.isEmpty()) return;
+		capturedOutput.append(line);
+		if (outputConsumer != null) outputConsumer.accept(line);
 	}
 
 	/**
@@ -286,12 +320,9 @@ public abstract class Tool {
 	 * @param line The line of stderr to process
 	 */
 	protected void error(String line) {
-		if (line != null && !line.isEmpty()) {
-			capturedError.append(line);
-			if (errorConsumer != null) {
-				errorConsumer.accept(line);
-			}
-		}
+		if (line == null || line.isEmpty()) return;
+		capturedError.append(line);
+		if (errorConsumer != null) errorConsumer.accept(line);
 	}
 
 	/**
@@ -302,75 +333,6 @@ public abstract class Tool {
 	protected void updateDownloadProgress(long current, long total) {
 		if (downloadProgressConsumer != null) {
 			downloadProgressConsumer.accept(current, total);
-		}
-	}
-
-	/**
-	 * Reads stdout and stderr streams from a process, reporting each line to consumers.
-	 * This method blocks until the process completes.
-	 * 
-	 * @param process The process to read streams from
-	 * @param mainThread The main thread to monitor for interruption
-	 * @throws IOException If an I/O error occurs
-	 * @throws InterruptedException If interrupted while reading
-	 */
-	protected void readStreams(Process process, Thread mainThread) throws IOException, InterruptedException {
-		try (
-			InputStream inputStream = process.getInputStream();
-			InputStream errStream = process.getErrorStream()
-		) {
-			byte[] buffer = new byte[1024];
-			StringBuilder processBuff = new StringBuilder();
-			StringBuilder errBuff = new StringBuilder();
-			int newLineIndex;
-
-			while (process.isAlive() || inputStream.available() > 0 || errStream.available() > 0) {
-				if (!mainThread.isAlive()) {
-					process.destroyForcibly();
-					return;
-				}
-
-				// Read stdout
-				if (inputStream.available() > 0) {
-					processBuff.append(new String(buffer, 0, inputStream.read(buffer)));
-					while ((newLineIndex = processBuff.indexOf(System.lineSeparator())) != -1) {
-						String line = processBuff.substring(0, newLineIndex);
-						output(line + System.lineSeparator());
-						processBuff.delete(0, newLineIndex + System.lineSeparator().length());
-					}
-				}
-
-				// Read stderr
-				if (errStream.available() > 0) {
-					errBuff.append(new String(buffer, 0, errStream.read(buffer)));
-					while ((newLineIndex = errBuff.indexOf(System.lineSeparator())) != -1) {
-						String line = errBuff.substring(0, newLineIndex);
-						error(line + System.lineSeparator());
-						errBuff.delete(0, newLineIndex + System.lineSeparator().length());
-					}
-				}
-
-				// Sleep to avoid busy waiting
-				Thread.sleep(60);
-			}
-
-			// Flush remaining output
-			if (inputStream.available() > 0) {
-				processBuff.append(new String(buffer, 0, inputStream.read(buffer)));
-				String remaining = processBuff.toString();
-				if (!remaining.isEmpty()) {
-					output(remaining + System.lineSeparator());
-				}
-			}
-
-			// Flush remaining errors
-			if (errStream.available() > 0) {
-				errBuff.append(new String(buffer, 0, errStream.read(buffer)));
-				String remaining = errBuff.toString();
-				if (!remaining.isEmpty()) {
-					error(remaining + System.lineSeparator());
-				}
-			}
 		}
 	}
 }

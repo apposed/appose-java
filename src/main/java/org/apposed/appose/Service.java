@@ -159,7 +159,7 @@ public class Service implements AutoCloseable {
 			envVars.put("APPOSE_INIT_SCRIPT", initFile.getAbsolutePath());
 		}
 
-		ProcessBuilder pb = Processes.builder(cwd, envVars, false, args);
+		ProcessBuilder pb = Processes.builder(cwd, envVars, args);
 		process = pb.start();
 		stdin = new PrintWriter(process.getOutputStream());
 		stdoutThread = new Thread(this::stdoutLoop, prefix + "-Stdout");
