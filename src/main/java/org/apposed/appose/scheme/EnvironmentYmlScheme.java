@@ -45,8 +45,8 @@ public class EnvironmentYmlScheme implements Scheme {
 
 	@Override
 	public double priority() {
-		// TODO
-		return 0;
+		// Higher priority than requirements.txt, but lower than pixi.toml and pyproject.toml.
+		return 20;
 	}
 
 	@Override

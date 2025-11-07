@@ -48,7 +48,7 @@ public class RequirementsTxtScheme implements Scheme {
 
 	@Override
 	public double priority() {
-		// TODO
+		// This scheme is less rich than the others, so don't prefer it.
 		return 0;
 	}
 

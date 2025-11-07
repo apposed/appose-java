@@ -48,7 +48,7 @@ public class PixiTomlScheme implements Scheme {
 
 	@Override
 	public double priority() {
-		// Lower priority than pyproject.toml but higher than plain text.
+		// Lower priority than pyproject.toml but higher than environment.yml and plain text.
 		return 50;
 	}
 
