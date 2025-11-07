@@ -176,4 +176,14 @@ public abstract class BaseBuilder<T extends BaseBuilder<T>> implements Builder<T
 		return scheme != null ?
 			Schemes.fromName(scheme) : Schemes.fromContent(sourceContent);
 	}
+
+	protected Environment createEnv(String base, List<String> binPaths, List<String> launchArgs) {
+		return new Environment() {
+			@Override public String base() { return base; }
+			@Override public List<String> binPaths() { return binPaths; }
+			@Override public List<String> launchArgs() { return launchArgs; }
+			@Override public Map<String, String> envVars() { return envVars; }
+			@Override public Builder<?> builder() { return BaseBuilder.this; }
+		};
+	}
 }

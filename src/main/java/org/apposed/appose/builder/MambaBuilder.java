@@ -29,7 +29,6 @@
 
 package org.apposed.appose.builder;
 
-import org.apposed.appose.Builder;
 import org.apposed.appose.Environment;
 import org.apposed.appose.util.FilePaths;
 import org.apposed.appose.scheme.Schemes;
@@ -41,7 +40,6 @@ import java.nio.file.Files;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
-import java.util.Map;
 
 /**
  * Type-safe builder for Micromamba-based environments.
@@ -171,13 +169,6 @@ public final class MambaBuilder extends BaseBuilder<MambaBuilder> {
 		String base = envDir.getAbsolutePath();
 		List<String> launchArgs = Arrays.asList(mamba.command, "run", "-p", base);
 		List<String> binPaths = Collections.singletonList(envDir.toPath().resolve("bin").toString());
-
-		return new Environment() {
-			@Override public String base() { return base; }
-			@Override public List<String> binPaths() { return binPaths; }
-			@Override public List<String> launchArgs() { return launchArgs; }
-			@Override public Map<String, String> envVars() { return MambaBuilder.this.envVars; }
-			@Override public Builder<?> builder() { return MambaBuilder.this; }
-		};
+		return createEnv(base, binPaths, launchArgs);
 	}
 }

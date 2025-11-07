@@ -29,7 +29,6 @@
 
 package org.apposed.appose.builder;
 
-import org.apposed.appose.Builder;
 import org.apposed.appose.Environment;
 import org.apposed.appose.util.FilePaths;
 import org.apposed.appose.util.Platforms;
@@ -43,7 +42,6 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
-import java.util.Map;
 
 /**
  * Type-safe builder for UV-based virtual environments.
@@ -258,12 +256,6 @@ public final class UvBuilder extends BaseBuilder<UvBuilder> {
 		// No special launch args needed - executables are directly in bin/Scripts
 		List<String> launchArgs = Collections.emptyList();
 
-		return new Environment() {
-			@Override public String base() { return base; }
-			@Override public List<String> binPaths() { return binPaths; }
-			@Override public List<String> launchArgs() { return launchArgs; }
-			@Override public Map<String, String> envVars() { return UvBuilder.this.envVars; }
-			@Override public Builder<?> builder() { return UvBuilder.this; }
-		};
+		return createEnv(base, binPaths, launchArgs);
 	}
 }

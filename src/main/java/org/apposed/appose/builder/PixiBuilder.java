@@ -29,7 +29,6 @@
 
 package org.apposed.appose.builder;
 
-import org.apposed.appose.Builder;
 import org.apposed.appose.Environment;
 import org.apposed.appose.util.FilePaths;
 import org.apposed.appose.scheme.Schemes;
@@ -40,8 +39,8 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
-import java.util.Map;
 
 /**
  * Type-safe builder for Pixi-based environments.
@@ -265,23 +264,14 @@ public final class PixiBuilder extends BaseBuilder<PixiBuilder> {
 		String base = envDir.getAbsolutePath();
 		// Check which manifest file exists (pyproject.toml takes precedence)
 		File manifestFile = new File(envDir, "pyproject.toml");
-		if (!manifestFile.exists()) {
-			manifestFile = new File(envDir, "pixi.toml");
-		}
+		if (!manifestFile.exists()) manifestFile = new File(envDir, "pixi.toml");
 		List<String> launchArgs = Arrays.asList(
 				pixi.command, "run", "--manifest-path",
 				manifestFile.getAbsolutePath()
 		);
-		List<String> binPaths = Arrays.asList(
-				envDir.toPath().resolve(".pixi").resolve("envs").resolve("default").resolve("bin").toString()
-		);
-
-		return new Environment() {
-			@Override public String base() { return base; }
-			@Override public List<String> binPaths() { return binPaths; }
-			@Override public List<String> launchArgs() { return launchArgs; }
-			@Override public Map<String, String> envVars() { return PixiBuilder.this.envVars; }
-			@Override public Builder<?> builder() { return PixiBuilder.this; }
-		};
+		List<String> binPaths = Collections.singletonList(
+			envDir.toPath().resolve(".pixi").resolve("envs").resolve("default").resolve("bin").toString()
+        );
+		return createEnv(base, binPaths, launchArgs);
 	}
 }
