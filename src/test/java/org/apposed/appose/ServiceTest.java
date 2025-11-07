@@ -48,7 +48,7 @@ import static org.junit.jupiter.api.Assertions.*;
 public class ServiceTest extends TestBase {
 
 	@Test
-	public void testGroovy() throws IOException, InterruptedException {
+	public void testGroovy() throws IOException, InterruptedException, TaskException {
 		Environment env = Appose.system();
 		try (Service service = env.groovy()) {
 			maybeDebug(service);
@@ -57,7 +57,7 @@ public class ServiceTest extends TestBase {
 	}
 
 	@Test
-	public void testPython() throws IOException, InterruptedException {
+	public void testPython() throws IOException, InterruptedException, TaskException {
 		Environment env = Appose.system();
 		try (Service service = env.python()) {
 			maybeDebug(service);
@@ -66,7 +66,7 @@ public class ServiceTest extends TestBase {
 	}
 
 	@Test
-	public void testScopeGroovy() throws IOException, InterruptedException {
+	public void testScopeGroovy() throws IOException, InterruptedException, TaskException {
 		Environment env = Appose.system();
 		try (Service service = env.groovy()) {
 			maybeDebug(service);
@@ -87,7 +87,7 @@ public class ServiceTest extends TestBase {
 	}
 
 	@Test
-	public void testServiceStartupFailure() throws IOException, InterruptedException {
+	public void testServiceStartupFailure() throws IOException, InterruptedException, TaskException {
 		// Create an environment with no binPaths to test startup failure.
 		File tempDir = new File("no-pythons-to-be-found-here");
 		tempDir.mkdirs();
@@ -129,15 +129,19 @@ public class ServiceTest extends TestBase {
 		try (Service service = env.python()) {
 			maybeDebug(service);
 			String script = "whee\n";
-			Task task = service.task(script).waitFor();
-			assertSame(TaskStatus.FAILED, task.status);
-			String expectedError = "NameError: name 'whee' is not defined";
-			assertTrue(task.error.contains(expectedError));
+			try {
+				service.task(script).waitFor();
+				fail("Expected TaskException for failed script");
+			}
+			catch (TaskException e) {
+				String expectedError = "NameError: name 'whee' is not defined";
+				assertTrue(e.getMessage().contains(expectedError));
+			}
 		}
 	}
 
 	@Test
-	public void testStartupCrash() throws InterruptedException, IOException {
+	public void testStartupCrash() throws InterruptedException, IOException, TaskException {
 		Environment env = Appose.system();
 		List<String> pythonExes = Arrays.asList("python", "python3", "python.exe");
 		@SuppressWarnings("resource")
@@ -167,21 +171,22 @@ public class ServiceTest extends TestBase {
 			// called within a dedicated threading.Thread; the thread just dies.
 			// So in addition to testing the Java code here, we are also testing
 			// that Appose's python_worker handles this situation well.
-			Task task = service.task("import sys\nsys.exit(123)").waitFor();
-
-			// Is the tag flagged as failed?
-			assertSame(TaskStatus.FAILED, task.status);
-
-			// The failure should be either "thread death" or a "SystemExit" message.
-			assertTrue(
-				task.error.equals("thread death") ||
-				task.error.contains("SystemExit: 123")
-			);
+			try {
+				service.task("import sys\nsys.exit(123)").waitFor();
+				fail("Expected TaskException for sys.exit");
+			}
+			catch (TaskException e) {
+				// The failure should be either "thread death" or a "SystemExit" message.
+				assertTrue(
+					e.getMessage().contains("thread death") ||
+					e.getMessage().contains("SystemExit: 123")
+				);
+			}
 		}
 	}
 
 	@Test
-	public void testCrashWithActiveTask() throws InterruptedException, IOException {
+	public void testCrashWithActiveTask() throws InterruptedException, IOException, TaskException {
 		Environment env = Appose.system();
 		try (Service service = env.python()) {
 			maybeDebug(service);
@@ -254,7 +259,7 @@ public class ServiceTest extends TestBase {
 	}
 
 	@Test
-	public void testMainThreadQueueGroovy() throws IOException, InterruptedException {
+	public void testMainThreadQueueGroovy() throws IOException, InterruptedException, TaskException {
 		Environment env = Appose.system();
 		try (Service service = env.groovy()) {
 			Task task = service.task(THREAD_CHECK_GROOVY, "main").waitFor();
@@ -268,7 +273,7 @@ public class ServiceTest extends TestBase {
 	}
 
 	@Test
-	public void testMainThreadQueuePython() throws IOException, InterruptedException {
+	public void testMainThreadQueuePython() throws IOException, InterruptedException, TaskException {
 		Environment env = Appose.system();
 		try (Service service = env.python()) {
 			Task task = service.task(THREAD_CHECK_PYTHON, "main").waitFor();
@@ -283,7 +288,7 @@ public class ServiceTest extends TestBase {
 
 	/** Tests that init script is executed before tasks run. */
 	@Test
-	public void testInit() throws IOException, InterruptedException {
+	public void testInit() throws IOException, InterruptedException, TaskException {
 		Environment env = Appose.system();
 		try (Service service = env.groovy().init("init_value = 'initialized'")) {
 			maybeDebug(service);
@@ -300,7 +305,7 @@ public class ServiceTest extends TestBase {
 
 	/** Tests {@link Task#result()} convenience method. */
 	@Test
-	public void testTaskResult() throws IOException, InterruptedException {
+	public void testTaskResult() throws IOException, InterruptedException, TaskException {
 		Environment env = Appose.system();
 		try (Service service = env.python()) {
 			maybeDebug(service);
@@ -320,7 +325,7 @@ public class ServiceTest extends TestBase {
 
 	/** Tests {@link Task#result()} returns null when no result is set. */
 	@Test
-	public void testTaskResultNull() throws IOException, InterruptedException {
+	public void testTaskResultNull() throws IOException, InterruptedException, TaskException {
 		Environment env = Appose.system();
 		try (Service service = env.groovy()) {
 			maybeDebug(service);
@@ -336,7 +341,7 @@ public class ServiceTest extends TestBase {
 
 	/** Tests that NumPy works on every platform, even Windows. */
 	@Test
-	public void testInitNumpy() throws IOException, InterruptedException {
+	public void testInitNumpy() throws IOException, InterruptedException, TaskException {
 		Environment env = Appose.pixi()
 			.base("target/envs/test-init-numpy")
 			.conda("numpy=2.3.4")

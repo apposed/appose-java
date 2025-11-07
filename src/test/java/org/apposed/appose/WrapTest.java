@@ -147,7 +147,7 @@ public class WrapTest extends TestBase {
 
 	/** Tests that preexisting (wrapped) environments can be rebuilt properly. */
 	@Test
-	public void testWrapAndRebuild() throws IOException, InterruptedException {
+	public void testWrapAndRebuild() throws IOException, InterruptedException, TaskException {
 		// Build an environment from a config file.
 		File envDir = new File("target/envs/mamba-wrap-rebuild-test");
 		Environment env1 = Appose

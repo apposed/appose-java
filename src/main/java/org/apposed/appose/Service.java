@@ -279,15 +279,14 @@ public class Service implements AutoCloseable {
 	 * @return The value of the variable.
 	 * @throws IOException If something goes wrong communicating with the worker.
 	 * @throws InterruptedException If the current thread is interrupted while waiting.
-	 * @throws IllegalStateException If the task fails to retrieve the variable, or if
-	 *                               no script syntax has been configured for this service.
+	 * @throws TaskException If the task fails to retrieve the variable.
+	 * @throws IllegalStateException If no script syntax has been configured for this service.
 	 */
-	public Object getVar(String name) throws IOException, InterruptedException {
+	public Object getVar(String name) throws IOException, InterruptedException, TaskException {
 		Syntaxes.validate(this);
 		String script = syntax.getVar(name);
 		Task task = task(script).waitFor();
-		if (task.status == TaskStatus.COMPLETE) return task.result();
-		throw new IllegalStateException("Failed to get variable '" + name + "': " + task.error);
+		return task.result();
 	}
 
 	/**
@@ -304,18 +303,15 @@ public class Service implements AutoCloseable {
 	 * @param value The value to assign to the variable.
 	 * @throws IOException If something goes wrong communicating with the worker.
 	 * @throws InterruptedException If the current thread is interrupted while waiting.
-	 * @throws RuntimeException If the task fails to set the variable.
+	 * @throws TaskException If the task fails to set the variable.
 	 * @throws IllegalStateException If no script syntax has been configured for this service.
 	 */
-	public void putVar(String name, Object value) throws IOException, InterruptedException {
+	public void putVar(String name, Object value) throws IOException, InterruptedException, TaskException {
 		Syntaxes.validate(this);
 		Map<String, Object> inputs = new HashMap<>();
 		inputs.put("_value", value);
 		String script = syntax.putVar(name, "_value");
-		Task task = task(script, inputs).waitFor();
-		if (task.status != TaskStatus.COMPLETE) {
-			throw new RuntimeException("Failed to put variable '" + name + "': " + task.error);
-		}
+		task(script, inputs).waitFor();
 	}
 
 	/**
@@ -336,10 +332,10 @@ public class Service implements AutoCloseable {
 	 * @return The result of the function call.
 	 * @throws IOException If something goes wrong communicating with the worker.
 	 * @throws InterruptedException If the current thread is interrupted while waiting.
-	 * @throws IllegalStateException If the function call fails, or if no script syntax
-	 *                               has been configured for this service.
+	 * @throws TaskException If the function call fails.
+	 * @throws IllegalStateException If no script syntax has been configured for this service.
 	 */
-	public Object call(String function, Object... args) throws IOException, InterruptedException {
+	public Object call(String function, Object... args) throws IOException, InterruptedException, TaskException {
 		Syntaxes.validate(this);
 		Map<String, Object> inputs = new HashMap<>();
 		List<String> varNames = new ArrayList<>();
@@ -350,8 +346,7 @@ public class Service implements AutoCloseable {
 		}
 		String script = syntax.call(function, varNames);
 		Task task = task(script, inputs).waitFor();
-		if (task.status == TaskStatus.COMPLETE) return task.result();
-		throw new IllegalStateException("Failed to call function '" + function + "': " + task.error);
+		return task.result();
 	}
 
 	/**
@@ -626,7 +621,14 @@ public class Service implements AutoCloseable {
 		 * @return true iff status is {@link #COMPLETE}, {@link #CANCELED}, {@link #FAILED}, or {@link #CRASHED}.
 		 */
 		public boolean isFinished() {
-			return this == COMPLETE || this == CANCELED || this == FAILED || this == CRASHED;
+			return this == COMPLETE || isError();
+		}
+
+		/**
+		 * @return true iff status is {@link #CANCELED}, {@link #FAILED}, or {@link #CRASHED}.
+		 */
+		public boolean isError() {
+			return this == CANCELED || this == FAILED || this == CRASHED;
 		}
 	}
 
@@ -637,7 +639,7 @@ public class Service implements AutoCloseable {
 	public enum ResponseType {
 		LAUNCH, UPDATE, COMPLETION, CANCELATION, FAILURE, CRASH;
 
-		/** True iff response type is COMPLETE, CANCELED, FAILED, or CRASHED. */
+		/** True iff response type is COMPLETION, CANCELATION, FAILURE, or CRASH. */
 		public boolean isTerminal() {
 			return Arrays.asList(COMPLETION, CANCELATION, FAILURE, CRASH).contains(this);
 		}
@@ -673,9 +675,10 @@ public class Service implements AutoCloseable {
 		 * Begins executing the task.
 		 *
 		 * @return This task, for fluid method chaining.
+		 * @throws IllegalStateException If task is not in {@link TaskStatus#INITIAL} state.
 		 */
 		public synchronized Task start() {
-			if (status != TaskStatus.INITIAL) throw new IllegalStateException();
+			validateInitialState();
 			status = TaskStatus.QUEUED;
 
 			Map<String, Object> args = new HashMap<>();
@@ -692,23 +695,37 @@ public class Service implements AutoCloseable {
 		 *
 		 * @param listener Function to invoke in response to task status updates.
 		 * @return This task, for fluid method chaining.
+		 * @throws IllegalStateException If task is not in {@link TaskStatus#INITIAL} state.
 		 */
 		public synchronized Task listen(Consumer<TaskEvent> listener) {
-			if (status != TaskStatus.INITIAL) {
-				throw new IllegalStateException("Task is not in the INITIAL state");
-			}
+			validateInitialState();
 			listeners.add(listener);
 			return this;
 		}
 
 		/**
 		 * Blocks until the task has finished executing.
+		 * <p>
+		 * If the task completes successfully ({@link TaskStatus#COMPLETE}), this method
+		 * returns normally. If the task experiences an error ({@link TaskStatus#FAILED},
+		 * {@link TaskStatus#CANCELED}, or {@link TaskStatus#CRASHED}), this method throws
+		 * a {@link TaskException} containing the error details.
+		 * </p>
 		 *
 		 * @return This task, for fluid method chaining.
+		 * @throws TaskException If the task does not complete successfully.
 		 */
-		public synchronized Task waitFor() throws InterruptedException {
+		public synchronized Task waitFor() throws InterruptedException, TaskException {
 			if (status == TaskStatus.INITIAL) start();
 			if (status == TaskStatus.QUEUED || status == TaskStatus.RUNNING) wait();
+
+			// Check if the task failed and throw an exception if so.
+			if (status.isError()) {
+				String message = "Task " + status.toString().toLowerCase() + ": " +
+					(error != null ? error : "No error message available");
+				throw new TaskException(message, this);
+			}
+
 			return this;
 		}
 
@@ -729,6 +746,11 @@ public class Service implements AutoCloseable {
 		 */
 		public Object result() {
 			return outputs.get("result");
+		}
+
+		@Override
+		public String toString() {
+			return String.format("uuid=%s, status=%s, error=%s", uuid, status, error);
 		}
 
 		/** Sends a request to the worker process. */
@@ -808,9 +830,9 @@ public class Service implements AutoCloseable {
 			}
 		}
 
-		@Override
-		public String toString() {
-			return String.format("uuid=%s, status=%s, error=%s", uuid, status, error);
+		private void validateInitialState() {
+			if (status == TaskStatus.INITIAL) return;
+			throw new IllegalStateException("Task is not in the INITIAL state");
 		}
 	}
 }

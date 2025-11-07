@@ -43,7 +43,7 @@ public class SyntaxTest extends TestBase {
 
 	/** Tests getting a variable from worker's global scope using {@link Service#getVar}. */
 	@Test
-	public void testGetVarPython() throws IOException, InterruptedException {
+	public void testGetVarPython() throws IOException, InterruptedException, TaskException {
 		Environment env = Appose.system();
 		try (Service service = env.python()) {
 			maybeDebug(service);
@@ -60,7 +60,7 @@ public class SyntaxTest extends TestBase {
 
 	/** Tests getting a variable from worker's global scope using {@link Service#getVar}. */
 	@Test
-	public void testGetVarGroovy() throws IOException, InterruptedException {
+	public void testGetVarGroovy() throws IOException, InterruptedException, TaskException {
 		Environment env = Appose.system();
 		try (Service service = env.groovy()) {
 			maybeDebug(service);
@@ -86,17 +86,17 @@ public class SyntaxTest extends TestBase {
 
 			try {
 				service.getVar("nonexistent_variable");
-				fail("Expected IllegalStateException for nonexistent variable");
+				fail("Expected TaskException for nonexistent variable");
 			}
-			catch (IllegalStateException exc) {
-				assertTrue(exc.getMessage().contains("Failed to get variable 'nonexistent_variable'"));
+			catch (TaskException exc) {
+				assertTrue(exc.getMessage().contains("failed"));
 			}
 		}
 	}
 
 	/** Tests setting a variable in worker's global scope using {@link Service#putVar}. */
 	@Test
-	public void testPutVarPython() throws IOException, InterruptedException {
+	public void testPutVarPython() throws IOException, InterruptedException, TaskException {
 		Environment env = Appose.system();
 		try (Service service = env.python()) {
 			maybeDebug(service);
@@ -114,7 +114,7 @@ public class SyntaxTest extends TestBase {
 
 	/** Tests setting a variable in worker's global scope using {@link Service#putVar}. */
 	@Test
-	public void testPutVarGroovy() throws IOException, InterruptedException {
+	public void testPutVarGroovy() throws IOException, InterruptedException, TaskException {
 		Environment env = Appose.system();
 		try (Service service = env.groovy()) {
 			maybeDebug(service);
@@ -132,7 +132,7 @@ public class SyntaxTest extends TestBase {
 
 	/** Tests that {@link Service#putVar} with a list works correctly. */
 	@Test
-	public void testPutVarList() throws IOException, InterruptedException {
+	public void testPutVarList() throws IOException, InterruptedException, TaskException {
 		Environment env = Appose.system();
 		try (Service service = env.python()) {
 			maybeDebug(service);
@@ -151,7 +151,7 @@ public class SyntaxTest extends TestBase {
 
 	/** Tests calling a built-in function using {@link Service#call}. */
 	@Test
-	public void testCallBuiltinPython() throws IOException, InterruptedException {
+	public void testCallBuiltinPython() throws IOException, InterruptedException, TaskException {
 		Environment env = Appose.system();
 		try (Service service = env.python()) {
 			maybeDebug(service);
@@ -165,7 +165,7 @@ public class SyntaxTest extends TestBase {
 
 	/** Tests calling a built-in function using {@link Service#call}. */
 	@Test
-	public void testCallBuiltinGroovy() throws IOException, InterruptedException {
+	public void testCallBuiltinGroovy() throws IOException, InterruptedException, TaskException {
 		Environment env = Appose.system();
 		try (Service service = env.groovy()) {
 			maybeDebug(service);
@@ -179,7 +179,7 @@ public class SyntaxTest extends TestBase {
 
 	/** Tests calling a custom function using {@link Service#call}. */
 	@Test
-	public void testCallCustomFunctionPython() throws IOException, InterruptedException {
+	public void testCallCustomFunctionPython() throws IOException, InterruptedException, TaskException {
 		Environment env = Appose.system();
 		try (Service service = env.python()) {
 			maybeDebug(service);
@@ -200,7 +200,7 @@ public class SyntaxTest extends TestBase {
 
 	/** Tests calling a custom function using {@link Service#call}. */
 	@Test
-	public void testCallCustomFunctionGroovy() throws IOException, InterruptedException {
+	public void testCallCustomFunctionGroovy() throws IOException, InterruptedException, TaskException {
 		Environment env = Appose.system();
 		try (Service service = env.groovy()) {
 			maybeDebug(service);
@@ -227,10 +227,10 @@ public class SyntaxTest extends TestBase {
 
 			try {
 				service.call("nonexistent_function", 1, 2, 3);
-				fail("Expected IllegalStateException for nonexistent function");
+				fail("Expected TaskException for nonexistent function");
 			}
-			catch (IllegalStateException exc) {
-				assertTrue(exc.getMessage().contains("Failed to call function 'nonexistent_function'"));
+			catch (TaskException exc) {
+				assertTrue(exc.getMessage().contains("failed"));
 			}
 		}
 	}
@@ -243,7 +243,7 @@ public class SyntaxTest extends TestBase {
 
 	/** Tests {@link Service#proxy}. */
 	@Test
-	public void testProxy() throws IOException, InterruptedException {
+	public void testProxy() throws IOException, InterruptedException, TaskException {
 		Environment env = Appose.system();
 		try (Service service = env.groovy()) {
 			Task setup = service.task(

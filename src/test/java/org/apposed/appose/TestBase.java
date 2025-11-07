@@ -84,7 +84,7 @@ public abstract class TestBase {
 		"task.outputs[\"thread\"] = threading.current_thread().name\n";
 
 	public void executeAndAssert(Service service, String script)
-		throws IOException, InterruptedException
+		throws IOException, InterruptedException, TaskException
 	{
 		Task task = service.task(script);
 
@@ -142,7 +142,7 @@ public abstract class TestBase {
 	}
 
 	public void cowsayAndAssert(Environment env, String greeting)
-		throws IOException, InterruptedException
+		throws IOException, InterruptedException, TaskException
 	{
 		try (Service service = env.python()) {
 			maybeDebug(service);

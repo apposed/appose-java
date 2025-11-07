@@ -30,6 +30,7 @@
 package org.apposed.appose.util;
 
 import org.apposed.appose.Service;
+import org.apposed.appose.TaskException;
 import org.apposed.appose.syntax.Syntaxes;
 
 import java.lang.reflect.Proxy;
@@ -166,12 +167,14 @@ public final class Proxies {
 			Syntaxes.validate(service);
 			String script = service.syntax().invokeMethod(var, method.getName(), argNames);
 
-			Service.Task task = service.task(script, inputs, queue);
-			task.waitFor();
-			if (task.status != Service.TaskStatus.COMPLETE) {
-				throw new RuntimeException(task.error);
+			try {
+				Service.Task task = service.task(script, inputs, queue);
+				task.waitFor();
+				return task.result();
 			}
-			return task.result();
+			catch (TaskException e) {
+				throw new RuntimeException(e.getMessage(), e);
+			}
 		});
 	}
 }

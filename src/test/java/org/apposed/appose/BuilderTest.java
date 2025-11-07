@@ -53,7 +53,7 @@ public class BuilderTest extends TestBase {
 
 	/** Tests the builder-agnostic API with an environment.yml file. */
 	@Test
-	public void testConda() throws IOException, InterruptedException {
+	public void testConda() throws Exception {
 		Environment env = Appose
 			.file("src/test/resources/envs/cowsay.yml")
 			.base("target/envs/conda-cowsay")
@@ -64,7 +64,7 @@ public class BuilderTest extends TestBase {
 	}
 
 	@Test
-	public void testPixi() throws IOException, InterruptedException {
+	public void testPixi() throws Exception {
 		Environment env = Appose
 			.pixi("src/test/resources/envs/cowsay-pixi.toml")
 			.base("target/envs/pixi-cowsay")
@@ -75,7 +75,7 @@ public class BuilderTest extends TestBase {
 	}
 
 	@Test
-	public void testPixiBuilderAPI() throws IOException, InterruptedException {
+	public void testPixiBuilderAPI() throws Exception {
 		Environment env = Appose
 			.pixi()
 			.conda("python>=3.8", "appose")
@@ -116,7 +116,7 @@ public class BuilderTest extends TestBase {
 	}
 
 	@Test
-	public void testPixiPyproject() throws IOException, InterruptedException {
+	public void testPixiPyproject() throws Exception {
 		Environment env = Appose
 			.pixi("src/test/resources/envs/cowsay-pixi-pyproject.toml")
 			.base("target/envs/pixi-cowsay-pyproject")
@@ -128,7 +128,7 @@ public class BuilderTest extends TestBase {
 
 	/** Tests explicit mamba builder selection using {@code .builder()} method. */
 	@Test
-	public void testExplicitMambaBuilder() throws IOException, InterruptedException {
+	public void testExplicitMambaBuilder() throws Exception {
 		Environment env = Appose
 			.file("src/test/resources/envs/cowsay.yml")
 			.builder("mamba")
@@ -148,7 +148,7 @@ public class BuilderTest extends TestBase {
 	}
 
 	@Test
-	public void testUv() throws IOException, InterruptedException {
+	public void testUv() throws Exception {
 		Environment env = Appose
 			.uv("src/test/resources/envs/cowsay-requirements.txt")
 			.base("target/envs/uv-cowsay")
@@ -159,7 +159,7 @@ public class BuilderTest extends TestBase {
 	}
 
 	@Test
-	public void testUvBuilderAPI() throws IOException, InterruptedException {
+	public void testUvBuilderAPI() throws Exception {
 		Environment env = Appose
 			.uv()
 			.include("cowsay==6.1")
@@ -171,7 +171,7 @@ public class BuilderTest extends TestBase {
 	}
 
 	@Test
-	public void testUvPyproject() throws IOException, InterruptedException {
+	public void testUvPyproject() throws Exception {
 		Environment env = Appose
 			.uv("src/test/resources/envs/cowsay-pyproject.toml")
 			.base("target/envs/uv-cowsay-pyproject")
@@ -182,7 +182,7 @@ public class BuilderTest extends TestBase {
 
 	/** Tests building environment from content string using type-specific builder.*/
 	@Test
-	public void testContentAPI() throws IOException, InterruptedException {
+	public void testContentAPI() throws Exception {
 		String pixiToml =
 			"[project]\n" +
 			"name = \"content-test\"\n" +
@@ -207,7 +207,7 @@ public class BuilderTest extends TestBase {
 
 	/** Tests auto-detecting builder from environment.yml content string. */
 	@Test
-	public void testContentEnvironmentYml() throws IOException, InterruptedException {
+	public void testContentEnvironmentYml() throws Exception {
 		String envYml =
 			"name: content-env-yml\n" +
 			"channels:\n" +
@@ -230,7 +230,7 @@ public class BuilderTest extends TestBase {
 
 	/** Tests auto-detecting builder from pixi.toml content string. */
 	@Test
-	public void testContentPixiToml() throws IOException, InterruptedException {
+	public void testContentPixiToml() throws Exception {
 		String pixiToml =
 			"[project]\n" +
 			"name = \"content-pixi-toml\"\n" +
@@ -258,7 +258,7 @@ public class BuilderTest extends TestBase {
 	 * This verifies that the recursive generics enable natural method chaining.
 	 */
 	@Test
-	public void testCustom() throws IOException, InterruptedException {
+	public void testCustom() throws Exception {
 		Environment env = Appose.custom()
 			.env("CUSTOM_VAR", "test_value")  // Base Builder method
 			.inheritRunningJava()             // SimpleBuilder method
