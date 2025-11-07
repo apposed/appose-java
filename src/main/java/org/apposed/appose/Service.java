@@ -572,7 +572,9 @@ public class Service implements AutoCloseable {
 				Thread.sleep(10);
 			}
 			catch (InterruptedException exc) {
+				// Treat interruption as a request to shut down.
 				debugService(Types.stackTrace(exc));
+				break;
 			}
 		}
 		debugService("<worker process termination detected>");

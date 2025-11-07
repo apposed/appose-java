@@ -84,7 +84,11 @@ public class GroovyWorker {
 				try {
 					Thread.sleep(50);
 				}
-				catch (InterruptedException ignored) { }
+				catch (InterruptedException exc) {
+					// Treat interruption as a request to shut down.
+					running = false;
+					break;
+				}
 				continue;
 			}
 			Task task = queue.pop();
@@ -148,7 +152,10 @@ public class GroovyWorker {
 			try {
 				Thread.sleep(50);
 			}
-			catch (InterruptedException ignored) { }
+			catch (InterruptedException exc) {
+				running = false;
+				break;
+			}
 			Map<String, Task> dead = tasks.entrySet().stream()
 					.filter(Objects::nonNull)
 					.filter(entry -> isTaskDead(entry.getValue()))
