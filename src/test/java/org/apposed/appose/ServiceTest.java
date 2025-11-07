@@ -360,8 +360,6 @@ public class ServiceTest extends TestBase {
 			Object result = task.outputs.get("result");
 			assertInstanceOf(List.class, result);
 			List<?> actual = (List<?>) result;
-			System.out.println(result.getClass());
-			System.out.println(result);
 			double[] expected = {
 				0.8781019003, 0.1855279616, 0.9209004548, 0.9465658637, 0.8745080903,
 				0.1157427629, 0.1937316623, 0.3417371975, 0.4957909002, 0.8983712328,
