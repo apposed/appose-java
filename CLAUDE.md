@@ -176,7 +176,7 @@ The project provides type-safe builder classes for different environment types:
 - Uses `mamba run -p <envDir>` for activation
 - Location: `org.apposed.appose.builder.MambaBuilder`
 
-**UvBuilder** - Fast Python virtual environments via UV
+**UvBuilder** - Fast Python virtual environments via uv
 - Created via `Appose.uv()` or `Appose.uv(source)`
 - Type-safe methods: `include(packages...)`, `python(version)`
 - Supports `requirements.txt` files
@@ -217,11 +217,11 @@ Environment env = Appose.pixi()
 Environment env = Appose.mamba("path/to/environment.yml")
     .build();
 
-// UV builder with requirements.txt
+// uv builder with requirements.txt
 Environment env = Appose.uv("path/to/requirements.txt")
     .build();
 
-// UV builder with programmatic packages
+// uv builder with programmatic packages
 Environment env = Appose.uv()
     .python("3.11")
     .include("numpy", "pandas", "matplotlib")

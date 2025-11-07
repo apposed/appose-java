@@ -105,9 +105,9 @@ public class WrapTest extends TestBase {
 			Environment uvEnv = Appose.wrap(uvDir);
 			assertNotNull(uvEnv);
 			assertEquals(uvDir.getAbsolutePath(), uvEnv.base());
-			// UV environments use standard venv structure with no special launch args.
+			// uv environments use standard venv structure with no special launch args.
 			assertTrue(uvEnv.launchArgs().isEmpty(),
-				"UV environment should have no special launcher");
+				"uv environment should have no special launcher");
 		} finally {
 			pyvenvCfg.delete();
 			uvDir.delete();

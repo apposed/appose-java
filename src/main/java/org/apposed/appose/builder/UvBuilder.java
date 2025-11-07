@@ -44,7 +44,7 @@ import java.util.Collections;
 import java.util.List;
 
 /**
- * Type-safe builder for UV-based virtual environments.
+ * Type-safe builder for uv-based virtual environments.
  *
  * @author Curtis Rueden
  */
@@ -131,7 +131,7 @@ public final class UvBuilder extends BaseBuilder<UvBuilder> {
 		try {
 			uv.install();
 
-			// Check if this is already a UV virtual environment.
+			// Check if this is already a uv virtual environment.
 			boolean isUvVenv = new File(envDir, "pyvenv.cfg").isFile();
 
 			if (isUvVenv && sourceContent == null && packages.isEmpty()) {
@@ -203,7 +203,7 @@ public final class UvBuilder extends BaseBuilder<UvBuilder> {
 	public Environment wrap(File envDir) throws IOException {
 		FilePaths.ensureDirectory(envDir);
 
-		// Check for pyproject.toml first (preferred for UV projects).
+		// Check for pyproject.toml first (preferred for uv projects).
 		File pyprojectToml = new File(envDir, "pyproject.toml");
 		if (pyprojectToml.exists() && pyprojectToml.isFile()) {
 			// Read the content so rebuild() will work even after directory is deleted.
@@ -247,7 +247,7 @@ public final class UvBuilder extends BaseBuilder<UvBuilder> {
 		File venvDir = new File(envDir, ".venv");
 		File actualVenvDir = venvDir.exists() ? venvDir : envDir;
 
-		// UV virtual environments use standard venv structure.
+		// uv virtual environments use standard venv structure.
 		String binDir = Platforms.isWindows() ? "Scripts" : "bin";
 		List<String> binPaths = Collections.singletonList(
 				actualVenvDir.toPath().resolve(binDir).toString()

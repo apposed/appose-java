@@ -9,7 +9,7 @@
 #    - Linux: ~/.cache/rattler/cache
 #    - macOS: ~/Library/Caches/rattler/cache
 #    - Windows: %LOCALAPPDATA%\rattler\cache
-# 4. UV package cache:
+# 4. uv package cache:
 #    - Linux: ~/.cache/uv
 #    - macOS: ~/.cache/uv
 #    - Windows: %LOCALAPPDATA%\uv\cache
@@ -79,7 +79,7 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-pixi-pkgs-
 
-      - name: Cache UV packages
+      - name: Cache uv packages
         uses: actions/cache@v4
         with:
           path: |

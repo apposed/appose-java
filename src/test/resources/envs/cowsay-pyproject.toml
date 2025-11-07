@@ -1,7 +1,7 @@
 [project]
 name = "cowsay-test"
 version = "0.1.0"
-description = "Test project for cowsay with UV"
+description = "Test project for cowsay with uv"
 requires-python = ">=3.10"
 dependencies = [
     "cowsay>=6.0",

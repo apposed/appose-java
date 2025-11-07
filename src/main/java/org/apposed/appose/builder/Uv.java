@@ -42,8 +42,8 @@ import java.util.Arrays;
 import java.util.List;
 
 /**
- * UV-based environment manager.
- * UV is a fast Python package installer and resolver written in Rust.
+ * uv-based environment manager.
+ * uv is a fast Python package installer and resolver written in Rust.
  *
  * @author Curtis Rueden
  * @author Claude Code
@@ -58,13 +58,13 @@ class Uv extends Tool {
 	/** Path where Appose installs uv by default ({@code .uv} subdirectory thereof). */
 	public static final String BASE_PATH = Environments.apposeEnvsDir();
 
-	/** UV version to download. */
+	/** uv version to download. */
 	private static final String UV_VERSION = "0.9.5";
 
 	/** The filename to download for the current platform. */
 	private static final String UV_BINARY = uvBinary();
 
-	/** URL from where UV is downloaded to be installed. */
+	/** URL from where uv is downloaded to be installed. */
 	public final static String UV_URL = UV_BINARY == null ? null :
 		"https://github.com/astral-sh/uv/releases/download/" + UV_VERSION + "/" + UV_BINARY;
 
@@ -93,10 +93,10 @@ class Uv extends Tool {
 	}
 
 	/**
-	 * Create a new {@link Uv} object. The root dir for the UV installation
+	 * Create a new {@link Uv} object. The root dir for the uv installation
 	 * will be the default base path defined at {@link #BASE_PATH}
 	 * <p>
-	 * It is expected that the UV installation has executable commands as shown below:
+	 * It is expected that the uv installation has executable commands as shown below:
 	 * </p>
 	 * <pre>
 	 * UV_ROOT
@@ -110,10 +110,10 @@ class Uv extends Tool {
 	}
 
 	/**
-	 * Create a new Uv object. The root dir for UV installation can be
+	 * Create a new Uv object. The root dir for uv installation can be
 	 * specified as {@code String}.
 	 * <p>
-	 * It is expected that the UV installation has executable commands as shown below:
+	 * It is expected that the uv installation has executable commands as shown below:
 	 * </p>
 	 * <pre>
 	 * UV_ROOT
@@ -123,7 +123,7 @@ class Uv extends Tool {
 	 * </pre>
 	 *
 	 * @param rootdir
-	 *  The root dir for UV installation.
+	 *  The root dir for uv installation.
 	 */
 	public Uv(final String rootdir) {
 		super(
@@ -138,13 +138,13 @@ class Uv extends Tool {
 	protected void decompress(final File archive) throws IOException, InterruptedException {
 		File uvBaseDir = new File(rootdir);
 		if (!uvBaseDir.isDirectory() && !uvBaseDir.mkdirs())
-			throw new IOException("Failed to create UV default directory " +
+			throw new IOException("Failed to create uv default directory " +
 				uvBaseDir.getParentFile().getAbsolutePath() +
 				". Please try installing it in another directory.");
 
 		File uvBinDir = Paths.get(rootdir).resolve(".uv").resolve("bin").toFile();
 		if (!uvBinDir.exists() && !uvBinDir.mkdirs())
-			throw new IOException("Failed to create UV bin directory: " + uvBinDir);
+			throw new IOException("Failed to create uv bin directory: " + uvBinDir);
 
 		// Extract archive.
 		Downloads.unpack(archive, uvBinDir);
@@ -201,13 +201,13 @@ class Uv extends Tool {
 	}
 
 	/**
-	 * Create a virtual environment using UV.
+	 * Create a virtual environment using uv.
 	 *
 	 * @param envDir The directory for the virtual environment.
 	 * @param pythonVersion Optional Python version (e.g., "3.11"). Can be null for default.
 	 * @throws IOException If an I/O error occurs.
 	 * @throws InterruptedException If the current thread is interrupted.
-	 * @throws IllegalStateException if UV has not been installed
+	 * @throws IllegalStateException if uv has not been installed
 	 */
 	public void createVenv(final File envDir, String pythonVersion) throws IOException, InterruptedException {
 		List<String> args = new ArrayList<>();
@@ -227,7 +227,7 @@ class Uv extends Tool {
 	 * @param packages The packages to install.
 	 * @throws IOException If an I/O error occurs.
 	 * @throws InterruptedException If the current thread is interrupted.
-	 * @throws IllegalStateException if UV has not been installed
+	 * @throws IllegalStateException if uv has not been installed
 	 */
 	public void pipInstall(final File envDir, String... packages) throws IOException, InterruptedException {
 		List<String> args = new ArrayList<>();
@@ -246,7 +246,7 @@ class Uv extends Tool {
 	 * @param requirementsFile Path to requirements.txt file.
 	 * @throws IOException If an I/O error occurs.
 	 * @throws InterruptedException If the current thread is interrupted.
-	 * @throws IllegalStateException if UV has not been installed
+	 * @throws IllegalStateException if uv has not been installed
 	 */
 	public void pipInstallFromRequirements(final File envDir, String requirementsFile) throws IOException, InterruptedException {
 		exec("pip", "install", "--python", envDir.getAbsolutePath(), "-r", requirementsFile);
@@ -260,7 +260,7 @@ class Uv extends Tool {
 	 * @param pythonVersion Optional Python version (e.g., "3.11"). Can be null for default.
 	 * @throws IOException If an I/O error occurs.
 	 * @throws InterruptedException If the current thread is interrupted.
-	 * @throws IllegalStateException if UV has not been installed
+	 * @throws IllegalStateException if uv has not been installed
 	 */
 	public void sync(final File projectDir, String pythonVersion) throws IOException, InterruptedException {
 		List<String> args = new ArrayList<>();

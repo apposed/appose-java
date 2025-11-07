@@ -292,8 +292,8 @@ public class Appose {
 	}
 
 	/**
-	 * Creates a UV-based virtual environment builder.
-	 * UV is a fast Python package installer and resolver.
+	 * Creates a uv-based virtual environment builder.
+	 * uv is a fast Python package installer and resolver.
 	 *
 	 * @return A new UvBuilder instance.
 	 */
@@ -302,7 +302,7 @@ public class Appose {
 	}
 
 	/**
-	 * Creates a UV-based virtual environment builder from a requirements.txt file.
+	 * Creates a uv-based virtual environment builder from a requirements.txt file.
 	 *
 	 * @param source Path to requirements.txt file.
 	 * @return A new UvBuilder instance.

@@ -75,7 +75,7 @@ public final class MambaBuilder extends BaseBuilder<MambaBuilder> {
 			throw new IOException("Cannot use MambaBuilder: environment already managed by Pixi at " + envDir);
 		}
 		if (new File(envDir, "pyvenv.cfg").exists()) {
-			throw new IOException("Cannot use MambaBuilder: environment already managed by UV/venv at " + envDir);
+			throw new IOException("Cannot use MambaBuilder: environment already managed by uv/venv at " + envDir);
 		}
 
 		// Is this envDir an already-existing conda directory?

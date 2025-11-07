@@ -84,8 +84,8 @@ public class UvBuilderFactory implements BuilderFactory {
 
 	@Override
 	public boolean canWrap(java.io.File envDir) {
-		// Check for UV/venv environment markers.
-		// UV creates standard Python venv, so look for pyvenv.cfg,
+		// Check for uv/venv environment markers.
+		// uv creates standard Python venv, so look for pyvenv.cfg,
 		// but exclude conda and pixi environments.
 		boolean hasPyvenvCfg = new java.io.File(envDir, "pyvenv.cfg").isFile();
 		boolean isNotPixi = !new java.io.File(envDir, ".pixi").isDirectory() &&

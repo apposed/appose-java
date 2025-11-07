@@ -163,7 +163,7 @@ public interface Builder<T extends Builder<T>> {
 	 * Adds channels/repositories to search for packages.
 	 * The interpretation of channels is builder-specific; e.g.:
 	 * - Pixi/Mamba: conda channels (e.g., "conda-forge", "bioconda")
-	 * - UV: PyPI index URLs (e.g., custom package indexes)
+	 * - uv: PyPI index URLs (e.g., custom package indexes)
 	 * - Maven: Maven repository URLs
 	 * - npm: npm registries
 	 *
@@ -178,7 +178,7 @@ public interface Builder<T extends Builder<T>> {
 	 * Adds channels/repositories to search for packages.
 	 * The interpretation of channels is builder-specific: e.g.:
 	 * - Pixi/Mamba: conda channels (e.g., "conda-forge", "bioconda")
-	 * - UV: PyPI index URLs (e.g., custom package indexes)
+	 * - uv: PyPI index URLs (e.g., custom package indexes)
 	 * - Maven: Maven repository URLs
 	 * - npm: npm registries
 	 *
@@ -276,7 +276,7 @@ public interface Builder<T extends Builder<T>> {
 	 * <ul>
 	 * <li>Pixi: flags like {@code --color=always}, {@code -v}</li>
 	 * <li>Mamba: flags like {@code -vv}, {@code --json}</li>
-	 * <li>UV: flags like {@code --color=always}, {@code --verbose}</li>
+	 * <li>uv: flags like {@code --color=always}, {@code --verbose}</li>
 	 * </ul>
 	 * <p>
 	 * Example usage:

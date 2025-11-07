@@ -45,7 +45,7 @@ import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 
 /**
- * Base class for external tool helpers (Mamba, Pixi, UV, etc.).
+ * Base class for external tool helpers (Mamba, Pixi, uv, etc.).
  * Provides common functionality for process execution, stream handling,
  * and progress tracking.
  *

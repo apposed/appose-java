@@ -151,7 +151,7 @@ disk usage and troubleshoot environment issues.
 **Location:** `~/.local/share/appose/` (customizable via `appose.envs-dir` system property)
 
 This directory contains:
-- **Tool binaries:** Pixi, UV, and Micromamba executables downloaded by Appose
+- **Tool binaries:** Pixi, uv, and Micromamba executables downloaded by Appose
   - `.pixi/bin/pixi` (v0.39.5)
   - `.uv/bin/uv` (v0.5.25)
   - `.mamba/bin/micromamba` (latest)
@@ -168,7 +168,7 @@ Each package manager maintains its own cache for downloaded packages:
 - Windows: `%LocalAppData%\rattler\cache`
 - Check location: `pixi info`
 
-**UV**:
+**uv**:
 - Environment variable: `UV_CACHE_DIR`
 - Linux: `~/.cache/uv`
 - macOS: `~/.cache/uv`
@@ -188,7 +188,7 @@ Each package manager maintains its own cache for downloaded packages:
 To free up disk space, you can clear individual caches:
 
 ```bash
-# Clear UV cache
+# Clear uv cache
 uv cache clean
 
 # Clear Pixi/Rattler cache
