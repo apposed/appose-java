@@ -102,9 +102,4 @@ public class PyProjectTomlScheme implements Scheme {
 		       trimmed.contains("[project.dependencies]") ||
 		       trimmed.matches("(?s).*\\[project\\].*dependencies\\s*=.*");
 	}
-
-	@Override
-	public boolean supportsFilename(String filename) {
-		return filename.endsWith("pyproject.toml");
-	}
 }

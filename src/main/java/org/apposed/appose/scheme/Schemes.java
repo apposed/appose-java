@@ -83,17 +83,4 @@ public final class Schemes {
 		if (result != null) return result;
 		throw new IllegalArgumentException("Unknown scheme: " + name);
 	}
-
-	/**
-	 * Infers the scheme from a filename.
-	 *
-	 * @param filename The filename
-	 * @return The matching scheme
-	 * @throws IllegalArgumentException If scheme cannot be inferred from filename
-	 */
-	public static Scheme fromFilename(String filename) {
-		Scheme result = Plugins.find(ALL, scheme -> scheme.supportsFilename(filename));
-		if (result != null) return result;
-		throw new IllegalArgumentException("Cannot infer scheme from filename: " + filename);
-	}
 }

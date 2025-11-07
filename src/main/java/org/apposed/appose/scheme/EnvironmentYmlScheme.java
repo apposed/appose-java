@@ -79,10 +79,4 @@ public class EnvironmentYmlScheme implements Scheme {
 			trimmed.startsWith("dependencies:") ||
 			trimmed.matches("(?s)^[a-z_]+:\\s*.*");
 	}
-
-	@Override
-	public boolean supportsFilename(String filename) {
-		// TODO
-		return false;
-	}
 }

@@ -87,15 +87,4 @@ public interface Scheme {
 	 * @return {@code true} if this scheme supports the content format
 	 */
 	boolean supportsContent(String content);
-
-	/**
-	 * Tests whether this scheme can handle a file with the given filename.
-	 * <p>
-	 * Implementations should check file extensions or exact names.
-	 * </p>
-	 *
-	 * @param filename The filename to test
-	 * @return {@code true} if this scheme supports files with this name
-	 */
-	boolean supportsFilename(String filename);
 }

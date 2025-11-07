@@ -86,9 +86,4 @@ public class PixiTomlScheme implements Scheme {
 		return trimmed.contains("[dependencies]") ||
 		       trimmed.contains("[pypi-dependencies]");
 	}
-
-	@Override
-	public boolean supportsFilename(String filename) {
-		return filename.endsWith("pixi.toml");
-	}
 }

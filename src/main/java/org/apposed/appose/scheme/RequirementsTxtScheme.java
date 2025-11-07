@@ -69,9 +69,4 @@ public class RequirementsTxtScheme implements Scheme {
 		// Optionally followed by version specifiers.
 		return trimmed.matches("(?s)^[a-zA-Z0-9_-]+(==|>=|<=|~=|!=)?.*");
 	}
-
-	@Override
-	public boolean supportsFilename(String filename) {
-		return filename.endsWith("requirements.txt");
-	}
 }

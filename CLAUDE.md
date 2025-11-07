@@ -75,7 +75,7 @@ mvn clean package
   - Implementations discovered via ServiceLoader and managed by `Builders` utility class
 - **Scheme**: Interface for configuration file format detection and parsing
   - Implementations: `PixiTomlScheme`, `EnvironmentYmlScheme`, `PyProjectTomlScheme`, `RequirementsTxtScheme`
-  - Methods: `name()`, `supportsFilename(filename)`, `supportsContent(content)`, `priority()`
+  - Methods: `name()`, `supportsContent(content)`, `priority()`
   - Implementations discovered via ServiceLoader and managed by `Schemes` utility class
 - **SharedMemory**: Platform-agnostic shared memory interface
   - Platform implementations: `ShmLinux`, `ShmMacOS`, `ShmWindows`
@@ -100,7 +100,6 @@ The project uses Java's ServiceLoader mechanism for extensibility, with utility 
   - Factories cached and sorted by priority
 
 - **Schemes** (`org.apposed.appose.scheme.Schemes`) - Configuration file format detection
-  - `fromFilename(filename)` - Detect scheme from filename (e.g., "pixi.toml" → PixiTomlScheme)
   - `fromContent(content)` - Detect scheme from file contents
   - `fromName(name)` - Get scheme by name (e.g., "pixi-toml")
   - Schemes sorted by priority for correct detection order
