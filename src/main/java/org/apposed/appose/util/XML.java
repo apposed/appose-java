@@ -83,7 +83,7 @@ class XML {
 				try {
 					xp = XPathFactory.newInstance().newXPath();
 					try {
-						// make sure that the current xalan/xerces pair can evaluate
+						// Make sure that the current xalan/xerces pair can evaluate
 						// expressions (i.e. *not* throw NoSuchMethodErrors).
 						xp.evaluate("//dummy", doc);
 					} catch (Throwable t) {

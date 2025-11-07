@@ -49,7 +49,7 @@ public class PyProjectTomlScheme implements Scheme {
 
 	@Override
 	public double priority() {
-		// Higher priority than pixi.toml since pyproject.toml is more specific
+		// Higher priority than pixi.toml since pyproject.toml is more specific.
 		return 100;
 	}
 
@@ -63,7 +63,7 @@ public class PyProjectTomlScheme implements Scheme {
 		for (String line : lines) {
 			String trimmed = line.trim();
 
-			// Track if we're in a [project] section
+			// Track if we're in a [project] section.
 			if (trimmed.equals("[project]")) {
 				inProjectSection = true;
 				continue;
@@ -71,7 +71,7 @@ public class PyProjectTomlScheme implements Scheme {
 				inProjectSection = false;
 			}
 
-			// Look for name in [project] section
+			// Look for name in [project] section.
 			if (inProjectSection && trimmed.startsWith("name") && trimmed.contains("=")) {
 				int equalsIndex = trimmed.indexOf('=');
 				String value = trimmed.substring(equalsIndex + 1).trim();
@@ -89,10 +89,10 @@ public class PyProjectTomlScheme implements Scheme {
 
 		String trimmed = content.trim();
 
-		// Must have TOML structure
+		// Must have TOML structure.
 		if (!trimmed.matches("(?s).*\\[.*\\].*")) return false;
 
-		// Must have [project] section
+		// Must have [project] section.
 		if (!trimmed.contains("[project]")) return false;
 
 		// Must have either:

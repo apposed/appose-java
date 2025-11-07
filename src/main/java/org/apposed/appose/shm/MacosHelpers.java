@@ -44,7 +44,7 @@ interface MacosHelpers extends Library {
 
 	String LIBRARY_NAME_SUF = ".dylib";
 
-	// Load the native library
+	// Load the native library.
 	MacosHelpers INSTANCE = loadLibrary();
 
 	static MacosHelpers loadLibrary() {
@@ -60,7 +60,7 @@ interface MacosHelpers extends Library {
 		}
 	}
 
-	// Declare methods corresponding to the native functions
+	// Declare methods corresponding to the native functions.
 	int create_shared_memory(String name, long rsize);
 
 	void unlink_shared_memory(String name);

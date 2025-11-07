@@ -73,7 +73,7 @@ public class UvBuilderFactory implements BuilderFactory {
 
 	@Override
 	public boolean supportsSource(String source) {
-		// Support requirements.txt files
+		// Support requirements.txt files.
 		return source.endsWith("requirements.txt") || source.endsWith(".txt");
 	}
 
@@ -84,9 +84,9 @@ public class UvBuilderFactory implements BuilderFactory {
 
 	@Override
 	public boolean canWrap(java.io.File envDir) {
-		// Check for UV/venv environment markers
-		// UV creates standard Python venv, so look for pyvenv.cfg
-		// but exclude conda and pixi environments
+		// Check for UV/venv environment markers.
+		// UV creates standard Python venv, so look for pyvenv.cfg,
+		// but exclude conda and pixi environments.
 		boolean hasPyvenvCfg = new java.io.File(envDir, "pyvenv.cfg").isFile();
 		boolean isNotPixi = !new java.io.File(envDir, ".pixi").isDirectory() &&
 		                    !new java.io.File(envDir, "pixi.toml").isFile();

@@ -99,7 +99,7 @@ public final class UvBuilder extends BaseBuilder<UvBuilder> {
 	public Environment build() throws IOException {
 		File envDir = envDir();
 
-		// Check for incompatible existing environments
+		// Check for incompatible existing environments.
 		if (new File(envDir, ".pixi").isDirectory()) {
 			throw new IOException("Cannot use UvBuilder: environment already managed by Pixi at " + envDir);
 		}
@@ -120,7 +120,7 @@ public final class UvBuilder extends BaseBuilder<UvBuilder> {
 		uv.setEnvVars(envVars);
 		uv.setFlags(flags);
 
-		// Check for unsupported features
+		// Check for unsupported features.
 		if (!channels.isEmpty()) {
 			throw new UnsupportedOperationException(
 				"UvBuilder does not yet support programmatic index configuration. " +
@@ -131,17 +131,17 @@ public final class UvBuilder extends BaseBuilder<UvBuilder> {
 		try {
 			uv.install();
 
-			// Check if this is already a UV virtual environment
+			// Check if this is already a UV virtual environment.
 			boolean isUvVenv = new File(envDir, "pyvenv.cfg").isFile();
 
 			if (isUvVenv && sourceContent == null && packages.isEmpty()) {
-				// Environment already exists and no new config/packages, just use it
+				// Environment already exists and no new config/packages, just use it.
 				return createEnvironment(envDir);
 			}
 
-			// Handle source-based build (file or content)
+			// Handle source-based build (file or content).
 			if (sourceContent != null) {
-				// Infer scheme if not explicitly set
+				// Infer scheme if not explicitly set.
 				if (scheme == null) scheme = Schemes.fromContent(sourceContent).name();
 
 				if (!"requirements.txt".equals(scheme) && !"pyproject.toml".equals(scheme)) {
@@ -149,43 +149,43 @@ public final class UvBuilder extends BaseBuilder<UvBuilder> {
 				}
 
 				if ("pyproject.toml".equals(scheme)) {
-					// Handle pyproject.toml - uses uv sync
-					// Create envDir if it doesn't exist
+					// Handle pyproject.toml - uses uv sync.
+					// Create envDir if it doesn't exist.
 					if (!envDir.exists() && !envDir.mkdirs()) {
 						throw new IOException("Failed to create environment directory: " + envDir);
 					}
 
-					// Write pyproject.toml to envDir
+					// Write pyproject.toml to envDir.
 					File pyprojectFile = new File(envDir, "pyproject.toml");
 					Files.write(pyprojectFile.toPath(), sourceContent.getBytes(StandardCharsets.UTF_8));
 
-					// Run uv sync to create .venv and install dependencies
+					// Run uv sync to create .venv and install dependencies.
 					uv.sync(envDir, pythonVersion);
 				} else {
-					// Handle requirements.txt - traditional venv + pip install
-					// Create virtual environment if it doesn't exist
+					// Handle requirements.txt - traditional venv + pip install.
+					// Create virtual environment if it doesn't exist.
 					if (!isUvVenv) {
 						uv.createVenv(envDir, pythonVersion);
 					}
 
-					// Write requirements.txt to envDir
+					// Write requirements.txt to envDir.
 					File reqsFile = new File(envDir, "requirements.txt");
 					Files.write(reqsFile.toPath(), sourceContent.getBytes(StandardCharsets.UTF_8));
 
-					// Install packages from requirements.txt
+					// Install packages from requirements.txt.
 					uv.pipInstallFromRequirements(envDir, reqsFile.getAbsolutePath());
 				}
 			} else {
-				// Programmatic package building
+				// Programmatic package building.
 				if (!isUvVenv) {
-					// Create virtual environment
+					// Create virtual environment.
 					uv.createVenv(envDir, pythonVersion);
 				}
 
-				// Install packages
+				// Install packages.
 				if (!packages.isEmpty()) {
 					List<String> allPackages = new ArrayList<>(packages);
-					// Always include appose if we're installing packages
+					// Always include appose if we're installing packages.
 					if (!allPackages.contains("appose")) {
 						allPackages.add("appose");
 					}
@@ -203,23 +203,23 @@ public final class UvBuilder extends BaseBuilder<UvBuilder> {
 	public Environment wrap(File envDir) throws IOException {
 		FilePaths.ensureDirectory(envDir);
 
-		// Check for pyproject.toml first (preferred for UV projects)
+		// Check for pyproject.toml first (preferred for UV projects).
 		File pyprojectToml = new File(envDir, "pyproject.toml");
 		if (pyprojectToml.exists() && pyprojectToml.isFile()) {
-			// Read the content so rebuild() will work even after directory is deleted
+			// Read the content so rebuild() will work even after directory is deleted.
 			sourceContent = new String(Files.readAllBytes(pyprojectToml.toPath()), StandardCharsets.UTF_8);
 			scheme = "pyproject.toml";
 		} else {
-			// Fall back to requirements.txt
+			// Fall back to requirements.txt.
 			File requirementsTxt = new File(envDir, "requirements.txt");
 			if (requirementsTxt.exists() && requirementsTxt.isFile()) {
-				// Read the content so rebuild() will work even after directory is deleted
+				// Read the content so rebuild() will work even after directory is deleted.
 				sourceContent = new String(Files.readAllBytes(requirementsTxt.toPath()), StandardCharsets.UTF_8);
 				scheme = "requirements.txt";
 			}
 		}
 
-		// Set the base directory and build (which will detect existing env)
+		// Set the base directory and build (which will detect existing env).
 		base(envDir);
 		return build();
 	}
@@ -241,19 +241,19 @@ public final class UvBuilder extends BaseBuilder<UvBuilder> {
 	private Environment createEnvironment(File envDir) {
 		String base = envDir.getAbsolutePath();
 
-		// Determine venv location based on project structure
-		// If .venv exists, it's a pyproject.toml-managed project (uv sync)
-		// Otherwise, envDir itself is the venv (uv venv + pip install)
+		// Determine venv location based on project structure.
+		// If .venv exists, it's a pyproject.toml-managed project (uv sync).
+		// Otherwise, envDir itself is the venv (uv venv + pip install).
 		File venvDir = new File(envDir, ".venv");
 		File actualVenvDir = venvDir.exists() ? venvDir : envDir;
 
-		// UV virtual environments use standard venv structure
+		// UV virtual environments use standard venv structure.
 		String binDir = Platforms.isWindows() ? "Scripts" : "bin";
 		List<String> binPaths = Collections.singletonList(
 				actualVenvDir.toPath().resolve(binDir).toString()
 		);
 
-		// No special launch args needed - executables are directly in bin/Scripts
+		// No special launch args needed - executables are directly in bin/Scripts.
 		List<String> launchArgs = Collections.emptyList();
 
 		return createEnv(base, binPaths, launchArgs);

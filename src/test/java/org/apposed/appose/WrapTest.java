@@ -73,7 +73,7 @@ public class WrapTest extends TestBase {
 	/** Tests wrapping a conda/mamba environment. */
 	@Test
 	public void testWrapMamba() throws IOException {
-		// Test wrapping a conda/mamba environment
+		// Test wrapping a conda/mamba environment.
 		File condaDir = new File("target/test-wrap-conda");
 		condaDir.mkdirs();
 		File condaMeta = new File(condaDir, "conda-meta");
@@ -105,7 +105,7 @@ public class WrapTest extends TestBase {
 			Environment uvEnv = Appose.wrap(uvDir);
 			assertNotNull(uvEnv);
 			assertEquals(uvDir.getAbsolutePath(), uvEnv.base());
-			// UV environments use standard venv structure with no special launch args
+			// UV environments use standard venv structure with no special launch args.
 			assertTrue(uvEnv.launchArgs().isEmpty(),
 				"UV environment should have no special launcher");
 		} finally {
@@ -125,7 +125,7 @@ public class WrapTest extends TestBase {
 			assertNotNull(customEnv);
 			assertInstanceOf(SimpleBuilder.class, customEnv.builder());
 			assertEquals(customDir.getAbsolutePath(), customEnv.base());
-			// SimpleBuilder uses empty launch args by default
+			// SimpleBuilder uses empty launch args by default.
 			assertTrue(customEnv.launchArgs().isEmpty(),
 				"Custom environment should have no special launcher");
 		} finally {

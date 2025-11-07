@@ -183,9 +183,9 @@ public class GroovyWorker {
 					Binding binding = new Binding();
 					GroovyShell shell = new GroovyShell(binding);
 					shell.evaluate(initCode);
-					// Store all variables from the init script for use in tasks
+					// Store all variables from the init script for use in tasks.
 					initVars.putAll(binding.getVariables());
-					// Clean up the temp file
+					// Clean up the temp file.
 					initFile.delete();
 				}
 				catch (Exception e) {

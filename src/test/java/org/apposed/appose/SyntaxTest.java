@@ -48,10 +48,10 @@ public class SyntaxTest extends TestBase {
 		try (Service service = env.python()) {
 			maybeDebug(service);
 
-			// Set up a variable in the worker using a task and export it
+			// Set up a variable in the worker using a task and export it.
 			service.task("test_var = 42\ntask.export(test_var=test_var)").waitFor();
 
-			// Retrieve the variable using getVar
+			// Retrieve the variable using getVar.
 			Object result = service.getVar("test_var");
             assertInstanceOf(Number.class, result);
 			assertEquals(42, ((Number) result).intValue());
@@ -65,10 +65,10 @@ public class SyntaxTest extends TestBase {
 		try (Service service = env.groovy()) {
 			maybeDebug(service);
 
-			// Set up a variable in the worker using a task and export it
+			// Set up a variable in the worker using a task and export it.
 			service.task("test_string = 'hello world'\ntask.export([test_string: test_string])").waitFor();
 
-			// Retrieve the variable using getVar
+			// Retrieve the variable using getVar.
 			Object result = service.getVar("test_string");
 			assertEquals("hello world", result);
 		}
@@ -101,10 +101,10 @@ public class SyntaxTest extends TestBase {
 		try (Service service = env.python()) {
 			maybeDebug(service);
 
-			// Set a variable using putVar
+			// Set a variable using putVar.
 			service.putVar("my_number", 123);
 
-			// Verify the variable is accessible in subsequent tasks
+			// Verify the variable is accessible in subsequent tasks.
 			Task task = service.task("my_number * 2").waitFor();
 			assertComplete(task);
 			Number result = (Number) task.result();
@@ -119,10 +119,10 @@ public class SyntaxTest extends TestBase {
 		try (Service service = env.groovy()) {
 			maybeDebug(service);
 
-			// Set a variable using putVar
+			// Set a variable using putVar.
 			service.putVar("my_string", "test");
 
-			// Verify the variable is accessible in subsequent tasks
+			// Verify the variable is accessible in subsequent tasks.
 			Task task = service.task("my_string.toUpperCase()").waitFor();
 			assertComplete(task);
 			String result = (String) task.result();
@@ -137,11 +137,11 @@ public class SyntaxTest extends TestBase {
 		try (Service service = env.python()) {
 			maybeDebug(service);
 
-			// Set a list using putVar
+			// Set a list using putVar.
 			List<Integer> values = Arrays.asList(1, 2, 3, 4, 5);
 			service.putVar("my_list", values);
 
-			// Verify the list is accessible and can be manipulated
+			// Verify the list is accessible and can be manipulated.
 			Task task = service.task("sum(my_list)").waitFor();
 			assertComplete(task);
 			Number result = (Number) task.result();
@@ -156,7 +156,7 @@ public class SyntaxTest extends TestBase {
 		try (Service service = env.python()) {
 			maybeDebug(service);
 
-			// Call Python's built-in max function
+			// Call Python's built-in max function.
 			Object result = service.call("max", 5, 10, 3, 8);
             assertInstanceOf(Number.class, result);
 			assertEquals(10, ((Number) result).intValue());
@@ -170,7 +170,7 @@ public class SyntaxTest extends TestBase {
 		try (Service service = env.groovy()) {
 			maybeDebug(service);
 
-			// Call Groovy's Math.abs function
+			// Call Groovy's Math.abs function.
 			Object result = service.call("Math.abs", -42);
             assertInstanceOf(Number.class, result);
 			assertEquals(42, ((Number) result).intValue());
@@ -184,14 +184,14 @@ public class SyntaxTest extends TestBase {
 		try (Service service = env.python()) {
 			maybeDebug(service);
 
-			// Define a custom function in the worker
+			// Define a custom function in the worker.
 			service.task(
 				"def multiply(a, b):\n" +
 				"    return a * b\n" +
 				"task.export(multiply=multiply)"
 			).waitFor();
 
-			// Call the custom function
+			// Call the custom function.
 			Object result = service.call("multiply", 6, 7);
             assertInstanceOf(Number.class, result);
 			assertEquals(42, ((Number) result).intValue());
@@ -205,10 +205,10 @@ public class SyntaxTest extends TestBase {
 		try (Service service = env.groovy()) {
 			maybeDebug(service);
 
-			// Define a custom function in the worker
+			// Define a custom function in the worker.
 			service.task("def add(a, b) { return a + b }\ntask.export(add: this.&add)").waitFor();
 
-			// Call the custom function
+			// Call the custom function.
 			Object result = service.call("add", 15, 27);
             assertInstanceOf(Number.class, result);
 			assertEquals(42, ((Number) result).intValue());

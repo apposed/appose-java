@@ -73,7 +73,7 @@ public class EnvironmentYmlScheme implements Scheme {
 
 		String trimmed = content.trim();
 
-		// YAML format detection: starts with common conda keys or has key: value pattern
+		// YAML format detection: starts with common conda keys or has key: value pattern.
 		return trimmed.startsWith("name:") ||
 			trimmed.startsWith("channels:") ||
 			trimmed.startsWith("dependencies:") ||

@@ -102,7 +102,7 @@ public class ShmWindows implements ShmFactory {
 
 			final long shm_size = getSHMSize(hMapFile);
 
-			// Map the shared memory
+			// Map the shared memory.
 			Pointer pointer = Kernel32.INSTANCE.MapViewOfFile(
 				hMapFile,
 				WinNT.FILE_MAP_READ | WinNT.FILE_MAP_WRITE,
@@ -167,7 +167,7 @@ public class ShmWindows implements ShmFactory {
 				throw new NullPointerException("hMapFile is null.");
 			}
 
-			// Map the shared memory object into the current process's address space
+			// Map the shared memory object into the current process's address space.
 			final Pointer pSharedMemory = Kernel32.INSTANCE.MapViewOfFile(hMapFile, WinNT.FILE_MAP_READ, 0, 0, 0);
 			if (pSharedMemory == null) {
 				Kernel32.INSTANCE.CloseHandle(hMapFile);

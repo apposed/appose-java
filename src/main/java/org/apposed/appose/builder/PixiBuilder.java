@@ -98,7 +98,7 @@ public final class PixiBuilder extends BaseBuilder<PixiBuilder> {
 	public Environment build() throws IOException {
 		File envDir = envDir();
 
-		// Check for incompatible existing environments
+		// Check for incompatible existing environments.
 		if (new File(envDir, "conda-meta").exists() && !new File(envDir, ".pixi").exists()) {
 			throw new IOException("Cannot use PixiBuilder: environment already managed by Mamba/Conda at " + envDir);
 		}
@@ -122,24 +122,24 @@ public final class PixiBuilder extends BaseBuilder<PixiBuilder> {
 		try {
 			pixi.install();
 
-			// Check if this is already a pixi project
+			// Check if this is already a pixi project.
 			boolean isPixiDir = new File(envDir, "pixi.toml").isFile() ||
 			                    new File(envDir, "pyproject.toml").isFile() ||
 			                    new File(envDir, ".pixi").isDirectory();
 
 			if (isPixiDir && sourceContent == null && condaPackages.isEmpty() && pypiPackages.isEmpty()) {
-				// Environment already exists, just use it
+				// Environment already exists, just use it.
 				return createEnvironment(pixi, envDir);
 			}
 
-			// Handle source-based build (file or content)
+			// Handle source-based build (file or content).
 			if (sourceContent != null) {
 				if (isPixiDir) {
-					// Already initialized, just use it
+					// Already initialized, just use it.
 					return createEnvironment(pixi, envDir);
 				}
 
-				// Infer scheme if not explicitly set
+				// Infer scheme if not explicitly set.
 				if (scheme == null) scheme = Schemes.fromContent(sourceContent).name();
 
 				if (!envDir.exists() && !envDir.mkdirs()) {
@@ -147,28 +147,28 @@ public final class PixiBuilder extends BaseBuilder<PixiBuilder> {
 				}
 
 				if ("pixi.toml".equals(scheme)) {
-					// Write pixi.toml to envDir
+					// Write pixi.toml to envDir.
 					File pixiTomlFile = new File(envDir, "pixi.toml");
 					Files.write(pixiTomlFile.toPath(), sourceContent.getBytes(StandardCharsets.UTF_8));
 				} else if ("pyproject.toml".equals(scheme)) {
-					// Write pyproject.toml to envDir (Pixi natively supports it)
+					// Write pyproject.toml to envDir (Pixi natively supports it).
 					File pyprojectTomlFile = new File(envDir, "pyproject.toml");
 					Files.write(pyprojectTomlFile.toPath(), sourceContent.getBytes(StandardCharsets.UTF_8));
 				} else if ("environment.yml".equals(scheme)) {
-					// Write environment.yml and import
+					// Write environment.yml and import.
 					File environmentYamlFile = new File(envDir, "environment.yml");
 					Files.write(environmentYamlFile.toPath(), sourceContent.getBytes(StandardCharsets.UTF_8));
 					pixi.exec("init", "--import", environmentYamlFile.getAbsolutePath(), envDir.getAbsolutePath());
 				}
 
-				// Add any programmatic channels to augment source file
+				// Add any programmatic channels to augment source file.
 				if (!channels.isEmpty()) {
 					pixi.addChannels(envDir, channels.toArray(new String[0]));
 				}
 			} else {
-				// Programmatic package building
+				// Programmatic package building.
 				if (isPixiDir) {
-					// Already initialized, just use it
+					// Already initialized, just use it.
 					return createEnvironment(pixi, envDir);
 				}
 
@@ -178,7 +178,7 @@ public final class PixiBuilder extends BaseBuilder<PixiBuilder> {
 
 				pixi.init(envDir);
 
-				// Fail fast for vacuous environments
+				// Fail fast for vacuous environments.
 				if (condaPackages.isEmpty() && pypiPackages.isEmpty()) {
 					throw new IllegalStateException(
 						"Cannot build empty environment programmatically. " +
@@ -226,23 +226,23 @@ public final class PixiBuilder extends BaseBuilder<PixiBuilder> {
 	public Environment wrap(File envDir) throws IOException {
 		FilePaths.ensureDirectory(envDir);
 
-		// Look for pixi.toml configuration file first
+		// Look for pixi.toml configuration file first.
 		File pixiToml = new File(envDir, "pixi.toml");
 		if (pixiToml.exists() && pixiToml.isFile()) {
-			// Read the content so rebuild() will work even after directory is deleted
+			// Read the content so rebuild() will work even after directory is deleted.
 			sourceContent = new String(Files.readAllBytes(pixiToml.toPath()), StandardCharsets.UTF_8);
 			scheme = "pixi.toml";
 		} else {
-			// Check for pyproject.toml
+			// Check for pyproject.toml.
 			File pyprojectToml = new File(envDir, "pyproject.toml");
 			if (pyprojectToml.exists() && pyprojectToml.isFile()) {
-				// Read the content so rebuild() will work even after directory is deleted
+				// Read the content so rebuild() will work even after directory is deleted.
 				sourceContent = new String(Files.readAllBytes(pyprojectToml.toPath()), StandardCharsets.UTF_8);
 				scheme = "pyproject.toml";
 			}
 		}
 
-		// Set the base directory and build (which will detect existing env)
+		// Set the base directory and build (which will detect existing env).
 		base(envDir);
 		return build();
 	}
@@ -262,7 +262,7 @@ public final class PixiBuilder extends BaseBuilder<PixiBuilder> {
 
 	private Environment createEnvironment(Pixi pixi, File envDir) {
 		String base = envDir.getAbsolutePath();
-		// Check which manifest file exists (pyproject.toml takes precedence)
+		// Check which manifest file exists (pyproject.toml takes precedence).
 		File manifestFile = new File(envDir, "pyproject.toml");
 		if (!manifestFile.exists()) manifestFile = new File(envDir, "pixi.toml");
 		List<String> launchArgs = Arrays.asList(

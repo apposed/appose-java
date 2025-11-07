@@ -52,13 +52,13 @@ public class PythonSyntax implements ScriptSyntax {
 
 	@Override
 	public String getVar(String name) {
-		// In Python, just reference the variable name
+		// In Python, just reference the variable name.
 		return name;
 	}
 
 	@Override
 	public String putVar(String name, String valueVarName) {
-		// Assign the value and export using Python keyword argument syntax
+		// Assign the value and export using Python keyword argument syntax.
 		return name + " = " + valueVarName + "\ntask.export(" + name + "=" + name + ")";
 	}
 

@@ -54,7 +54,7 @@ public class RequirementsTxtScheme implements Scheme {
 
 	@Override
 	public String envName(String content) {
-		// requirements.txt does not contain environment name metadata
+		// requirements.txt does not contain environment name metadata.
 		return null;
 	}
 
@@ -64,9 +64,9 @@ public class RequirementsTxtScheme implements Scheme {
 
 		String trimmed = content.trim();
 
-		// Plain text list of package specifications
-		// Must start with package name (alphanumeric, underscore, or hyphen)
-		// Optionally followed by version specifiers
+		// Plain text list of package specifications.
+		// Must start with package name (alphanumeric, underscore, or hyphen).
+		// Optionally followed by version specifiers.
 		return trimmed.matches("(?s)^[a-zA-Z0-9_-]+(==|>=|<=|~=|!=)?.*");
 	}
 

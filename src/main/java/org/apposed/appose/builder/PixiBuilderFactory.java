@@ -75,7 +75,7 @@ public class PixiBuilderFactory implements BuilderFactory {
 
 	@Override
 	public boolean supportsSource(String source) {
-		// Support pixi.toml and YAML environment files
+		// Support pixi.toml and YAML environment files.
 		return source.endsWith("pixi.toml") ||
 		       source.endsWith(".yml") ||
 		       source.endsWith(".yaml");
@@ -88,7 +88,7 @@ public class PixiBuilderFactory implements BuilderFactory {
 
 	@Override
 	public boolean canWrap(java.io.File envDir) {
-		// Check for pixi environment markers
+		// Check for pixi environment markers.
 		return new java.io.File(envDir, ".pixi").isDirectory() ||
 		       new java.io.File(envDir, "pixi.toml").isFile();
 	}

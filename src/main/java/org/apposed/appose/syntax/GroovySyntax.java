@@ -52,14 +52,14 @@ public class GroovySyntax implements ScriptSyntax {
 
 	@Override
 	public String getVar(String name) {
-		// In Groovy, just reference the variable name
+		// In Groovy, just reference the variable name.
 		return name;
 	}
 
 	@Override
 	public String putVar(String name, String valueVarName) {
-		// Assign the value and export using Groovy map syntax
-		// Using explicit map literal [name: value] which is then passed to export(Map)
+		// Assign the value and export using Groovy map syntax.
+		// Using explicit map literal [name: value] which is then passed to export(Map).
 		return name + " = " + valueVarName + "\ntask.export([" + name + ": " + name + "])";
 	}
 

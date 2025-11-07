@@ -59,18 +59,18 @@ import java.util.stream.Collectors;
  * @author Claude Code
  */
 public class DumpApi {
-	// Configuration - matches Python stub format
+	// Configuration - matches Python stub format.
 	private static final boolean NORMALIZE = true;  // Convert camelCase to snake_case
 	private static final boolean INCLUDE_PRIVATE = true;  // Include private members (prefixed with _)
 	private static final boolean INCLUDE_JAVADOC = false;  // Don't include javadoc (not in stubgen output)
 	private static final boolean EXCLUDE_TESTS = false;  // Include test classes for completeness
 	private static final boolean GROUP_BY_PACKAGE = true;  // Group by package like Python modules
 
-	// Mapping from Java package/class to Python module file
-	// Based on PYTHON-STRUCTURE-PLAN.md
+	// Mapping from Java package/class to Python module file.
+	// Based on PYTHON-STRUCTURE-PLAN.md.
 	private static final Map<String, String> PACKAGE_TO_MODULE = new HashMap<>();
 	static {
-		// Core API classes
+		// Core API classes.
 		PACKAGE_TO_MODULE.put("org.apposed.appose.Appose", "__init__.pyi");
 		PACKAGE_TO_MODULE.put("org.apposed.appose.Environment", "environment.pyi");
 		PACKAGE_TO_MODULE.put("org.apposed.appose.Builder", "builder.pyi");
@@ -87,22 +87,22 @@ public class DumpApi {
 		PACKAGE_TO_MODULE.put("org.apposed.appose.NDArray.Order", "types.pyi");
 		PACKAGE_TO_MODULE.put("org.apposed.appose.SharedMemory", "types.pyi");
 
-		// Subsystem packages - all classes in package go to same file
+		// Subsystem packages - all classes in package go to same file.
 		PACKAGE_TO_MODULE.put("org.apposed.appose.builder", "builder.pyi");
 		PACKAGE_TO_MODULE.put("org.apposed.appose.scheme", "scheme.pyi");
 		PACKAGE_TO_MODULE.put("org.apposed.appose.syntax", "syntax.pyi");
 
-		// Utility packages
+		// Utility packages.
 		PACKAGE_TO_MODULE.put("org.apposed.appose.util.Platforms", "platform.pyi");
 		PACKAGE_TO_MODULE.put("org.apposed.appose.util.Proxies", "proxy.pyi");
 		PACKAGE_TO_MODULE.put("org.apposed.appose.util.FilePaths", "filepath.pyi");
 		PACKAGE_TO_MODULE.put("org.apposed.appose.util.Processes", "process.pyi");
 
-		// Workers
+		// Workers.
 		PACKAGE_TO_MODULE.put("org.apposed.appose.GroovyWorker", "groovy_worker.pyi");
 	}
 
-	// Static utility classes to dump as module-level functions (not as classes)
+	// Static utility classes to dump as module-level functions (not as classes).
 	private static final Set<String> STATIC_UTILITY_CLASSES = new HashSet<>(Arrays.asList(
 		"org.apposed.appose.Appose",
 		"org.apposed.appose.util.FilePaths",
@@ -111,9 +111,9 @@ public class DumpApi {
 		"org.apposed.appose.util.Proxies"
 	));
 
-	// Classes to exclude from API dump (internal implementation details)
+	// Classes to exclude from API dump (internal implementation details).
 	private static final Set<String> EXCLUDED_CLASSES = new HashSet<>(Arrays.asList(
-		// Platform-specific SHM implementations (internal details)
+		// Platform-specific SHM implementations (internal details).
 		"org.apposed.appose.shm.ShmLinux",
 		"org.apposed.appose.shm.ShmMacOS",
 		"org.apposed.appose.shm.ShmWindows",
@@ -122,10 +122,10 @@ public class DumpApi {
 		"org.apposed.appose.shm.CLibrary",
 		"org.apposed.appose.shm.Kernel32",
 		"org.apposed.appose.shm.LibC",
-		// Utility classes (keeping discovery/factory classes, excluding internal helpers)
+		// Utility classes (keeping discovery/factory classes, excluding internal helpers).
 		"org.apposed.appose.util.Plugins",
 		"org.apposed.appose.util.Types",
-		// Test utility classes
+		// Test utility classes.
 		"org.apposed.appose.TestBase"
 	));
 
@@ -143,10 +143,10 @@ public class DumpApi {
 		String outputDirArg = args[0];
 		Path outputDir = Paths.get(outputDirArg, "appose");
 
-		// Create output directory if needed
+		// Create output directory if needed.
 		Files.createDirectories(outputDir);
 
-		// Collect all Java files from source directories
+		// Collect all Java files from source directories.
 		List<Path> javaFiles = new ArrayList<>();
 		for (int i = 1; i < args.length; i++) {
 			Path sourcePath = Paths.get(args[i]);
@@ -158,7 +158,7 @@ public class DumpApi {
 			}
 		}
 
-		// Parse all files
+		// Parse all files.
 		JavaParser parser = new JavaParser();
 		Map<String, TypeDeclaration<?>> allTypes = new TreeMap<>();
 
@@ -176,12 +176,12 @@ public class DumpApi {
 
 						String fullName = packagePrefix + type.getNameAsString();
 
-						// Skip excluded classes
+						// Skip excluded classes.
 						if (EXCLUDED_CLASSES.contains(fullName)) continue;
 
 						allTypes.put(fullName, type);
 
-						// Also collect inner classes
+						// Also collect inner classes.
 						collectInnerTypes(type, packagePrefix + type.getNameAsString(), allTypes);
 					}
 				}
@@ -190,7 +190,7 @@ public class DumpApi {
 			}
 		}
 
-		// Group types by target Python module
+		// Group types by target Python module.
 		Map<String, List<Map.Entry<String, TypeDeclaration<?>>>> moduleGroups = new LinkedHashMap<>();
 		for (Map.Entry<String, TypeDeclaration<?>> entry : allTypes.entrySet()) {
 			String fullName = entry.getKey();
@@ -201,7 +201,7 @@ public class DumpApi {
 			}
 		}
 
-		// Write each module file
+		// Write each module file.
 		for (Map.Entry<String, List<Map.Entry<String, TypeDeclaration<?>>>> moduleEntry : moduleGroups.entrySet()) {
 			String moduleName = moduleEntry.getKey();
 			List<Map.Entry<String, TypeDeclaration<?>>> types = moduleEntry.getValue();
@@ -227,13 +227,13 @@ public class DumpApi {
 	 *      "org.apposed.appose.Appose" -> "Appose"
 	 */
 	static String getSimpleClassName(String javaFullName) {
-		// Get the last component (class name, possibly with parent)
+		// Get the last component (class name, possibly with parent).
 		int lastDot = javaFullName.lastIndexOf('.');
 		if (lastDot == -1) return javaFullName;
 
 		String lastPart = javaFullName.substring(lastDot + 1);
 
-		// Check if this looks like an inner class (has an uppercase letter before it)
+		// Check if this looks like an inner class (has an uppercase letter before it).
 		// E.g., "Service.Task" - we want just "Task"
 		int innerDot = lastPart.lastIndexOf('.');
 		if (innerDot != -1) {
@@ -248,23 +248,23 @@ public class DumpApi {
 	 * Returns null if the class should not be included in the API dump.
 	 */
 	static String getModuleName(String javaFullName) {
-		// Check for exact match first (for specific classes)
+		// Check for exact match first (for specific classes).
 		if (PACKAGE_TO_MODULE.containsKey(javaFullName)) {
 			return PACKAGE_TO_MODULE.get(javaFullName);
 		}
 
-		// Check for package-level mappings (e.g., all builder.* classes)
+		// Check for package-level mappings (e.g., all builder.* classes).
 		for (Map.Entry<String, String> entry : PACKAGE_TO_MODULE.entrySet()) {
 			String mappedPackage = entry.getKey();
 			String moduleName = entry.getValue();
 
-			// Check if this is a package mapping (no uppercase letters = package)
+			// Check if this is a package mapping (no uppercase letters = package).
 			if (!mappedPackage.matches(".*\\.[A-Z].*") && javaFullName.startsWith(mappedPackage + ".")) {
 				return moduleName;
 			}
 		}
 
-		// No mapping found - skip this class
+		// No mapping found - skip this class.
 		return null;
 	}
 
@@ -274,15 +274,15 @@ public class DumpApi {
 				TypeDeclaration<?> innerType = (TypeDeclaration<?>) member;
 				if (EXCLUDE_TESTS && isTestClass(innerType)) continue;
 
-				// Use dot notation for inner classes (e.g., Service.Task)
+				// Use dot notation for inner classes (e.g., Service.Task).
 				String fullName = parentFullName + "." + innerType.getNameAsString();
 
-				// Skip excluded classes
+				// Skip excluded classes.
 				if (EXCLUDED_CLASSES.contains(fullName)) continue;
 
 				allTypes.put(fullName, innerType);
 
-				// Recursively collect nested inner classes
+				// Recursively collect nested inner classes.
 				collectInnerTypes(innerType, fullName, allTypes);
 			}
 		}
@@ -295,7 +295,7 @@ public class DumpApi {
 	static void dumpStaticUtilityAsModuleFunctions(TypeDeclaration<?> type) {
 		PrintWriter out = currentWriter != null ? currentWriter : new PrintWriter(System.out);
 
-		// First output any inner enums (like OperatingSystem, CpuArchitecture)
+		// First output any inner enums (like OperatingSystem, CpuArchitecture).
 		for (BodyDeclaration<?> member : type.getMembers()) {
 			if (member instanceof EnumDeclaration) {
 				EnumDeclaration enumDecl = (EnumDeclaration) member;
@@ -306,7 +306,7 @@ public class DumpApi {
 			}
 		}
 
-		// Output public static fields as module-level constants
+		// Output public static fields as module-level constants.
 		for (BodyDeclaration<?> member : type.getMembers()) {
 			if (member instanceof FieldDeclaration) {
 				FieldDeclaration field = (FieldDeclaration) member;
@@ -320,7 +320,7 @@ public class DumpApi {
 			}
 		}
 
-		// Collect all public static methods
+		// Collect all public static methods.
 		Map<String, List<MethodDeclaration>> methodsByName = new LinkedHashMap<>();
 		for (BodyDeclaration<?> member : type.getMembers()) {
 			if (member instanceof MethodDeclaration) {
@@ -332,7 +332,7 @@ public class DumpApi {
 			}
 		}
 
-		// Output each method as a module-level function (with overloads)
+		// Output each method as a module-level function (with overloads).
 		for (List<MethodDeclaration> methods : methodsByName.values()) {
 			for (String methodSig : collapseModuleFunctions(methods)) {
 				out.println(methodSig);
@@ -367,18 +367,18 @@ public class DumpApi {
 			return Collections.singletonList(formatModuleFunction(methods.get(0)));
 		}
 
-		// Try to collapse overloads
+		// Try to collapse overloads.
 		List<String> result = new ArrayList<>();
 
-		// Sort by parameter count (ascending)
+		// Sort by parameter count (ascending).
 		List<MethodDeclaration> sorted = new ArrayList<>(methods);
 		sorted.sort(Comparator.comparingInt(m -> m.getParameters().size()));
 
-		// Check if these are simple overloads that differ only by optional params
+		// Check if these are simple overloads that differ only by optional params.
 		if (canCollapseToOptionalParams(sorted)) {
 			result.add(formatModuleFunctionWithOptionalParams(sorted));
 		} else {
-			// Output all overloads
+			// Output all overloads.
 			for (MethodDeclaration method : methods) {
 				result.add(formatModuleFunction(method));
 			}
@@ -441,7 +441,7 @@ public class DumpApi {
 			String paramName = toSnakeCase(param.getNameAsString());
 			String paramType = formatParameterType(param);
 
-			// Handle varargs
+			// Handle varargs.
 			if (param.isVarArgs()) {
 				sb.append("*").append(paramName).append(": ").append(paramType);
 			} else {
@@ -471,7 +471,7 @@ public class DumpApi {
 		NodeList<Parameter> params = longest.getParameters();
 		NodeList<Parameter> shortParams = shortest.getParameters();
 
-		// Determine how many parameters are required (non-optional)
+		// Determine how many parameters are required (non-optional).
 		boolean bothHaveVarargs = (shortParams.get(shortParams.size() - 1).isVarArgs() &&
 		                           params.get(params.size() - 1).isVarArgs());
 		int requiredParamCount = bothHaveVarargs ?
@@ -485,15 +485,15 @@ public class DumpApi {
 			String paramName = toSnakeCase(param.getNameAsString());
 			String paramType = formatParameterType(param);
 
-			// Handle varargs
+			// Handle varargs.
 			if (param.isVarArgs()) {
 				sb.append(paramName).append(": list[").append(paramType).append("]");
 				sb.append(" | None = None");
 			} else {
 				sb.append(paramName).append(": ").append(paramType);
 
-				// Make parameter optional if it's beyond the shortest signature
-				// Only add | None if not already present (from @Nullable annotation)
+				// Make parameter optional if it's beyond the shortest signature.
+				// Only add | None if not already present (from @Nullable annotation).
 				if (i >= requiredParamCount) {
 					if (!paramType.contains(" | None")) {
 						sb.append(" | None");
@@ -516,7 +516,7 @@ public class DumpApi {
 
 		PrintWriter out = currentWriter != null ? currentWriter : new PrintWriter(System.out);
 
-		// Special case: Static utility classes should be dumped as module-level functions
+		// Special case: Static utility classes should be dumped as module-level functions.
 		if (STATIC_UTILITY_CLASSES.contains(fullName)) {
 			dumpStaticUtilityAsModuleFunctions(type);
 			return;
@@ -524,7 +524,7 @@ public class DumpApi {
 
 		out.println();
 
-		// Class/interface javadoc
+		// Class/interface javadoc.
 		if (INCLUDE_JAVADOC) {
 			type.getJavadoc().ifPresent(javadoc -> {
 				String doc = formatJavadoc(javadoc, "");
@@ -534,15 +534,15 @@ public class DumpApi {
 			});
 		}
 
-		// Class declaration - use simple name for inner classes
+		// Class declaration - use simple name for inner classes.
 		StringBuilder classDecl = new StringBuilder("class ");
 		String className = getSimpleClassName(fullName);
 		classDecl.append(className);
 
-		// Superclass and interfaces
+		// Superclass and interfaces.
 		List<String> bases = new ArrayList<>();
 		if (type instanceof EnumDeclaration) {
-			// Enums extend Enum in Python
+			// Enums extend Enum in Python.
 			bases.add("Enum");
 		}
 		else if (type instanceof ClassOrInterfaceDeclaration) {
@@ -564,18 +564,18 @@ public class DumpApi {
 		classDecl.append(":");
 		out.println(classDecl);
 
-		// Check if this class implements/extends AutoCloseable (for context manager methods)
+		// Check if this class implements/extends AutoCloseable (for context manager methods).
 		boolean isAutoCloseable = false;
 		if (type instanceof ClassOrInterfaceDeclaration) {
 			ClassOrInterfaceDeclaration classDecl1 = (ClassOrInterfaceDeclaration) type;
-			// Check implemented interfaces (for classes)
+			// Check implemented interfaces (for classes).
 			for (ClassOrInterfaceType implemented : classDecl1.getImplementedTypes()) {
 				if (implemented.getNameAsString().equals("AutoCloseable")) {
 					isAutoCloseable = true;
 					break;
 				}
 			}
-			// Check extended interfaces (for interfaces)
+			// Check extended interfaces (for interfaces).
 			if (!isAutoCloseable) {
 				for (ClassOrInterfaceType extended : classDecl1.getExtendedTypes()) {
 					if (extended.getNameAsString().equals("AutoCloseable")) {
@@ -586,11 +586,11 @@ public class DumpApi {
 			}
 		}
 
-		// Collect methods by name for overload detection
+		// Collect methods by name for overload detection.
 		Map<String, List<MethodDeclaration>> methodsByName = new LinkedHashMap<>();
 		List<ConstructorDeclaration> constructors = new ArrayList<>();
 
-		// Process enum constants first (for enum types)
+		// Process enum constants first (for enum types).
 		boolean hasMembers = false;
 		if (type instanceof EnumDeclaration) {
 			EnumDeclaration enumDecl = (EnumDeclaration) type;
@@ -602,10 +602,10 @@ public class DumpApi {
 			}
 		}
 
-		// Process other members in source order
+		// Process other members in source order.
 		for (BodyDeclaration<?> member : type.getMembers()) {
 			if (member instanceof EnumConstantDeclaration) {
-				// Already handled above for EnumDeclaration
+				// Already handled above for EnumDeclaration.
 				continue;
 			}
 			else if (member instanceof FieldDeclaration) {
@@ -641,7 +641,7 @@ public class DumpApi {
 			}
 		}
 
-		// Output constructors (collapsed if overloaded)
+		// Output constructors (collapsed if overloaded).
 		if (!constructors.isEmpty()) {
 			for (String ctorSig : collapseConstructors(constructors)) {
 				out.println("    " + ctorSig);
@@ -649,7 +649,7 @@ public class DumpApi {
 			}
 		}
 
-		// Output methods (collapsed if overloaded)
+		// Output methods (collapsed if overloaded).
 		for (List<MethodDeclaration> methods : methodsByName.values()) {
 			for (String methodSig : collapseMethods(methods)) {
 				out.println("    " + methodSig);
@@ -657,9 +657,9 @@ public class DumpApi {
 			}
 		}
 
-		// Add context manager methods for AutoCloseable classes
+		// Add context manager methods for AutoCloseable classes.
 		if (isAutoCloseable) {
-			// Check if __enter__ and __exit__ are already defined
+			// Check if __enter__ and __exit__ are already defined.
 			boolean hasEnter = false;
 			boolean hasExit = false;
 			for (BodyDeclaration<?> member : type.getMembers()) {
@@ -670,7 +670,7 @@ public class DumpApi {
 				}
 			}
 
-			// Add Python context manager protocol methods
+			// Add Python context manager protocol methods.
 			if (!hasEnter) {
 				out.println("    def __enter__(self) -> " + className + ": ...");
 				hasMembers = true;
@@ -681,7 +681,7 @@ public class DumpApi {
 			}
 		}
 
-		// Add ... for empty class body
+		// Add ... for empty class body.
 		if (!hasMembers) {
 			out.println("    ...");
 		}
@@ -708,8 +708,8 @@ public class DumpApi {
 			return Collections.singletonList(formatConstructor(constructors.get(0)));
 		}
 
-		// For now, output all overloads - full collapsing is complex
-		// TODO: Implement smart merging of overloads
+		// For now, output all overloads - full collapsing is complex.
+		// TODO: Implement smart merging of overloads.
 		List<String> result = new ArrayList<>();
 		for (ConstructorDeclaration ctor : constructors) {
 			result.add(formatConstructor(ctor));
@@ -725,18 +725,18 @@ public class DumpApi {
 			return Collections.singletonList(formatMethod(methods.get(0)));
 		}
 
-		// Try to collapse overloads
+		// Try to collapse overloads.
 		List<String> result = new ArrayList<>();
 
-		// Sort by parameter count (ascending) to process simpler signatures first
+		// Sort by parameter count (ascending) to process simpler signatures first.
 		List<MethodDeclaration> sorted = new ArrayList<>(methods);
 		sorted.sort(Comparator.comparingInt(m -> m.getParameters().size()));
 
-		// Check if these are simple overloads that differ only by optional params
+		// Check if these are simple overloads that differ only by optional params.
 		if (canCollapseToOptionalParams(sorted)) {
 			result.add(formatMethodWithOptionalParams(sorted));
 		} else {
-			// Output all overloads
+			// Output all overloads.
 			for (MethodDeclaration method : methods) {
 				result.add(formatMethod(method));
 			}
@@ -754,10 +754,10 @@ public class DumpApi {
 		MethodDeclaration shortest = methods.get(0);
 		MethodDeclaration longest = methods.get(methods.size() - 1);
 
-		// Must have same static/instance nature
+		// Must have same static/instance nature.
 		if (shortest.isStatic() != longest.isStatic()) return false;
 
-		// Must have same return type
+		// Must have same return type.
 		if (!shortest.getType().equals(longest.getType())) return false;
 
 		NodeList<Parameter> shortParams = shortest.getParameters();
@@ -766,7 +766,7 @@ public class DumpApi {
 		if (shortParams.size() >= longParams.size()) return false;
 		if (shortParams.isEmpty() || longParams.isEmpty()) return false;
 
-		// Special case: both end with varargs of same type
+		// Special case: both end with varargs of same type.
 		// E.g., groovy(String... args) and groovy(List<String> classPath, String... args)
 		// Or: java(String main, String... args) and java(String main, List<String> cp, String... args)
 		if (shortParams.get(shortParams.size() - 1).isVarArgs() &&
@@ -774,7 +774,7 @@ public class DumpApi {
 			Type shortVarType = shortParams.get(shortParams.size() - 1).getType();
 			Type longVarType = longParams.get(longParams.size() - 1).getType();
 			if (shortVarType.equals(longVarType)) {
-				// Check that all non-varargs params in shortest match beginning of longest
+				// Check that all non-varargs params in shortest match beginning of longest.
 				for (int i = 0; i < shortParams.size() - 1; i++) {
 					if (!shortParams.get(i).getType().equals(longParams.get(i).getType())) {
 						return false;
@@ -784,7 +784,7 @@ public class DumpApi {
 			}
 		}
 
-		// Standard case: Check if shortest is a prefix of longest (common pattern for optional params)
+		// Standard case: Check if shortest is a prefix of longest (common pattern for optional params).
 		for (int i = 0; i < shortParams.size(); i++) {
 			if (!shortParams.get(i).getType().equals(longParams.get(i).getType())) {
 				return false;
@@ -814,8 +814,8 @@ public class DumpApi {
 		NodeList<Parameter> params = longest.getParameters();
 		NodeList<Parameter> shortParams = shortest.getParameters();
 
-		// Determine how many parameters are required (non-optional)
-		// If both end with varargs, required count is all non-varargs params from shortest
+		// Determine how many parameters are required (non-optional).
+		// If both end with varargs, required count is all non-varargs params from shortest.
 		boolean bothHaveVarargs = (shortParams.get(shortParams.size() - 1).isVarArgs() &&
 		                           params.get(params.size() - 1).isVarArgs());
 		int requiredParamCount = bothHaveVarargs ?
@@ -829,15 +829,15 @@ public class DumpApi {
 			String paramName = nonClassName(param);
 			String paramType = pythonType(param.getType());
 
-			// Handle varargs - convert to optional list parameter instead of *args
+			// Handle varargs - convert to optional list parameter instead of *args.
 			if (param.isVarArgs()) {
 				sb.append(paramName).append(": list[").append(paramType).append("]");
-				// Varargs are always optional in Python
+				// Varargs are always optional in Python.
 				sb.append(" | None = None");
 			} else {
 				sb.append(paramName).append(": ").append(paramType);
 
-				// Make parameter optional if it's beyond the shortest signature
+				// Make parameter optional if it's beyond the shortest signature.
 				if (i >= requiredParamCount) {
 					sb.append(" | None = None");
 				}
@@ -885,7 +885,7 @@ public class DumpApi {
 			String paramName = nonClassName(param);
 			String paramType = formatParameterType(param);
 
-			// Handle varargs
+			// Handle varargs.
 			if (param.isVarArgs()) {
 				sb.append("*").append(paramName).append(": ").append(paramType);
 			} else {
@@ -903,13 +903,13 @@ public class DumpApi {
 	static String formatJavadoc(Javadoc javadoc, String indent) {
 		StringBuilder sb = new StringBuilder();
 
-		// Main description
+		// Main description.
 		String description = javadoc.getDescription().toText().trim();
 		if (!description.isEmpty()) {
-			// Format as Python docstring
+			// Format as Python docstring.
 			sb.append(indent).append("\"\"\"").append(description);
 
-			// Add block tags (@param, @return, etc.)
+			// Add block tags (@param, @return, etc.).
 			List<JavadocBlockTag> blockTags = javadoc.getBlockTags();
 			if (!blockTags.isEmpty()) {
 				sb.append("\n").append(indent);
@@ -919,7 +919,7 @@ public class DumpApi {
 					String tagContent = tag.getContent().toText().trim();
 
 					if (tagName.equals("param")) {
-						// Extract parameter name and description
+						// Extract parameter name and description.
 						String[] parts = tagContent.split("\\s+", 2);
 						if (parts.length == 2) {
 							String paramName = toSnakeCase(parts[0]);
@@ -942,7 +942,7 @@ public class DumpApi {
 	static String pythonType(Type type) {
 		String typeStr = type.asString();
 
-		// Handle primitive types
+		// Handle primitive types.
 		if (typeStr.equals("void")) return "None";
 		if (typeStr.equals("boolean") || typeStr.equals("Boolean")) return "bool";
 		if (typeStr.equals("byte") || typeStr.equals("Byte")) return "int";
@@ -955,7 +955,7 @@ public class DumpApi {
 		if (typeStr.equals("String")) return "str";
 		if (typeStr.equals("Object")) return "Any";
 
-		// Handle common Java types (check both simple and fully qualified names)
+		// Handle common Java types (check both simple and fully qualified names).
 		if (typeStr.equals("File") || typeStr.endsWith(".File")) return "Path";
 		if (typeStr.equals("Path") || typeStr.endsWith(".Path")) return "Path";
 		if (typeStr.equals("URL") || typeStr.endsWith(".URL")) return "str";
@@ -968,18 +968,18 @@ public class DumpApi {
 		    typeStr.equals("PrintWriter") || typeStr.endsWith(".PrintWriter") ||
 		    typeStr.equals("BufferedReader") || typeStr.endsWith(".BufferedReader")) return "object";
 
-		// Handle arrays
+		// Handle arrays.
 		if (type.isArrayType()) {
 			ArrayType arrayType = type.asArrayType();
 			return "list[" + pythonType(arrayType.getComponentType()) + "]";
 		}
 
-		// Handle generic types
+		// Handle generic types.
 		if (type.isClassOrInterfaceType()) {
 			ClassOrInterfaceType classType = type.asClassOrInterfaceType();
 			String baseName = classType.getNameAsString();
 
-			// Check for simple type mappings first (File, Thread, Process, etc.)
+			// Check for simple type mappings first (File, Thread, Process, etc.).
 			if (baseName.equals("File")) return "Path";
 			if (baseName.equals("Process")) return "subprocess.Popen";
 			if (baseName.equals("Thread")) return "threading.Thread";
@@ -993,7 +993,7 @@ public class DumpApi {
 			if (typeArgs.isPresent()) {
 				NodeList<Type> args = typeArgs.get();
 
-				// Map common Java collection types to Python equivalents
+				// Map common Java collection types to Python equivalents.
 				if (baseName.equals("List") || baseName.equals("ArrayList") ||
 				    baseName.equals("LinkedList")) {
 					if (args.size() > 0) {
@@ -1030,7 +1030,7 @@ public class DumpApi {
 					return "Any | None";
 				}
 
-				// Function types
+				// Function types.
 				if (baseName.equals("Consumer")) {
 					if (args.size() == 1) {
 						return "Callable[[" + pythonType(args.get(0)) + "], None]";
@@ -1073,7 +1073,7 @@ public class DumpApi {
 					return "type";
 				}
 
-				// Generic class with type parameters
+				// Generic class with type parameters.
 				StringBuilder result = new StringBuilder(pythonTypeName(baseName));
 				result.append("[");
 				for (int i = 0; i < args.size(); i++) {
@@ -1084,7 +1084,7 @@ public class DumpApi {
 				return result.toString();
 			}
 
-			// Special handling for non-generic types
+			// Special handling for non-generic types.
 			if (baseName.equals("Runnable")) return "Callable[[], None]";
 			if (baseName.equals("Consumer") || baseName.equals("Supplier") ||
 			    baseName.equals("Predicate") || baseName.equals("Function")) {
@@ -1094,12 +1094,12 @@ public class DumpApi {
 			return pythonTypeName(baseName);
 		}
 
-		// Type variables (e.g., T, E)
+		// Type variables (e.g., T, E).
 		if (type.isTypeParameter()) {
 			return type.asTypeParameter().getNameAsString();
 		}
 
-		// Wildcards
+		// Wildcards.
 		if (type.isWildcardType()) {
 			return "Any";
 		}
@@ -1108,7 +1108,7 @@ public class DumpApi {
 	}
 
 	static String pythonTypeName(String javaName) {
-		// Strip package prefixes for simplicity
+		// Strip package prefixes for simplicity.
 		String simpleName = javaName;
 		if (simpleName.contains(".")) {
 			simpleName = simpleName.substring(simpleName.lastIndexOf('.') + 1);
@@ -1119,7 +1119,7 @@ public class DumpApi {
 	static String toSnakeCase(String camelCase) {
 		if (!NORMALIZE) return camelCase;
 
-		// Handle acronyms and consecutive capitals
+		// Handle acronyms and consecutive capitals.
 		String result = camelCase.replaceAll("([A-Z]+)([A-Z][a-z])", "$1_$2");
 		result = result.replaceAll("([a-z0-9])([A-Z])", "$1_$2");
 		return result.toLowerCase();
@@ -1127,17 +1127,17 @@ public class DumpApi {
 
 	static boolean isTestClass(TypeDeclaration<?> type) {
 		String name = type.getNameAsString();
-		// Check if it's a test class by name or inheritance
+		// Check if it's a test class by name or inheritance.
 		if (name.endsWith("Test") || name.endsWith("Tests") || name.startsWith("Test")) {
 			return true;
 		}
-		// Check for test annotations
+		// Check for test annotations.
 		if (type.getAnnotations().stream().anyMatch(a ->
 			a.getNameAsString().contains("Test") ||
 			a.getNameAsString().equals("RunWith"))) {
 			return true;
 		}
-		// Check if it extends a test base class
+		// Check if it extends a test base class.
 		if (type instanceof ClassOrInterfaceDeclaration) {
 			ClassOrInterfaceDeclaration classDecl = (ClassOrInterfaceDeclaration) type;
 			for (ClassOrInterfaceType extended : classDecl.getExtendedTypes()) {

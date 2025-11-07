@@ -88,7 +88,7 @@ public class ServiceTest extends TestBase {
 
 	@Test
 	public void testServiceStartupFailure() throws IOException, InterruptedException {
-		// Create an environment with no binPaths to test startup failure
+		// Create an environment with no binPaths to test startup failure.
 		File tempDir = new File("no-pythons-to-be-found-here");
 		tempDir.mkdirs();
 		tempDir.deleteOnExit();
@@ -325,11 +325,11 @@ public class ServiceTest extends TestBase {
 		try (Service service = env.groovy()) {
 			maybeDebug(service);
 
-			// Create a task that doesn't set a result
+			// Create a task that doesn't set a result.
 			Task task = service.task("println 'no result'").waitFor();
 			assertComplete(task);
 
-			// result() should return null
+			// result() should return null.
 			assertNull(task.result());
 		}
 	}

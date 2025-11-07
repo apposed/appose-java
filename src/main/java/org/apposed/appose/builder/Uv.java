@@ -146,23 +146,23 @@ class Uv extends Tool {
 		if (!uvBinDir.exists() && !uvBinDir.mkdirs())
 			throw new IOException("Failed to create UV bin directory: " + uvBinDir);
 
-		// Extract archive
+		// Extract archive.
 		Downloads.unpack(archive, uvBinDir);
 
 		String uvBinaryName = Platforms.isWindows() ? "uv.exe" : "uv";
 		File uvDest = new File(command);
 
-		// Check if uv binary is directly in bin dir (Windows ZIP case)
+		// Check if uv binary is directly in bin dir (Windows ZIP case).
 		File uvDirectly = new File(uvBinDir, uvBinaryName);
 		if (uvDirectly.exists()) {
-			// Windows case: binaries are directly in uvBinDir
-			// Just ensure uv.exe is in the right place (uvCommand)
+			// Windows case: binaries are directly in uvBinDir.
+			// Just ensure uv.exe is in the right place (uvCommand).
 			if (!uvDirectly.equals(uvDest) && !uvDirectly.renameTo(uvDest)) {
 				throw new IOException("Failed to move uv binary from " + uvDirectly + " to " + uvDest);
 			}
-			// uvw.exe and uvx.exe are already in the right place (uvBinDir)
+			// uvw.exe and uvx.exe are already in the right place (uvBinDir).
 		} else {
-			// Linux/macOS case: binaries are in uv-<platform>/ subdirectory
+			// Linux/macOS case: binaries are in uv-<platform>/ subdirectory.
 			File[] platformDirs = uvBinDir.listFiles(f -> f.isDirectory() && f.getName().startsWith("uv-"));
 			if (platformDirs == null || platformDirs.length == 0) {
 				throw new IOException("Expected uv binary or uv-<platform> directory not found in: " + uvBinDir);
@@ -170,7 +170,7 @@ class Uv extends Tool {
 
 			File platformDir = platformDirs[0];
 
-			// Move all binaries from platform subdirectory to bin directory
+			// Move all binaries from platform subdirectory to bin directory.
 			File[] binaries = platformDir.listFiles();
 			if (binaries != null) {
 				for (File binary : binaries) {
@@ -178,14 +178,14 @@ class Uv extends Tool {
 					if (!binary.renameTo(dest)) {
 						throw new IOException("Failed to move " + binary.getName() + " from " + binary + " to " + dest);
 					}
-					// Set executable permission
+					// Set executable permission.
 					if (!dest.canExecute()) {
 						dest.setExecutable(true);
 					}
 				}
 			}
 
-			// Clean up the now-empty platform directory
+			// Clean up the now-empty platform directory.
 			if (!platformDir.delete()) {
 				throw new IOException("Failed to delete platform directory: " + platformDir);
 			}

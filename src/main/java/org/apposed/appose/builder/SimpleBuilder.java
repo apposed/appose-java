@@ -107,7 +107,7 @@ public final class SimpleBuilder extends BaseBuilder<SimpleBuilder> {
 		if (javaHome != null) {
 			File javaHomeBin = new File(javaHome, "bin");
 			if (javaHomeBin.isDirectory()) {
-				// Prepend to beginning of list for highest priority
+				// Prepend to beginning of list for highest priority.
 				customBinPaths.add(0, javaHomeBin.getAbsolutePath());
 			}
 			envVars.put("JAVA_HOME", javaHome);
@@ -127,7 +127,7 @@ public final class SimpleBuilder extends BaseBuilder<SimpleBuilder> {
 		File base = envDir();
 		if (base == null) base = new File(".");
 
-		// Create directory if it doesn't exist
+		// Create directory if it doesn't exist.
 		if (!base.exists() && !base.mkdirs()) {
 			throw new IOException("Failed to create base directory: " + base);
 		}
@@ -136,13 +136,13 @@ public final class SimpleBuilder extends BaseBuilder<SimpleBuilder> {
 		List<String> launchArgs = new ArrayList<>();
 		List<String> binPaths = new ArrayList<>();
 
-		// Add bin directory from the environment itself (highest priority)
+		// Add bin directory from the environment itself (highest priority).
 		File binDir = new File(base, "bin");
 		if (binDir.isDirectory()) {
 			binPaths.add(binDir.getAbsolutePath());
 		}
 
-		// Add custom binary paths configured via builder methods
+		// Add custom binary paths configured via builder methods.
 		binPaths.addAll(customBinPaths);
 
 		Map<String, String> environmentVars = new HashMap<>(envVars);

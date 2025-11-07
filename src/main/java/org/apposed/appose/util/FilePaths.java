@@ -241,7 +241,7 @@ public final class FilePaths {
 			}
 		}
 
-		// Use Files.delete() instead of File.delete() to properly handle symlinks
+		// Use Files.delete() instead of File.delete() to properly handle symlinks.
 		Files.delete(path);
 	}
 

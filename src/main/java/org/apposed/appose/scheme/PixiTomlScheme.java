@@ -48,7 +48,7 @@ public class PixiTomlScheme implements Scheme {
 
 	@Override
 	public double priority() {
-		// Lower priority than pyproject.toml but higher than plain text
+		// Lower priority than pyproject.toml but higher than plain text.
 		return 50;
 	}
 
@@ -61,7 +61,7 @@ public class PixiTomlScheme implements Scheme {
 		for (String line : lines) {
 			String trimmed = line.trim();
 
-			// Look for top-level name (not in any section)
+			// Look for top-level name (not in any section).
 			if (trimmed.startsWith("name") && trimmed.contains("=")) {
 				int equalsIndex = trimmed.indexOf('=');
 				String value = trimmed.substring(equalsIndex + 1).trim();
@@ -79,10 +79,10 @@ public class PixiTomlScheme implements Scheme {
 
 		String trimmed = content.trim();
 
-		// Must have TOML structure
+		// Must have TOML structure.
 		if (!trimmed.matches("(?s).*\\[.*\\].*")) return false;
 
-		// Pixi-specific markers: top-level dependencies sections
+		// Pixi-specific markers: top-level dependencies sections.
 		return trimmed.contains("[dependencies]") ||
 		       trimmed.contains("[pypi-dependencies]");
 	}

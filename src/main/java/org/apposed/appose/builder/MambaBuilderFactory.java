@@ -40,6 +40,7 @@ import java.io.IOException;
  * @author Curtis Rueden
  */
 public class MambaBuilderFactory implements BuilderFactory {
+
 	@Override
 	public Builder<?> createBuilder() {
 		return new MambaBuilder();
@@ -67,7 +68,7 @@ public class MambaBuilderFactory implements BuilderFactory {
 
 	@Override
 	public boolean supportsSource(String source) {
-		// Support YAML environment files
+		// Support YAML environment files.
 		return source.endsWith(".yml") || source.endsWith(".yaml");
 	}
 
@@ -78,7 +79,7 @@ public class MambaBuilderFactory implements BuilderFactory {
 
 	@Override
 	public boolean canWrap(java.io.File envDir) {
-		// Check for conda/mamba environment marker
+		// Check for conda/mamba environment marker.
 		return new java.io.File(envDir, "conda-meta").isDirectory();
 	}
 }

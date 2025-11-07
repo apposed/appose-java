@@ -188,7 +188,7 @@ public final class Downloads {
 					try (OutputStream outputFileStream = new FileOutputStream(outputFile)) {
 						copy(zipInputStream, outputFileStream);
 					}
-					// Set executable permission if the entry had it
+					// Set executable permission if the entry had it.
 					if ((entry.getUnixMode() & 0100) != 0) {
 						outputFile.setExecutable(true);
 					}

@@ -70,7 +70,7 @@ public final class MambaBuilder extends BaseBuilder<MambaBuilder> {
 	public Environment build() throws IOException {
 		File envDir = envDir();
 
-		// Check for incompatible existing environments
+		// Check for incompatible existing environments.
 		if (new File(envDir, ".pixi").isDirectory()) {
 			throw new IOException("Cannot use MambaBuilder: environment already managed by Pixi at " + envDir);
 		}
@@ -81,16 +81,16 @@ public final class MambaBuilder extends BaseBuilder<MambaBuilder> {
 		// Is this envDir an already-existing conda directory?
 		boolean isCondaDir = new File(envDir, "conda-meta").isDirectory();
 		if (isCondaDir) {
-			// Environment already exists, just wrap it
+			// Environment already exists, just wrap it.
 			return createEnvironment(envDir);
 		}
 
-		// Building a new environment - config content is required
+		// Building a new environment - config content is required.
 		if (sourceContent == null) {
 			throw new IllegalStateException("No source specified for MambaBuilder. Use .file() or .content()");
 		}
 
-		// Infer scheme if not explicitly set
+		// Infer scheme if not explicitly set.
 		if (scheme == null) scheme = Schemes.fromContent(sourceContent).name();
 
 		if (!"environment.yml".equals(scheme)) {
@@ -110,7 +110,7 @@ public final class MambaBuilder extends BaseBuilder<MambaBuilder> {
 		mamba.setEnvVars(envVars);
 		mamba.setFlags(flags);
 
-		// Check for unsupported features
+		// Check for unsupported features.
 		if (!channels.isEmpty()) {
 			throw new UnsupportedOperationException(
 				"MambaBuilder does not yet support programmatic channel configuration. " +
@@ -120,15 +120,15 @@ public final class MambaBuilder extends BaseBuilder<MambaBuilder> {
 		try {
 			mamba.install();
 
-			// Two-step build: create empty env, write config, then update
-			// Step 1: Create empty environment
+			// Two-step build: create empty env, write config, then update.
+			// Step 1: Create empty environment.
 			mamba.create(envDir);
 
-			// Step 2: Write environment.yml to envDir
+			// Step 2: Write environment.yml to envDir.
 			File envYaml = new File(envDir, "environment.yml");
 			Files.write(envYaml.toPath(), sourceContent.getBytes(StandardCharsets.UTF_8));
 
-			// Step 3: Update environment from yml
+			// Step 3: Update environment from yml.
 			mamba.update(envDir, envYaml);
 
 			return createEnvironment(envDir);
@@ -141,14 +141,14 @@ public final class MambaBuilder extends BaseBuilder<MambaBuilder> {
 	public Environment wrap(File envDir) throws IOException {
 		FilePaths.ensureDirectory(envDir);
 
-		// Look for environment.yml configuration file
+		// Look for environment.yml configuration file.
 		File envYaml = new File(envDir, "environment.yml");
 		if (envYaml.exists() && envYaml.isFile()) {
-			// Read the content so rebuild() will work even after directory is deleted
+			// Read the content so rebuild() will work even after directory is deleted.
 			sourceContent = new String(Files.readAllBytes(envYaml.toPath()), StandardCharsets.UTF_8);
 		}
 
-		// Set the base directory and build (which will detect existing env)
+		// Set the base directory and build (which will detect existing env).
 		base(envDir);
 		return build();
 	}
