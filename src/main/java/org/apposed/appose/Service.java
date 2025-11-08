@@ -39,6 +39,7 @@ import java.io.File;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.PrintWriter;
+import java.io.UncheckedIOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.util.ArrayList;
@@ -176,9 +177,9 @@ public class Service implements AutoCloseable {
 	 *
 	 * @param script The script for the worker to execute in its environment.
 	 * @return The newly created {@link Task} object tracking the execution.
-	 * @throws IOException If something goes wrong communicating with the worker.
+	 * @throws UncheckedIOException If something goes wrong auto-starting the service.
 	 */
-	public Task task(String script) throws IOException {
+	public Task task(String script) {
 		return task(script, null, null);
 	}
 
@@ -188,9 +189,9 @@ public class Service implements AutoCloseable {
 	 * @param script The script for the worker to execute in its environment.
 	 * @param inputs Optional list of key/value pairs to feed into the script as inputs.
 	 * @return The newly created {@link Task} object tracking the execution.
-	 * @throws IOException If something goes wrong communicating with the worker.
+	 * @throws UncheckedIOException If something goes wrong auto-starting the service.
 	 */
-	public Task task(String script, Map<String, Object> inputs) throws IOException {
+	public Task task(String script, Map<String, Object> inputs) {
 		return task(script, inputs, null);
 	}
 
@@ -200,9 +201,9 @@ public class Service implements AutoCloseable {
 	 * @param script The script for the worker to execute in its environment.
 	 * @param queue Optional queue target. Pass "main" to queue to worker's main thread.
 	 * @return The newly created {@link Task} object tracking the execution.
-	 * @throws IOException If something goes wrong communicating with the worker.
+	 * @throws UncheckedIOException If something goes wrong auto-starting the service.
 	 */
-	public Task task(String script, String queue) throws IOException {
+	public Task task(String script, String queue) {
 		return task(script, null, queue);
 	}
 
@@ -213,10 +214,15 @@ public class Service implements AutoCloseable {
 	 * @param inputs Optional list of key/value pairs to feed into the script as inputs.
 	 * @param queue Optional queue target. Pass "main" to queue to worker's main thread.
 	 * @return The newly created {@link Task} object tracking the execution.
-	 * @throws IOException If something goes wrong communicating with the worker.
+	 * @throws UncheckedIOException If something goes wrong auto-starting the service.
 	 */
-	public Task task(String script, Map<String, Object> inputs, String queue) throws IOException {
-		start();
+	public Task task(String script, Map<String, Object> inputs, String queue) {
+		try {
+			start();
+		}
+		catch (IOException exc) {
+			throw new UncheckedIOException("Service autostart failed", exc);
+		}
 		return new Task(script, inputs, queue);
 	}
 
@@ -277,12 +283,11 @@ public class Service implements AutoCloseable {
 	 *
 	 * @param name The name of the variable to retrieve from the worker process.
 	 * @return The value of the variable.
-	 * @throws IOException If something goes wrong communicating with the worker.
 	 * @throws InterruptedException If the current thread is interrupted while waiting.
 	 * @throws TaskException If the task fails to retrieve the variable.
 	 * @throws IllegalStateException If no script syntax has been configured for this service.
 	 */
-	public Object getVar(String name) throws IOException, InterruptedException, TaskException {
+	public Object getVar(String name) throws InterruptedException, TaskException {
 		Syntaxes.validate(this);
 		String script = syntax.getVar(name);
 		Task task = task(script).waitFor();
@@ -301,12 +306,11 @@ public class Service implements AutoCloseable {
 	 *
 	 * @param name The name of the variable to set in the worker process.
 	 * @param value The value to assign to the variable.
-	 * @throws IOException If something goes wrong communicating with the worker.
 	 * @throws InterruptedException If the current thread is interrupted while waiting.
 	 * @throws TaskException If the task fails to set the variable.
 	 * @throws IllegalStateException If no script syntax has been configured for this service.
 	 */
-	public void putVar(String name, Object value) throws IOException, InterruptedException, TaskException {
+	public void putVar(String name, Object value) throws InterruptedException, TaskException {
 		Syntaxes.validate(this);
 		Map<String, Object> inputs = new HashMap<>();
 		inputs.put("_value", value);
@@ -330,12 +334,11 @@ public class Service implements AutoCloseable {
 	 * @param function The name of the function to call in the worker process.
 	 * @param args The arguments to pass to the function.
 	 * @return The result of the function call.
-	 * @throws IOException If something goes wrong communicating with the worker.
 	 * @throws InterruptedException If the current thread is interrupted while waiting.
 	 * @throws TaskException If the function call fails.
 	 * @throws IllegalStateException If no script syntax has been configured for this service.
 	 */
-	public Object call(String function, Object... args) throws IOException, InterruptedException, TaskException {
+	public Object call(String function, Object... args) throws InterruptedException, TaskException {
 		Syntaxes.validate(this);
 		Map<String, Object> inputs = new HashMap<>();
 		List<String> varNames = new ArrayList<>();
