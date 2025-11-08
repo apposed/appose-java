@@ -50,11 +50,11 @@ public final class MambaBuilder extends BaseBuilder<MambaBuilder> {
 
 	public MambaBuilder() {}
 
-	public MambaBuilder(String source) throws IOException {
+	public MambaBuilder(String source) throws BuildException {
 		file(source);
 	}
 
-	public MambaBuilder(String source, String scheme) throws IOException {
+	public MambaBuilder(String source, String scheme) throws BuildException {
 		file(source);
 		this.scheme = scheme;
 	}
@@ -67,15 +67,15 @@ public final class MambaBuilder extends BaseBuilder<MambaBuilder> {
 	}
 
 	@Override
-	public Environment build() throws IOException {
+	public Environment build() throws BuildException {
 		File envDir = envDir();
 
 		// Check for incompatible existing environments.
 		if (new File(envDir, ".pixi").isDirectory()) {
-			throw new IOException("Cannot use MambaBuilder: environment already managed by Pixi at " + envDir);
+			throw new BuildException(this, "Cannot use MambaBuilder: environment already managed by Pixi at " + envDir);
 		}
 		if (new File(envDir, "pyvenv.cfg").exists()) {
-			throw new IOException("Cannot use MambaBuilder: environment already managed by uv/venv at " + envDir);
+			throw new BuildException(this, "Cannot use MambaBuilder: environment already managed by uv/venv at " + envDir);
 		}
 
 		// Is this envDir an already-existing conda directory?
@@ -132,20 +132,26 @@ public final class MambaBuilder extends BaseBuilder<MambaBuilder> {
 			mamba.update(envDir, envYaml);
 
 			return createEnvironment(envDir);
-		} catch (InterruptedException e) {
-			throw new IOException(e);
+		}
+		catch (IOException | InterruptedException e) {
+			throw new BuildException(this, e);
 		}
 	}
 
 	@Override
-	public Environment wrap(File envDir) throws IOException {
-		FilePaths.ensureDirectory(envDir);
+	public Environment wrap(File envDir) throws BuildException {
+		try {
+			FilePaths.ensureDirectory(envDir);
 
-		// Look for environment.yml configuration file.
-		File envYaml = new File(envDir, "environment.yml");
-		if (envYaml.exists() && envYaml.isFile()) {
-			// Read the content so rebuild() will work even after directory is deleted.
-			sourceContent = new String(Files.readAllBytes(envYaml.toPath()), StandardCharsets.UTF_8);
+			// Look for environment.yml configuration file.
+			File envYaml = new File(envDir, "environment.yml");
+			if (envYaml.exists() && envYaml.isFile()) {
+				// Read the content so rebuild() will work even after directory is deleted.
+				sourceContent = new String(Files.readAllBytes(envYaml.toPath()), StandardCharsets.UTF_8);
+			}
+		}
+		catch (IOException e) {
+			throw new BuildException(this, e);
 		}
 
 		// Set the base directory and build (which will detect existing env).

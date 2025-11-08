@@ -55,11 +55,11 @@ public final class UvBuilder extends BaseBuilder<UvBuilder> {
 
 	public UvBuilder() {}
 
-	public UvBuilder(String source) throws IOException {
+	public UvBuilder(String source) throws BuildException {
 		file(source);
 	}
 
-	public UvBuilder(String source, String scheme) throws IOException {
+	public UvBuilder(String source, String scheme) throws BuildException {
 		file(source);
 		this.scheme = scheme;
 	}
@@ -96,15 +96,15 @@ public final class UvBuilder extends BaseBuilder<UvBuilder> {
 	}
 
 	@Override
-	public Environment build() throws IOException {
+	public Environment build() throws BuildException {
 		File envDir = envDir();
 
 		// Check for incompatible existing environments.
 		if (new File(envDir, ".pixi").isDirectory()) {
-			throw new IOException("Cannot use UvBuilder: environment already managed by Pixi at " + envDir);
+			throw new BuildException(this, "Cannot use UvBuilder: environment already managed by Pixi at " + envDir);
 		}
 		if (new File(envDir, "conda-meta").isDirectory()) {
-			throw new IOException("Cannot use UvBuilder: environment already managed by Mamba/Conda at " + envDir);
+			throw new BuildException(this, "Cannot use UvBuilder: environment already managed by Mamba/Conda at " + envDir);
 		}
 
 		Uv uv = new Uv();
@@ -152,7 +152,7 @@ public final class UvBuilder extends BaseBuilder<UvBuilder> {
 					// Handle pyproject.toml - uses uv sync.
 					// Create envDir if it doesn't exist.
 					if (!envDir.exists() && !envDir.mkdirs()) {
-						throw new IOException("Failed to create environment directory: " + envDir);
+						throw new BuildException(this, "Failed to create environment directory: " + envDir);
 					}
 
 					// Write pyproject.toml to envDir.
@@ -194,29 +194,36 @@ public final class UvBuilder extends BaseBuilder<UvBuilder> {
 			}
 
 			return createEnvironment(envDir);
-		} catch (InterruptedException e) {
-			throw new IOException(e);
+		}
+		catch (IOException | InterruptedException e) {
+			throw new BuildException(this, e);
 		}
 	}
 
 	@Override
-	public Environment wrap(File envDir) throws IOException {
-		FilePaths.ensureDirectory(envDir);
+	public Environment wrap(File envDir) throws BuildException {
+		try {
+			FilePaths.ensureDirectory(envDir);
 
-		// Check for pyproject.toml first (preferred for uv projects).
-		File pyprojectToml = new File(envDir, "pyproject.toml");
-		if (pyprojectToml.exists() && pyprojectToml.isFile()) {
-			// Read the content so rebuild() will work even after directory is deleted.
-			sourceContent = new String(Files.readAllBytes(pyprojectToml.toPath()), StandardCharsets.UTF_8);
-			scheme = "pyproject.toml";
-		} else {
-			// Fall back to requirements.txt.
-			File requirementsTxt = new File(envDir, "requirements.txt");
-			if (requirementsTxt.exists() && requirementsTxt.isFile()) {
+			// Check for pyproject.toml first (preferred for uv projects).
+			File pyprojectToml = new File(envDir, "pyproject.toml");
+			if (pyprojectToml.exists() && pyprojectToml.isFile()) {
 				// Read the content so rebuild() will work even after directory is deleted.
-				sourceContent = new String(Files.readAllBytes(requirementsTxt.toPath()), StandardCharsets.UTF_8);
-				scheme = "requirements.txt";
+				sourceContent = new String(Files.readAllBytes(pyprojectToml.toPath()), StandardCharsets.UTF_8);
+				scheme = "pyproject.toml";
 			}
+			else {
+				// Fall back to requirements.txt.
+				File requirementsTxt = new File(envDir, "requirements.txt");
+				if (requirementsTxt.exists() && requirementsTxt.isFile()) {
+					// Read the content so rebuild() will work even after directory is deleted.
+					sourceContent = new String(Files.readAllBytes(requirementsTxt.toPath()), StandardCharsets.UTF_8);
+					scheme = "requirements.txt";
+				}
+			}
+		}
+		catch (IOException e) {
+			throw new BuildException(this, e);
 		}
 
 		// Set the base directory and build (which will detect existing env).

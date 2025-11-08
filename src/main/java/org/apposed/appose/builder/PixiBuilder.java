@@ -54,11 +54,11 @@ public final class PixiBuilder extends BaseBuilder<PixiBuilder> {
 
 	public PixiBuilder() {}
 
-	public PixiBuilder(String source) throws IOException {
+	public PixiBuilder(String source) throws BuildException {
 		file(source);
 	}
 
-	public PixiBuilder(String source, String scheme) throws IOException {
+	public PixiBuilder(String source, String scheme) throws BuildException {
 		file(source);
 		this.scheme = scheme;
 	}
@@ -95,15 +95,15 @@ public final class PixiBuilder extends BaseBuilder<PixiBuilder> {
 	}
 
 	@Override
-	public Environment build() throws IOException {
+	public Environment build() throws BuildException {
 		File envDir = envDir();
 
 		// Check for incompatible existing environments.
 		if (new File(envDir, "conda-meta").exists() && !new File(envDir, ".pixi").exists()) {
-			throw new IOException("Cannot use PixiBuilder: environment already managed by Mamba/Conda at " + envDir);
+			throw new BuildException(this, "Cannot use PixiBuilder: environment already managed by Mamba/Conda at " + envDir);
 		}
 		if (new File(envDir, "pyvenv.cfg").exists()) {
-			throw new IOException("Cannot use PixiBuilder: environment already managed by uv/venv at " + envDir);
+			throw new BuildException(this, "Cannot use PixiBuilder: environment already managed by uv/venv at " + envDir);
 		}
 
 		Pixi pixi = new Pixi();
@@ -143,7 +143,7 @@ public final class PixiBuilder extends BaseBuilder<PixiBuilder> {
 				if (scheme == null) scheme = Schemes.fromContent(sourceContent).name();
 
 				if (!envDir.exists() && !envDir.mkdirs()) {
-					throw new IOException("Failed to create environment directory: " + envDir);
+					throw new BuildException(this, "Failed to create environment directory: " + envDir);
 				}
 
 				if ("pixi.toml".equals(scheme)) {
@@ -173,7 +173,7 @@ public final class PixiBuilder extends BaseBuilder<PixiBuilder> {
 				}
 
 				if (!envDir.exists() && !envDir.mkdirs()) {
-					throw new IOException("Failed to create environment directory: " + envDir);
+					throw new BuildException(this, "Failed to create environment directory: " + envDir);
 				}
 
 				pixi.init(envDir);
@@ -217,29 +217,35 @@ public final class PixiBuilder extends BaseBuilder<PixiBuilder> {
 			}
 
 			return createEnvironment(pixi, envDir);
-		} catch (InterruptedException e) {
-			throw new IOException(e);
+		}
+		catch (IOException | InterruptedException e) {
+			throw new BuildException(this, e);
 		}
 	}
 
 	@Override
-	public Environment wrap(File envDir) throws IOException {
-		FilePaths.ensureDirectory(envDir);
+	public Environment wrap(File envDir) throws BuildException {
+		try {
+			FilePaths.ensureDirectory(envDir);
 
-		// Look for pixi.toml configuration file first.
-		File pixiToml = new File(envDir, "pixi.toml");
-		if (pixiToml.exists() && pixiToml.isFile()) {
-			// Read the content so rebuild() will work even after directory is deleted.
-			sourceContent = new String(Files.readAllBytes(pixiToml.toPath()), StandardCharsets.UTF_8);
-			scheme = "pixi.toml";
-		} else {
-			// Check for pyproject.toml.
-			File pyprojectToml = new File(envDir, "pyproject.toml");
-			if (pyprojectToml.exists() && pyprojectToml.isFile()) {
+			// Look for pixi.toml configuration file first.
+			File pixiToml = new File(envDir, "pixi.toml");
+			if (pixiToml.exists() && pixiToml.isFile()) {
 				// Read the content so rebuild() will work even after directory is deleted.
-				sourceContent = new String(Files.readAllBytes(pyprojectToml.toPath()), StandardCharsets.UTF_8);
-				scheme = "pyproject.toml";
+				sourceContent = new String(Files.readAllBytes(pixiToml.toPath()), StandardCharsets.UTF_8);
+				scheme = "pixi.toml";
+			} else {
+				// Check for pyproject.toml.
+				File pyprojectToml = new File(envDir, "pyproject.toml");
+				if (pyprojectToml.exists() && pyprojectToml.isFile()) {
+					// Read the content so rebuild() will work even after directory is deleted.
+					sourceContent = new String(Files.readAllBytes(pyprojectToml.toPath()), StandardCharsets.UTF_8);
+					scheme = "pyproject.toml";
+				}
 			}
+		}
+		catch (IOException e) {
+			throw new BuildException(this, e);
 		}
 
 		// Set the base directory and build (which will detect existing env).

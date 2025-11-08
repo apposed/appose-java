@@ -33,8 +33,6 @@ import org.apposed.appose.Service.Task;
 import org.apposed.appose.Service.TaskStatus;
 import org.junit.jupiter.api.Test;
 
-import java.io.IOException;
-
 import static org.junit.jupiter.api.Assertions.*;
 
 /**
@@ -47,7 +45,7 @@ public class TaskExceptionTest extends TestBase {
 	 * and that the exception provides access to the task details.
 	 */
 	@Test
-	public void testTaskExceptionOnFailure() throws IOException, InterruptedException {
+	public void testTaskExceptionOnFailure() throws Exception {
 		Environment env = Appose.system();
 		try (Service service = env.python()) {
 			maybeDebug(service);
@@ -78,7 +76,7 @@ public class TaskExceptionTest extends TestBase {
 	 * outputs can be accessed without checking status.
 	 */
 	@Test
-	public void testNoExceptionOnSuccess() throws IOException, InterruptedException, TaskException {
+	public void testNoExceptionOnSuccess() throws Exception {
 		Environment env = Appose.system();
 		try (Service service = env.python()) {
 			maybeDebug(service);

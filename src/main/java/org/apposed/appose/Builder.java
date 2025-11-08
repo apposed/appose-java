@@ -29,6 +29,8 @@
 
 package org.apposed.appose;
 
+import org.apposed.appose.builder.BuildException;
+
 import java.io.File;
 import java.io.IOException;
 import java.net.URL;
@@ -67,9 +69,11 @@ public interface Builder<T extends Builder<T>> {
 	 * Builds the environment. This is the terminator method for any fluid building chain.
 	 *
 	 * @return The newly constructed Appose {@link Environment}.
-	 * @throws IOException If something goes wrong building the environment.
+	 * @throws BuildException if the build fails due to I/O errors,
+	 *         interruption, or other build-related issues.
+	 *         Check {@link BuildException#getCause()} for the underlying cause.
 	 */
-	Environment build() throws IOException;
+	Environment build() throws BuildException;
 
 	/**
 	 * Rebuilds the environment from scratch.
@@ -83,10 +87,17 @@ public interface Builder<T extends Builder<T>> {
 	 * </p>
 	 *
 	 * @return The newly rebuilt {@link Environment}.
-	 * @throws IOException If something goes wrong during rebuild.
+	 * @throws BuildException if the build fails due to I/O errors,
+	 *         interruption, or other build-related issues.
+	 *         Check {@link BuildException#getCause()} for the underlying cause.
 	 */
-	default Environment rebuild() throws IOException {
-		delete();
+	default Environment rebuild() throws BuildException {
+		try {
+			delete();
+		}
+		catch (IOException e) {
+			throw new BuildException(this, e);
+		}
 		return build();
 	}
 
@@ -107,11 +118,11 @@ public interface Builder<T extends Builder<T>> {
 	 * found, it will be used when rebuild() is called later.
 	 * </p>
 	 *
-	 * @param envDir The existing environment directory to wrap
-	 * @return The wrapped {@link Environment}
-	 * @throws IOException If the directory doesn't exist or can't be wrapped
+	 * @param envDir The existing environment directory to wrap.
+	 * @return The wrapped {@link Environment}.
+	 * @throws BuildException If the directory doesn't exist or can't be wrapped.
 	 */
-	Environment wrap(File envDir) throws IOException;
+	Environment wrap(File envDir) throws BuildException;
 
 	/**
 	 * Sets an environment variable to be passed to worker processes.
@@ -193,15 +204,20 @@ public interface Builder<T extends Builder<T>> {
 	 *
 	 * @param path Path to configuration file (e.g., "pixi.toml", "environment.yml")
 	 * @return This builder instance, for fluent-style programming.
-	 * @throws IOException If the file cannot be read
+	 * @throws BuildException If the file cannot be read
 	 */
-	default T file(String path) throws IOException {
-		java.nio.file.Path filePath = java.nio.file.Paths.get(path);
-		String fileContent = new String(
-			java.nio.file.Files.readAllBytes(filePath),
-			java.nio.charset.StandardCharsets.UTF_8
-		);
-		return content(fileContent);
+	default T file(String path) throws BuildException {
+		try {
+			java.nio.file.Path filePath = java.nio.file.Paths.get(path);
+			String fileContent = new String(
+					java.nio.file.Files.readAllBytes(filePath),
+					java.nio.charset.StandardCharsets.UTF_8
+			);
+			return content(fileContent);
+		}
+		catch (IOException e) {
+			throw new BuildException(this, e);
+		}
 	}
 
 	/**
@@ -219,9 +235,9 @@ public interface Builder<T extends Builder<T>> {
 	 *
 	 * @param url URL to configuration file
 	 * @return This builder instance, for fluent-style programming.
-	 * @throws IOException If the URL cannot be read
+	 * @throws BuildException If the URL cannot be read
 	 */
-	default T url(URL url) throws IOException {
+	default T url(URL url) throws BuildException {
 		try (java.io.InputStream stream = url.openStream()) {
 			java.io.ByteArrayOutputStream result = new java.io.ByteArrayOutputStream();
 			byte[] buffer = new byte[8192];
@@ -231,6 +247,9 @@ public interface Builder<T extends Builder<T>> {
 			}
 			String urlContent = result.toString(java.nio.charset.StandardCharsets.UTF_8.name());
 			return content(urlContent);
+		}
+		catch (IOException e) {
+			throw new BuildException(this, e);
 		}
 	}
 

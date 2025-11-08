@@ -32,8 +32,6 @@ package org.apposed.appose.builder;
 import org.apposed.appose.Builder;
 import org.apposed.appose.BuilderFactory;
 
-import java.io.IOException;
-
 /**
  * Factory for creating MambaBuilder instances.
  *
@@ -47,12 +45,12 @@ public class MambaBuilderFactory implements BuilderFactory {
 	}
 
 	@Override
-	public Builder<?> createBuilder(String source) throws IOException {
+	public Builder<?> createBuilder(String source) throws BuildException {
 		return new MambaBuilder(source);
 	}
 
 	@Override
-	public Builder<?> createBuilder(String source, String scheme) throws IOException {
+	public Builder<?> createBuilder(String source, String scheme) throws BuildException {
 		return new MambaBuilder(source, scheme);
 	}
 

@@ -198,11 +198,11 @@ public abstract class Tool {
 		try {
 			return Downloads.download(name, url, this::updateDownloadProgress);
 		}
-		catch (URISyntaxException exc) {
+		catch (URISyntaxException e) {
 			// If this happens, it's a bug in the Tool implementation: the
 			// URL being used internally to download the tool is malformed.
 			// Let's not propagate that URISyntaxException downstream.
-			throw new RuntimeException(exc);
+			throw new RuntimeException(e);
 		}
 	}
 

@@ -29,6 +29,7 @@
 
 package org.apposed.appose;
 
+import org.apposed.appose.builder.BuildException;
 import org.apposed.appose.util.FilePaths;
 
 import java.io.File;
@@ -81,9 +82,9 @@ public interface Environment {
 	 * current builder configuration.
 	 *
 	 * @return The newly rebuilt environment.
-	 * @throws IOException If something goes wrong during rebuild.
+	 * @throws BuildException If something goes wrong during rebuild.
 	 */
-	default Environment rebuild() throws IOException {
+	default Environment rebuild() throws BuildException {
 		return builder().rebuild();
 	}
 
@@ -91,10 +92,15 @@ public interface Environment {
 	 * Deletes the existing environment directory, if any.
 	 *
 	 * @return This environment, for fluid chaining.
-	 * @throws IOException If something goes wrong during deletion.
+	 * @throws BuildException If something goes wrong during deletion.
 	 */
-	default Environment delete() throws IOException {
-		builder().delete();
+	default Environment delete() throws BuildException {
+		try {
+			builder().delete();
+		}
+		catch (IOException e) {
+			throw new BuildException(builder(), e);
+		}
 		return this;
 	}
 

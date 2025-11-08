@@ -48,7 +48,7 @@ import static org.junit.jupiter.api.Assertions.*;
 public class ServiceTest extends TestBase {
 
 	@Test
-	public void testGroovy() throws IOException, InterruptedException, TaskException {
+	public void testGroovy() throws Exception {
 		Environment env = Appose.system();
 		try (Service service = env.groovy()) {
 			maybeDebug(service);
@@ -57,7 +57,7 @@ public class ServiceTest extends TestBase {
 	}
 
 	@Test
-	public void testPython() throws IOException, InterruptedException, TaskException {
+	public void testPython() throws Exception {
 		Environment env = Appose.system();
 		try (Service service = env.python()) {
 			maybeDebug(service);
@@ -66,7 +66,7 @@ public class ServiceTest extends TestBase {
 	}
 
 	@Test
-	public void testScopeGroovy() throws IOException, InterruptedException, TaskException {
+	public void testScopeGroovy() throws Exception {
 		Environment env = Appose.system();
 		try (Service service = env.groovy()) {
 			maybeDebug(service);
@@ -124,7 +124,7 @@ public class ServiceTest extends TestBase {
 	}
 
 	@Test
-	public void testTaskFailurePython() throws InterruptedException, IOException {
+	public void testTaskFailurePython() throws Exception {
 		Environment env = Appose.system();
 		try (Service service = env.python()) {
 			maybeDebug(service);
@@ -141,7 +141,7 @@ public class ServiceTest extends TestBase {
 	}
 
 	@Test
-	public void testStartupCrash() throws InterruptedException, IOException, TaskException {
+	public void testStartupCrash() throws Exception {
 		Environment env = Appose.system();
 		List<String> pythonExes = Arrays.asList("python", "python3", "python.exe");
 		@SuppressWarnings("resource")
@@ -161,7 +161,7 @@ public class ServiceTest extends TestBase {
 	}
 
 	@Test
-	public void testPythonSysExit() throws InterruptedException, IOException {
+	public void testPythonSysExit() throws Exception {
 		Environment env = Appose.system();
 		try (Service service = env.python()) {
 			maybeDebug(service);
@@ -186,7 +186,7 @@ public class ServiceTest extends TestBase {
 	}
 
 	@Test
-	public void testCrashWithActiveTask() throws InterruptedException, IOException, TaskException {
+	public void testCrashWithActiveTask() throws Exception {
 		Environment env = Appose.system();
 		try (Service service = env.python()) {
 			maybeDebug(service);
@@ -259,7 +259,7 @@ public class ServiceTest extends TestBase {
 	}
 
 	@Test
-	public void testMainThreadQueueGroovy() throws IOException, InterruptedException, TaskException {
+	public void testMainThreadQueueGroovy() throws Exception {
 		Environment env = Appose.system();
 		try (Service service = env.groovy()) {
 			Task task = service.task(THREAD_CHECK_GROOVY, "main").waitFor();
@@ -273,7 +273,7 @@ public class ServiceTest extends TestBase {
 	}
 
 	@Test
-	public void testMainThreadQueuePython() throws IOException, InterruptedException, TaskException {
+	public void testMainThreadQueuePython() throws Exception {
 		Environment env = Appose.system();
 		try (Service service = env.python()) {
 			Task task = service.task(THREAD_CHECK_PYTHON, "main").waitFor();
@@ -288,7 +288,7 @@ public class ServiceTest extends TestBase {
 
 	/** Tests that init script is executed before tasks run. */
 	@Test
-	public void testInit() throws IOException, InterruptedException, TaskException {
+	public void testInit() throws Exception {
 		Environment env = Appose.system();
 		try (Service service = env.groovy().init("init_value = 'initialized'")) {
 			maybeDebug(service);
@@ -305,7 +305,7 @@ public class ServiceTest extends TestBase {
 
 	/** Tests {@link Task#result()} convenience method. */
 	@Test
-	public void testTaskResult() throws IOException, InterruptedException, TaskException {
+	public void testTaskResult() throws Exception {
 		Environment env = Appose.system();
 		try (Service service = env.python()) {
 			maybeDebug(service);
@@ -325,7 +325,7 @@ public class ServiceTest extends TestBase {
 
 	/** Tests {@link Task#result()} returns null when no result is set. */
 	@Test
-	public void testTaskResultNull() throws IOException, InterruptedException, TaskException {
+	public void testTaskResultNull() throws Exception {
 		Environment env = Appose.system();
 		try (Service service = env.groovy()) {
 			maybeDebug(service);
@@ -341,7 +341,7 @@ public class ServiceTest extends TestBase {
 
 	/** Tests that NumPy works on every platform, even Windows. */
 	@Test
-	public void testInitNumpy() throws IOException, InterruptedException, TaskException {
+	public void testInitNumpy() throws Exception {
 		Environment env = Appose.pixi()
 			.base("target/envs/test-init-numpy")
 			.conda("numpy=2.3.4")

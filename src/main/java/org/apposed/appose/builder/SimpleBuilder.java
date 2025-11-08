@@ -123,13 +123,13 @@ public final class SimpleBuilder extends BaseBuilder<SimpleBuilder> {
 	}
 
 	@Override
-	public Environment build() throws IOException {
+	public Environment build() throws BuildException {
 		File base = envDir();
 		if (base == null) base = new File(".");
 
 		// Create directory if it doesn't exist.
 		if (!base.exists() && !base.mkdirs()) {
-			throw new IOException("Failed to create base directory: " + base);
+			throw new BuildException(this, "Failed to create base directory: " + base);
 		}
 
 		String basePath = base.getAbsolutePath();
@@ -157,7 +157,7 @@ public final class SimpleBuilder extends BaseBuilder<SimpleBuilder> {
 	}
 
 	@Override
-	public Environment rebuild() throws IOException {
+	public Environment rebuild() throws BuildException {
 		throw new UnsupportedOperationException(
 			"SimpleBuilder does not support rebuild(). " +
 			"Custom environments do not manage packages and cannot be rebuilt.");

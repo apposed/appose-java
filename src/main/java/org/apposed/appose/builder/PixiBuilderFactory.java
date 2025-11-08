@@ -32,8 +32,6 @@ package org.apposed.appose.builder;
 import org.apposed.appose.Builder;
 import org.apposed.appose.BuilderFactory;
 
-import java.io.IOException;
-
 /**
  * Factory for creating PixiBuilder instances.
  *
@@ -46,12 +44,12 @@ public class PixiBuilderFactory implements BuilderFactory {
 	}
 
 	@Override
-	public Builder<?> createBuilder(String source) throws IOException {
+	public Builder<?> createBuilder(String source) throws BuildException {
 		return new PixiBuilder(source);
 	}
 
 	@Override
-	public Builder<?> createBuilder(String source, String scheme) throws IOException {
+	public Builder<?> createBuilder(String source, String scheme) throws BuildException {
 		return new PixiBuilder(source, scheme);
 	}
 

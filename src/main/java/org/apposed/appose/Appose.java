@@ -29,6 +29,7 @@
 
 package org.apposed.appose;
 
+import org.apposed.appose.builder.BuildException;
 import org.apposed.appose.builder.Builders;
 import org.apposed.appose.builder.DynamicBuilder;
 import org.apposed.appose.builder.MambaBuilder;
@@ -38,7 +39,6 @@ import org.apposed.appose.builder.UvBuilder;
 import org.apposed.appose.util.Versions;
 
 import java.io.File;
-import java.io.IOException;
 
 /**
  * Appose is a library for interprocess cooperation with shared memory. The
@@ -267,7 +267,7 @@ public class Appose {
 	 * @param source Path to pixi.toml or environment.yml file.
 	 * @return A new PixiBuilder instance.
 	 */
-	public static PixiBuilder pixi(String source) throws IOException {
+	public static PixiBuilder pixi(String source) throws BuildException {
 		return new PixiBuilder(source);
 	}
 
@@ -286,8 +286,9 @@ public class Appose {
 	 *
 	 * @param source Path to environment.yml file.
 	 * @return A new MambaBuilder instance.
+	 * @throws BuildException If the source is incompatible with the mamba builder.
 	 */
-	public static MambaBuilder mamba(String source) throws IOException {
+	public static MambaBuilder mamba(String source) throws BuildException {
 		return new MambaBuilder(source);
 	}
 
@@ -306,8 +307,9 @@ public class Appose {
 	 *
 	 * @param source Path to requirements.txt file.
 	 * @return A new UvBuilder instance.
+	 * @throws BuildException If the source is incompatible with the uv builder.
 	 */
-	public static UvBuilder uv(String source) throws IOException {
+	public static UvBuilder uv(String source) throws BuildException {
 		return new UvBuilder(source);
 	}
 
@@ -344,11 +346,11 @@ public class Appose {
 	 *
 	 * @param envDir The directory containing the environment.
 	 * @return An Environment configured for the detected type.
-	 * @throws IOException If the directory doesn't exist or type cannot be determined.
+	 * @throws BuildException If the directory doesn't exist or type cannot be determined.
 	 */
-	public static Environment wrap(File envDir) throws IOException {
+	public static Environment wrap(File envDir) throws BuildException {
 		if (!envDir.exists()) {
-			throw new IOException("Environment directory does not exist: " + envDir);
+			throw new BuildException(null, "Environment directory does not exist: " + envDir);
 		}
 
 		// Find a builder factory that can wrap this directory.
@@ -367,9 +369,9 @@ public class Appose {
 	 *
 	 * @param envDir The path to the directory containing the environment.
 	 * @return An Environment configured for the detected type.
-	 * @throws IOException If the directory doesn't exist or type cannot be determined.
+	 * @throws BuildException If the directory doesn't exist or type cannot be determined.
 	 */
-	public static Environment wrap(String envDir) throws IOException {
+	public static Environment wrap(String envDir) throws BuildException {
 		return wrap(new File(envDir));
 	}
 
@@ -388,9 +390,9 @@ public class Appose {
 	 * </ul>
 	 *
 	 * @return A system environment ready to use.
-	 * @throws IOException If the environment cannot be created.
+	 * @throws BuildException If the environment cannot be created.
 	 */
-	public static Environment system() throws IOException {
+	public static Environment system() throws BuildException {
 		return new SimpleBuilder()
 			.inheritRunningJava()
 			.appendSystemPath()

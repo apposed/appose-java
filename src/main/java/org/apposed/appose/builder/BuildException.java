@@ -6,13 +6,13 @@
  * %%
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions are met:
- * 
+ *
  * 1. Redistributions of source code must retain the above copyright notice,
  *    this list of conditions and the following disclaimer.
  * 2. Redistributions in binary form must reproduce the above copyright notice,
  *    this list of conditions and the following disclaimer in the documentation
  *    and/or other materials provided with the distribution.
- * 
+ *
  * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
  * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
  * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
@@ -30,66 +30,44 @@
 package org.apposed.appose.builder;
 
 import org.apposed.appose.Builder;
-import org.apposed.appose.BuilderFactory;
+import org.apposed.appose.Nullable;
 
 /**
- * Factory for creating UvBuilder instances.
+ * Exception thrown when a {@link Builder} fails to build an environment.
  *
  * @author Curtis Rueden
  */
-public class UvBuilderFactory implements BuilderFactory {
-	@Override
-	public Builder<?> createBuilder() {
-		return new UvBuilder();
+public class BuildException extends Exception {
+
+	/** The builder associated with this exception. */
+	@Nullable
+	public final Builder<?> builder;
+
+	public BuildException(String message) {
+		this(null, message);
 	}
 
-	@Override
-	public Builder<?> createBuilder(String source) throws BuildException {
-		return new UvBuilder(source);
+	public BuildException(Throwable cause) {
+		this(null, cause);
 	}
 
-	@Override
-	public Builder<?> createBuilder(String source, String scheme) throws BuildException {
-		return new UvBuilder(source, scheme);
+	public BuildException(@Nullable Builder<?> builder, String message) {
+		super(message);
+		this.builder = builder;
 	}
 
-	@Override
-	public String name() {
-		return "uv";
+	public BuildException(@Nullable Builder<?> builder, Throwable cause) {
+		this(builder, makeMessage(builder, cause), cause);
 	}
 
-	@Override
-	public boolean supportsScheme(String scheme) {
-		switch (scheme) {
-			case "requirements.txt":
-			case "pypi":
-				return true;
-			default:
-				return false;
-		}
+	public BuildException(@Nullable Builder<?> builder, String message, Throwable cause) {
+		super(message, cause);
+		this.builder = builder;
 	}
 
-	@Override
-	public boolean supportsSource(String source) {
-		// Support requirements.txt files.
-		return source.endsWith("requirements.txt") || source.endsWith(".txt");
-	}
-
-	@Override
-	public double priority() {
-		return 75.0; // Between pixi (100) and mamba (50)
-	}
-
-	@Override
-	public boolean canWrap(java.io.File envDir) {
-		// Check for uv/venv environment markers.
-		// uv creates standard Python venv, so look for pyvenv.cfg,
-		// but exclude conda and pixi environments.
-		boolean hasPyvenvCfg = new java.io.File(envDir, "pyvenv.cfg").isFile();
-		boolean isNotPixi = !new java.io.File(envDir, ".pixi").isDirectory() &&
-		                    !new java.io.File(envDir, "pixi.toml").isFile();
-		boolean isNotConda = !new java.io.File(envDir, "conda-meta").isDirectory();
-
-		return hasPyvenvCfg && isNotPixi && isNotConda;
+	private static String makeMessage(Builder<?> builder, Throwable cause) {
+		String noun = builder == null ? "build" : builder.name() + " build";
+		String verb = cause instanceof InterruptedException ? "interrupted" : "failed";
+		return noun + " " + verb;
 	}
 }

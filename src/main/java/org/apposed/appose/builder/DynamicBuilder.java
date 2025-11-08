@@ -33,8 +33,6 @@ import org.apposed.appose.Builder;
 import org.apposed.appose.BuilderFactory;
 import org.apposed.appose.Environment;
 
-import java.io.IOException;
-
 /**
  * Dynamic builder that auto-detects the appropriate specific builder
  * based on source file and scheme.
@@ -75,14 +73,14 @@ public final class DynamicBuilder extends BaseBuilder<DynamicBuilder> {
 	}
 
 	@Override
-	public Environment build() throws IOException {
+	public Environment build() throws BuildException {
 		Builder<?> delegate = createBuilder(builderName, source, scheme);
 		copyConfigToDelegate(delegate);
 		return delegate.build();
 	}
 
 	@Override
-	public Environment rebuild() throws IOException {
+	public Environment rebuild() throws BuildException {
 		Builder<?> delegate = createBuilder(builderName, source, scheme);
 		copyConfigToDelegate(delegate);
 		return delegate.rebuild();
@@ -103,7 +101,7 @@ public final class DynamicBuilder extends BaseBuilder<DynamicBuilder> {
 		errorSubscribers.forEach(delegate::subscribeError);
 	}
 
-	private Builder<?> createBuilder(String name, String source, String scheme) throws IOException {
+	private Builder<?> createBuilder(String name, String source, String scheme) throws BuildException {
 		// Find the builder matching the specified name, if any.
 		if (name != null) {
 			BuilderFactory factory = Builders.findFactoryByName(name);

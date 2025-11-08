@@ -78,8 +78,13 @@ public abstract class BaseBuilder<T extends BaseBuilder<T>> implements Builder<T
 	}
 
 	@Override
-	public Environment wrap(File envDir) throws IOException {
-		FilePaths.ensureDirectory(envDir);
+	public Environment wrap(File envDir) throws BuildException {
+		try {
+			FilePaths.ensureDirectory(envDir);
+		}
+		catch (IOException e) {
+			throw new BuildException(this, e);
+		}
 		// Set the base directory and build (which will detect existing env).
 		base(envDir);
 		return build();

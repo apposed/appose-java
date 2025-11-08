@@ -29,13 +29,13 @@
 
 package org.apposed.appose;
 
+import org.apposed.appose.builder.BuildException;
 import org.apposed.appose.builder.MambaBuilder;
 import org.apposed.appose.builder.PixiBuilder;
 import org.apposed.appose.builder.SimpleBuilder;
 import org.junit.jupiter.api.Test;
 
 import java.io.File;
-import java.io.IOException;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -49,7 +49,7 @@ public class WrapTest extends TestBase {
 
 	/** Tests wrapping a pixi environment. */
 	@Test
-	public void testWrapPixi() throws IOException {
+	public void testWrapPixi() throws Exception {
 		File pixiDir = new File("target/test-wrap-pixi");
 		pixiDir.mkdirs();
 		File pixiToml = new File(pixiDir, "pixi.toml");
@@ -72,7 +72,7 @@ public class WrapTest extends TestBase {
 
 	/** Tests wrapping a conda/mamba environment. */
 	@Test
-	public void testWrapMamba() throws IOException {
+	public void testWrapMamba() throws Exception {
 		// Test wrapping a conda/mamba environment.
 		File condaDir = new File("target/test-wrap-conda");
 		condaDir.mkdirs();
@@ -95,7 +95,7 @@ public class WrapTest extends TestBase {
 
 	/** Tests wrapping a uv environment. */
 	@Test
-	public void testWrapUv() throws IOException {
+	public void testWrapUv() throws Exception {
 		File uvDir = new File("target/test-wrap-uv");
 		uvDir.mkdirs();
 		File pyvenvCfg = new File(uvDir, "pyvenv.cfg");
@@ -116,7 +116,7 @@ public class WrapTest extends TestBase {
 
 	/** Tests wrapping a plain directory (should fall back to SimpleBuilder). */
 	@Test
-	public void testWrapCustom() throws IOException {
+	public void testWrapCustom() throws Exception {
 		File customDir = new File("target/test-wrap-simple");
 		customDir.mkdirs();
 
@@ -139,15 +139,16 @@ public class WrapTest extends TestBase {
 		File nonExistent = new File("target/does-not-exist");
 		try {
 			Appose.wrap(nonExistent);
-			fail("Should have thrown IOException for non-existent directory");
-		} catch (IOException e) {
+			fail("Should have thrown exception for non-existent directory");
+		}
+		catch (BuildException e) {
 			assertTrue(e.getMessage().contains("does not exist"));
 		}
 	}
 
 	/** Tests that preexisting (wrapped) environments can be rebuilt properly. */
 	@Test
-	public void testWrapAndRebuild() throws IOException, InterruptedException, TaskException {
+	public void testWrapAndRebuild() throws Exception {
 		// Build an environment from a config file.
 		File envDir = new File("target/envs/mamba-wrap-rebuild-test");
 		Environment env1 = Appose
