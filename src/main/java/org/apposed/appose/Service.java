@@ -131,8 +131,10 @@ public class Service implements AutoCloseable {
 	 *
 	 * @param script The script code to execute during worker initialization.
 	 * @return This service object, for chaining method calls.
+	 * @throws IllegalStateException If the service has already started.
 	 */
-	public Service init(String script) {
+	public synchronized Service init(String script) {
+		if (process != null) throw new IllegalStateException("Service already started");
 		this.initScript = script;
 		return this;
 	}
@@ -143,7 +145,7 @@ public class Service implements AutoCloseable {
 	 * @return This service object, for chaining method calls (typically with {@link #task}).
 	 * @throws IOException If the process fails to execute; see {@link ProcessBuilder#start()}.
 	 */
-	public Service start() throws IOException {
+	public synchronized Service start() throws IOException {
 		if (process != null) {
 			// Already started.
 			return this;
