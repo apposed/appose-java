@@ -33,6 +33,7 @@ import org.apposed.appose.Environment;
 import org.apposed.appose.util.FilePaths;
 import org.apposed.appose.util.Platforms;
 import org.apposed.appose.scheme.Schemes;
+import org.apposed.appose.tool.Uv;
 
 import java.io.File;
 import java.io.IOException;

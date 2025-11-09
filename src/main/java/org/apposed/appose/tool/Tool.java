@@ -27,7 +27,7 @@
  * #L%
  */
 
-package org.apposed.appose.builder;
+package org.apposed.appose.tool;
 
 import org.apposed.appose.util.Downloads;
 import org.apposed.appose.util.Platforms;
@@ -56,16 +56,16 @@ import java.util.function.Consumer;
 public abstract class Tool {
 
 	/** The name of the external tool (e.g. uv, pixi, micromamba). */
-	protected final String name;
+	public final String name;
 
 	/** Remote URL to use when downloading the tool. */
-	protected final String url;
+	public final String url;
 
 	/** Path to the tool's executable command. */
-	protected final String command;
+	public final String command;
 
 	/** Root directory where the tool is installed. */
-	protected final String rootdir;
+	public final String rootdir;
 
 	/** Consumer that tracks the standard output stream produced by the tool process. */
 	protected Consumer<String> outputConsumer;
@@ -194,20 +194,6 @@ public abstract class Tool {
 		}
 	}
 
-	protected File download() throws IOException, InterruptedException {
-		try {
-			return Downloads.download(name, url, this::updateDownloadProgress);
-		}
-		catch (URISyntaxException e) {
-			// If this happens, it's a bug in the Tool implementation: the
-			// URL being used internally to download the tool is malformed.
-			// Let's not propagate that URISyntaxException downstream.
-			throw new RuntimeException(e);
-		}
-	}
-
-	protected abstract void decompress(final File archive) throws IOException, InterruptedException;
-
 	/**
 	 * Executes a tool command with the specified arguments in the tool's root directory.
 	 *
@@ -216,7 +202,7 @@ public abstract class Tool {
 	 * @throws InterruptedException If the current thread is interrupted.
 	 * @throws IllegalStateException If the tool has not been installed.
 	 */
-	protected void exec(String... args) throws IOException, InterruptedException {
+	public void exec(String... args) throws IOException, InterruptedException {
 		exec(null, args);
 	}
 
@@ -245,6 +231,59 @@ public abstract class Tool {
 	 */
 	protected void execDirect(String... args) throws IOException, InterruptedException {
 		doExec(null, true, false, args); // silent=true, includeFlags=false
+	}
+
+	protected File download() throws IOException, InterruptedException {
+		try {
+			return Downloads.download(name, url, this::updateDownloadProgress);
+		}
+		catch (URISyntaxException e) {
+			// If this happens, it's a bug in the Tool implementation: the
+			// URL being used internally to download the tool is malformed.
+			// Let's not propagate that URISyntaxException downstream.
+			throw new RuntimeException(e);
+		}
+	}
+
+	protected abstract void decompress(final File archive) throws IOException, InterruptedException;
+
+	/**
+	 * Handles a line from the tool's standard output stream.
+	 * <ul>
+	 * <li>Captures the output for later inclusion in error messages.</li>
+	 * <li>Updates the output consumer with a message, if one is registered.</li>
+	 * </ul>
+	 * @param line The line of stdout to process
+	 */
+	protected void output(String line) {
+		if (line == null || line.isEmpty()) return;
+		capturedOutput.append(line);
+		if (outputConsumer != null) outputConsumer.accept(line);
+	}
+
+	/**
+	 * Handles a line from the tool's standard error stream.
+	 * <ul>
+	 * <li>Captures the error for later inclusion in error messages.</li>
+	 * <li>Updates the error consumer with a message, if one is registered.</li>
+	 * </ul>
+	 * @param line The line of stderr to process
+	 */
+	protected void error(String line) {
+		if (line == null || line.isEmpty()) return;
+		capturedError.append(line);
+		if (errorConsumer != null) errorConsumer.accept(line);
+	}
+
+	/**
+	 * Updates the download progress consumer, if one is registered.
+	 * @param current Current progress value
+	 * @param total Total progress value
+	 */
+	protected void updateDownloadProgress(long current, long total) {
+		if (downloadProgressConsumer != null) {
+			downloadProgressConsumer.accept(current, total);
+		}
 	}
 
 	/**
@@ -294,45 +333,6 @@ public abstract class Tool {
 			}
 
 			throw new IOException(errorMsg.toString());
-		}
-	}
-
-	/**
-	 * Handles a line from the tool's standard output stream.
-	 * <ul>
-	 * <li>Captures the output for later inclusion in error messages.</li>
-	 * <li>Updates the output consumer with a message, if one is registered.</li>
-	 * </ul>
-	 * @param line The line of stdout to process
-	 */
-	protected void output(String line) {
-		if (line == null || line.isEmpty()) return;
-		capturedOutput.append(line);
-		if (outputConsumer != null) outputConsumer.accept(line);
-	}
-
-	/**
-	 * Handles a line from the tool's standard error stream.
-	 * <ul>
-	 * <li>Captures the error for later inclusion in error messages.</li>
-	 * <li>Updates the error consumer with a message, if one is registered.</li>
-	 * </ul>
-	 * @param line The line of stderr to process
-	 */
-	protected void error(String line) {
-		if (line == null || line.isEmpty()) return;
-		capturedError.append(line);
-		if (errorConsumer != null) errorConsumer.accept(line);
-	}
-
-	/**
-	 * Updates the download progress consumer, if one is registered.
-	 * @param current Current progress value
-	 * @param total Total progress value
-	 */
-	protected void updateDownloadProgress(long current, long total) {
-		if (downloadProgressConsumer != null) {
-			downloadProgressConsumer.accept(current, total);
 		}
 	}
 }

@@ -27,7 +27,7 @@
  * #L%
  */
 
-package org.apposed.appose.builder;
+package org.apposed.appose.tool;
 
 import org.apposed.appose.util.Downloads;
 import org.apposed.appose.util.Environments;
@@ -49,7 +49,7 @@ import java.util.List;
  * @author Curtis Rueden
  * @author Claude Code
  */
-class Pixi extends Tool {
+public class Pixi extends Tool {
 
 	/** Relative path to the pixi executable from the pixi {@link #rootdir}. */
 	private final static Path PIXI_RELATIVE_PATH = Platforms.isWindows() ?

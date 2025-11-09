@@ -57,7 +57,7 @@
  * POSSIBILITY OF SUCH DAMAGE.
  ****************************************************************************-*/
 
-package org.apposed.appose.builder;
+package org.apposed.appose.tool;
 
 import org.apposed.appose.util.Downloads;
 import org.apposed.appose.util.Environments;
@@ -75,7 +75,7 @@ import java.nio.file.Paths;
  * @author Carlos Garcia Lopez de Haro
  * @author Curtis Rueden
  */
-class Mamba extends Tool {
+public class Mamba extends Tool {
 
 	/** Relative path to the micromamba executable from the micromamba {@link #rootdir}. */
 	private final static Path MICROMAMBA_RELATIVE_PATH = Platforms.isWindows() ?

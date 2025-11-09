@@ -32,6 +32,7 @@ package org.apposed.appose.builder;
 import org.apposed.appose.Environment;
 import org.apposed.appose.util.FilePaths;
 import org.apposed.appose.scheme.Schemes;
+import org.apposed.appose.tool.Mamba;
 
 import java.io.File;
 import java.io.IOException;

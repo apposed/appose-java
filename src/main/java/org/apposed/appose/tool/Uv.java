@@ -27,7 +27,7 @@
  * #L%
  */
 
-package org.apposed.appose.builder;
+package org.apposed.appose.tool;
 
 import org.apposed.appose.util.Downloads;
 import org.apposed.appose.util.Environments;
@@ -48,7 +48,7 @@ import java.util.List;
  * @author Curtis Rueden
  * @author Claude Code
  */
-class Uv extends Tool {
+public class Uv extends Tool {
 
 	/** Relative path to the uv executable from the uv {@link #rootdir}. */
 	private final static Path UV_RELATIVE_PATH = Platforms.isWindows() ?
