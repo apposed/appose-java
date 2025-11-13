@@ -199,6 +199,18 @@ public interface Builder<T extends Builder<T>> {
 	T channels(List<String> channels);
 
 	/**
+	 * Specifies a configuration file to build from.
+	 * Reads the file content immediately and delegates to {@link #content(String)}.
+	 *
+	 * @param file Configuration file (e.g., pixi.toml, environment.yml)
+	 * @return This builder instance, for fluent-style programming.
+	 * @throws BuildException If the file cannot be read
+	 */
+	default T file(File file) throws BuildException {
+		return file(file.getAbsolutePath());
+	}
+
+	/**
 	 * Specifies a configuration file path to build from.
 	 * Reads the file content immediately and delegates to {@link #content(String)}.
 	 *
