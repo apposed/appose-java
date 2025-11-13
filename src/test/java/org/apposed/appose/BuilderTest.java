@@ -266,8 +266,10 @@ public class BuilderTest extends TestBase {
 
 		assertNotNull(env);
 		assertNotNull(env.binPaths());
-		assertFalse(env.binPaths().isEmpty(), "Custom environment should have binary paths configured");
-		assertTrue(env.launchArgs().isEmpty(), "Custom environment should have no special launcher");
+		assertFalse(env.binPaths().isEmpty(),
+			"Custom environment should have binary paths configured");
+		assertTrue(env.launchArgs().isEmpty(),
+			"Custom environment should have no special launcher");
 
 		// Verify environment variables are propagated.
 		assertNotNull(env.envVars());
@@ -304,7 +306,8 @@ public class BuilderTest extends TestBase {
 
 			assertEquals(customDir.getAbsolutePath(), customEnv.base());
 			assertNotNull(customEnv.binPaths());
-		} finally {
+		}
+		finally {
 			customDir.delete();
 		}
 
@@ -314,7 +317,9 @@ public class BuilderTest extends TestBase {
 			.build();
 
 		List<String> binPaths = pathEnv.binPaths();
-		assertTrue(binPaths.contains("/usr/bin"), "Custom binPaths should include /usr/bin");
-		assertTrue(binPaths.contains("/usr/local/bin"), "Custom binPaths should include /usr/local/bin");
+		assertTrue(binPaths.contains("/usr/bin"),
+			"Custom binPaths should include /usr/bin");
+		assertTrue(binPaths.contains("/usr/local/bin"),
+			"Custom binPaths should include /usr/local/bin");
 	}
 }
