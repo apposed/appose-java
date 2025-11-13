@@ -27,12 +27,11 @@
  * #L%
  */
 
-package org.apposed.appose;
+package org.apposed.appose.builder;
 
-import org.apposed.appose.builder.BuildException;
-import org.apposed.appose.builder.MambaBuilder;
-import org.apposed.appose.builder.PixiBuilder;
-import org.apposed.appose.builder.SimpleBuilder;
+import org.apposed.appose.Appose;
+import org.apposed.appose.Environment;
+import org.apposed.appose.TestBase;
 import org.junit.jupiter.api.Test;
 
 import java.io.File;

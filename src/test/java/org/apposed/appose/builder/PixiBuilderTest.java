@@ -27,28 +27,22 @@
  * #L%
  */
 
-package org.apposed.appose;
+package org.apposed.appose.builder;
 
-import org.apposed.appose.Service.Task;
-import org.apposed.appose.builder.MambaBuilder;
-import org.apposed.appose.builder.PixiBuilder;
-import org.apposed.appose.builder.UvBuilder;
+import org.apposed.appose.Appose;
+import org.apposed.appose.Environment;
+import org.apposed.appose.TestBase;
 import org.apposed.appose.util.FilePaths;
 import org.junit.jupiter.api.Test;
 
 import java.io.File;
 import java.io.IOException;
-import java.util.List;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.junit.jupiter.api.Assertions.assertTrue;
 
-/** End-to-end tests for the Appose builder subsystem and implementations. */
-public class BuilderTest extends TestBase {
+/** End-to-end tests for {@link PixiBuilder}. */
+public class PixiBuilderTest extends TestBase {
 
 	/** Tests the builder-agnostic API with an environment.yml file. */
 	@Test
@@ -125,60 +119,6 @@ public class BuilderTest extends TestBase {
 		cowsayAndAssert(env, "pixi-pyproject");
 	}
 
-	/** Tests explicit mamba builder selection using {@code .builder()} method. */
-	@Test
-	public void testExplicitMambaBuilder() throws Exception {
-		Environment env = Appose
-			.file("src/test/resources/envs/cowsay.yml")
-			.builder("mamba")
-			.base("target/envs/mamba-cowsay")
-			.logDebug()
-			.build();
-
-		assertInstanceOf(MambaBuilder.class, env.builder());
-
-		// Verify it actually used mamba by checking for conda-meta directory.
-		File envBase = new File(env.base());
-		File condaMeta = new File(envBase, "conda-meta");
-		assertTrue(condaMeta.exists() && condaMeta.isDirectory(),
-			"Environment should have conda-meta directory when using mamba builder");
-
-		cowsayAndAssert(env, "yay");
-	}
-
-	@Test
-	public void testUv() throws Exception {
-		Environment env = Appose
-			.uv("src/test/resources/envs/cowsay-requirements.txt")
-			.base("target/envs/uv-cowsay")
-			.logDebug()
-			.build();
-		assertInstanceOf(UvBuilder.class, env.builder());
-		cowsayAndAssert(env, "uv");
-	}
-
-	@Test
-	public void testUvBuilderAPI() throws Exception {
-		Environment env = Appose
-			.uv()
-			.include("cowsay==6.1")
-			.base("target/envs/uv-cowsay-builder")
-			.logDebug()
-			.build();
-		assertInstanceOf(UvBuilder.class, env.builder());
-		cowsayAndAssert(env, "fast");
-	}
-
-	@Test
-	public void testUvPyproject() throws Exception {
-		Environment env = Appose
-			.uv("src/test/resources/envs/cowsay-pyproject.toml")
-			.base("target/envs/uv-cowsay-pyproject")
-			.logDebug()
-			.build();
-		cowsayAndAssert(env, "pyproject");
-	}
-
 	/** Tests building environment from content string using type-specific builder.*/
 	@Test
 	public void testContentAPI() throws Exception {
@@ -250,76 +190,5 @@ public class BuilderTest extends TestBase {
 
 		assertInstanceOf(PixiBuilder.class, env.builder());
 		cowsayAndAssert(env, "toml!");
-	}
-
-	/**
-	 * Tests fluent chaining from base Builder methods to SimpleBuilder methods.
-	 * This verifies that the recursive generics enable natural method chaining.
-	 */
-	@Test
-	public void testCustom() throws Exception {
-		Environment env = Appose.custom()
-			.env("CUSTOM_VAR", "test_value")  // Base Builder method
-			.inheritRunningJava()             // SimpleBuilder method
-			.appendSystemPath()               // SimpleBuilder method
-			.build();
-
-		assertNotNull(env);
-		assertNotNull(env.binPaths());
-		assertFalse(env.binPaths().isEmpty(),
-			"Custom environment should have binary paths configured");
-		assertTrue(env.launchArgs().isEmpty(),
-			"Custom environment should have no special launcher");
-
-		// Verify environment variables are propagated.
-		assertNotNull(env.envVars());
-		assertEquals("test_value", env.envVars().get("CUSTOM_VAR"));
-
-		// Verify inheritRunningJava() sets JAVA_HOME.
-		String javaHome = System.getProperty("java.home");
-		if (javaHome != null) {
-			assertEquals(javaHome, env.envVars().get("JAVA_HOME"));
-			// Verify Java bin directory is in binPaths.
-			String javaBin = new File(javaHome, "bin").getAbsolutePath();
-			assertTrue(env.binPaths().contains(javaBin),
-				"Java bin directory should be in binPaths");
-		}
-
-		// Verify that the custom environment can execute Python tasks.
-		try (Service service = env.python()) {
-			maybeDebug(service);
-			Task task = service.task("2 + 2");
-			task.waitFor();
-			assertComplete(task);
-			Number result = (Number) task.result();
-			assertEquals(4, result.intValue());
-		}
-
-		// Test custom environment with specific base directory.
-		File customDir = new File("target/test-custom");
-		customDir.mkdirs();
-		try {
-			Environment customEnv = Appose.custom()
-				.base(customDir)
-				.appendSystemPath()
-				.build();
-
-			assertEquals(customDir.getAbsolutePath(), customEnv.base());
-			assertNotNull(customEnv.binPaths());
-		}
-		finally {
-			customDir.delete();
-		}
-
-		// Test custom environment with specific binary paths.
-		Environment pathEnv = Appose.custom()
-			.binPaths("/usr/bin", "/usr/local/bin")
-			.build();
-
-		List<String> binPaths = pathEnv.binPaths();
-		assertTrue(binPaths.contains("/usr/bin"),
-			"Custom binPaths should include /usr/bin");
-		assertTrue(binPaths.contains("/usr/local/bin"),
-			"Custom binPaths should include /usr/local/bin");
 	}
 }
