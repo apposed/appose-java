@@ -390,13 +390,20 @@ public class Appose {
 	 * </ul>
 	 *
 	 * @return A system environment ready to use.
-	 * @throws BuildException If the environment cannot be created.
 	 */
-	public static Environment system() throws BuildException {
-		return new SimpleBuilder()
-			.inheritRunningJava()
-			.appendSystemPath()
-			.build();
+	public static Environment system() {
+		try {
+			return new SimpleBuilder()
+				.inheritRunningJava()
+				.appendSystemPath()
+				.build();
+		}
+		catch (BuildException exc) {
+			// Note: The only way SimpleBuilder can throw BuildException during the
+			// build is if the base directory does not exist. But the above invocation
+			// will use "." for the base directory, which certainly already exists.
+			throw new RuntimeException("Guru meditation");
+		}
 	}
 
 	/**

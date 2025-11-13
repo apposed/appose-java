@@ -33,7 +33,6 @@ import org.apposed.appose.Service.ResponseType;
 import org.apposed.appose.Service.Task;
 import org.apposed.appose.Service.TaskStatus;
 
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -84,7 +83,7 @@ public abstract class TestBase {
 		"task.outputs[\"thread\"] = threading.current_thread().name\n";
 
 	public void executeAndAssert(Service service, String script)
-		throws IOException, InterruptedException, TaskException
+		throws InterruptedException, TaskException
 	{
 		Task task = service.task(script);
 
@@ -142,7 +141,7 @@ public abstract class TestBase {
 	}
 
 	public void cowsayAndAssert(Environment env, String greeting)
-		throws IOException, InterruptedException, TaskException
+		throws InterruptedException, TaskException
 	{
 		try (Service service = env.python()) {
 			maybeDebug(service);

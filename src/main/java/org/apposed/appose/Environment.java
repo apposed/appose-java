@@ -114,9 +114,8 @@ public interface Environment {
 	 * 
 	 * @return The newly created service.
 	 * @see #groovy To create a service for Groovy script execution.
-	 * @throws IOException If something goes wrong starting the worker process.
 	 */
-	default Service python() throws IOException {
+	default Service python() {
 		List<String> pythonExes = Arrays.asList("python", "python3", "python.exe");
 		return service(pythonExes, "-c",
 			"import appose.python_worker; appose.python_worker.main()")
@@ -140,9 +139,8 @@ public interface Environment {
 	 * @return The newly created service.
 	 * @see #groovy(List, String[])
 	 * @see #python()
-	 * @throws IOException If something goes wrong starting the worker process.
 	 */
-	default Service groovy(String... jvmArgs) throws IOException {
+	default Service groovy(String... jvmArgs) {
 		return groovy(Collections.emptyList(), jvmArgs);
 	}
 
@@ -165,23 +163,18 @@ public interface Environment {
 	 * @return The newly created service.
 	 * @see #groovy(String[])
 	 * @see #python()
-	 * @throws IOException If something goes wrong starting the worker process.
 	 */
-	default Service groovy(List<String> classPath, String... jvmArgs)
-		throws IOException
-	{
+	default Service groovy(List<String> classPath, String... jvmArgs) {
 		return java(GroovyWorker.class.getName(), classPath, jvmArgs)
 			.syntax("groovy");
 	}
 
-	default Service java(String mainClass, String... jvmArgs)
-		throws IOException
-	{
+	default Service java(String mainClass, String... jvmArgs) {
 		return java(mainClass, Collections.emptyList(), jvmArgs);
 	}
 
 	default Service java(String mainClass, List<String> classPath,
-		String... jvmArgs) throws IOException
+		String... jvmArgs)
 	{
 		// Collect classpath elements into a set, to avoid duplicate entries.
 		Set<String> cp = new LinkedHashSet<>();
@@ -200,7 +193,7 @@ public interface Environment {
 		);
 		for (Class<?> depClass : apposeDeps) {
 			File location = FilePaths.location(depClass);
-			if (location != null) cp.add(location.getCanonicalPath());
+			if (location != null) cp.add(location.getAbsolutePath());
 		}
 
 		// Append any explicitly requested classpath elements.
@@ -237,9 +230,8 @@ public interface Environment {
 	 * @return The newly created service.
 	 * @see #groovy To create a service for Groovy script execution.
 	 * @see #python() To create a service for Python script execution.
-	 * @throws IOException If something goes wrong starting the worker process.
 	 */
-	default Service service(List<String> exes, String... args) throws IOException {
+	default Service service(List<String> exes, String... args) {
 		if (exes == null || exes.isEmpty()) throw new IllegalArgumentException("No executable given");
 
 		// Calculate exe string.
