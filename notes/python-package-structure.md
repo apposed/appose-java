@@ -25,13 +25,6 @@ appose/
                        # RequirementsTxtScheme, Schemes, Scheme protocol
   syntax.py            # PythonSyntax, GroovySyntax, Syntaxes, ScriptSyntax protocol
 
-  # Utilities
-  platform.py          # is_windows(), is_linux(), is_mac(), etc.
-  proxy.py             # create() and proxy utilities
-  filepath.py          # find_exe() and path utilities
-  process.py           # Process utilities
-  types.py             # JSON utilities, typedefs (e.g. Args)
-
   # Workers (language-specific)
   python_worker.py     # Python worker implementation
   groovy_worker.py     # Groovy worker implementation (if needed)
@@ -48,6 +41,14 @@ appose/
   tool/mamba.py        # Mamba
   tool/pixi.py         # Pixi
   tool/uv.py           # Uv
+
+  # Utilities
+  util/__init__.py     # placeholder
+  util/platform.py     # is_windows(), is_linux(), is_mac(), etc.
+  util/proxy.py        # create() and proxy utilities
+  util/filepath.py     # find_exe() and path utilities
+  util/process.py      # Process utilities
+  util/types.py        # JSON utilities, typedefs (e.g. Args)
 ```
 
 ## Plugin System via Entry Points
