@@ -67,48 +67,62 @@ public class DumpApi {
 	private static final boolean GROUP_BY_PACKAGE = true;  // Group by package like Python modules
 
 	// Mapping from Java package/class to Python module file.
-	// Based on PYTHON-STRUCTURE-PLAN.md.
+	// Based on notes/python-package-structure.md.
 	private static final Map<String, String> PACKAGE_TO_MODULE = new HashMap<>();
 	static {
 		// Core API classes.
-		PACKAGE_TO_MODULE.put("org.apposed.appose.Appose", "__init__.pyi");
-		PACKAGE_TO_MODULE.put("org.apposed.appose.Environment", "environment.pyi");
-		PACKAGE_TO_MODULE.put("org.apposed.appose.Builder", "builder.pyi");
-		PACKAGE_TO_MODULE.put("org.apposed.appose.BuilderFactory", "builder.pyi");
-		PACKAGE_TO_MODULE.put("org.apposed.appose.Service", "service.pyi");
-		PACKAGE_TO_MODULE.put("org.apposed.appose.Service.Task", "service.pyi");
-		PACKAGE_TO_MODULE.put("org.apposed.appose.Service.TaskStatus", "service.pyi");
-		PACKAGE_TO_MODULE.put("org.apposed.appose.Service.RequestType", "service.pyi");
-		PACKAGE_TO_MODULE.put("org.apposed.appose.Service.ResponseType", "service.pyi");
-		PACKAGE_TO_MODULE.put("org.apposed.appose.TaskEvent", "service.pyi");
-		PACKAGE_TO_MODULE.put("org.apposed.appose.NDArray", "types.pyi");
-		PACKAGE_TO_MODULE.put("org.apposed.appose.NDArray.DType", "types.pyi");
-		PACKAGE_TO_MODULE.put("org.apposed.appose.NDArray.Shape", "types.pyi");
-		PACKAGE_TO_MODULE.put("org.apposed.appose.NDArray.Order", "types.pyi");
-		PACKAGE_TO_MODULE.put("org.apposed.appose.SharedMemory", "types.pyi");
+		PACKAGE_TO_MODULE.put("org.apposed.appose.Appose", "__init__.api");
+		PACKAGE_TO_MODULE.put("org.apposed.appose.Environment", "environment.api");
+		PACKAGE_TO_MODULE.put("org.apposed.appose.Service", "service.api");
+		PACKAGE_TO_MODULE.put("org.apposed.appose.Service.Task", "service.api");
+		PACKAGE_TO_MODULE.put("org.apposed.appose.Service.TaskStatus", "service.api");
+		PACKAGE_TO_MODULE.put("org.apposed.appose.Service.RequestType", "service.api");
+		PACKAGE_TO_MODULE.put("org.apposed.appose.Service.ResponseType", "service.api");
+		PACKAGE_TO_MODULE.put("org.apposed.appose.TaskEvent", "service.api");
+		PACKAGE_TO_MODULE.put("org.apposed.appose.NDArray", "shm.api");
+		PACKAGE_TO_MODULE.put("org.apposed.appose.NDArray.DType", "shm.api");
+		PACKAGE_TO_MODULE.put("org.apposed.appose.NDArray.Shape", "shm.api");
+		PACKAGE_TO_MODULE.put("org.apposed.appose.NDArray.Order", "shm.api");
+		PACKAGE_TO_MODULE.put("org.apposed.appose.SharedMemory", "shm.api");
 
 		// Subsystem packages - all classes in package go to same file.
-		PACKAGE_TO_MODULE.put("org.apposed.appose.builder", "builder.pyi");
-		PACKAGE_TO_MODULE.put("org.apposed.appose.scheme", "scheme.pyi");
-		PACKAGE_TO_MODULE.put("org.apposed.appose.syntax", "syntax.pyi");
+		PACKAGE_TO_MODULE.put("org.apposed.appose.scheme", "scheme.api");
+		PACKAGE_TO_MODULE.put("org.apposed.appose.syntax", "syntax.api");
 
-		// Utility packages.
-		PACKAGE_TO_MODULE.put("org.apposed.appose.util.Platforms", "platform.pyi");
-		PACKAGE_TO_MODULE.put("org.apposed.appose.util.Proxies", "proxy.pyi");
-		PACKAGE_TO_MODULE.put("org.apposed.appose.util.FilePaths", "filepath.pyi");
-		PACKAGE_TO_MODULE.put("org.apposed.appose.util.Processes", "process.pyi");
+		// Builder subsystem - core in builder/__init__.api, implementations in separate files.
+		PACKAGE_TO_MODULE.put("org.apposed.appose.Builder", "builder/__init__.api");
+		PACKAGE_TO_MODULE.put("org.apposed.appose.BuilderFactory", "builder/__init__.api");
+		PACKAGE_TO_MODULE.put("org.apposed.appose.builder.Builders", "builder/__init__.api");
+		PACKAGE_TO_MODULE.put("org.apposed.appose.builder.BaseBuilder", "builder/__init__.api");
+		PACKAGE_TO_MODULE.put("org.apposed.appose.builder.DynamicBuilder", "builder/__init__.api");
+		PACKAGE_TO_MODULE.put("org.apposed.appose.builder.SimpleBuilder", "builder/__init__.api");
+		PACKAGE_TO_MODULE.put("org.apposed.appose.builder.MambaBuilder", "builder/mamba.api");
+		PACKAGE_TO_MODULE.put("org.apposed.appose.builder.MambaBuilderFactory", "builder/mamba.api");
+		PACKAGE_TO_MODULE.put("org.apposed.appose.builder.PixiBuilder", "builder/pixi.api");
+		PACKAGE_TO_MODULE.put("org.apposed.appose.builder.PixiBuilderFactory", "builder/pixi.api");
+		PACKAGE_TO_MODULE.put("org.apposed.appose.builder.UvBuilder", "builder/uv.api");
+		PACKAGE_TO_MODULE.put("org.apposed.appose.builder.UvBuilderFactory", "builder/uv.api");
+
+		// Utility packages - singular naming.
+		PACKAGE_TO_MODULE.put("org.apposed.appose.util.FilePaths", "util/filepath.api");
+		PACKAGE_TO_MODULE.put("org.apposed.appose.util.Platforms", "util/platform.api");
+		PACKAGE_TO_MODULE.put("org.apposed.appose.util.Processes", "util/process.api");
+		PACKAGE_TO_MODULE.put("org.apposed.appose.util.Proxies", "util/proxy.api");
+		PACKAGE_TO_MODULE.put("org.apposed.appose.util.Types", "util/types.api");
 
 		// Workers.
-		PACKAGE_TO_MODULE.put("org.apposed.appose.GroovyWorker", "groovy_worker.pyi");
+		PACKAGE_TO_MODULE.put("org.apposed.appose.GroovyWorker", "groovy_worker.api");
 	}
 
 	// Static utility classes to dump as module-level functions (not as classes).
 	private static final Set<String> STATIC_UTILITY_CLASSES = new HashSet<>(Arrays.asList(
 		"org.apposed.appose.Appose",
+		"org.apposed.appose.builder.Builders",
 		"org.apposed.appose.util.FilePaths",
 		"org.apposed.appose.util.Platforms",
 		"org.apposed.appose.util.Processes",
-		"org.apposed.appose.util.Proxies"
+		"org.apposed.appose.util.Proxies",
+		"org.apposed.appose.util.Types"
 	));
 
 	// Classes to exclude from API dump (internal implementation details).
@@ -124,7 +138,6 @@ public class DumpApi {
 		"org.apposed.appose.shm.LibC",
 		// Utility classes (keeping discovery/factory classes, excluding internal helpers).
 		"org.apposed.appose.util.Plugins",
-		"org.apposed.appose.util.Types",
 		// Test utility classes.
 		"org.apposed.appose.TestBase"
 	));
@@ -136,7 +149,7 @@ public class DumpApi {
 			System.err.println("Usage: java DumpApi <output-dir> <source-dir> [source-dir2 ...]");
 			System.err.println();
 			System.err.println("Dumps Java API in Python stub format for comparison with appose-python.");
-			System.err.println("Output will be written to <output-dir>/appose/*.pyi files.");
+			System.err.println("Output will be written to <output-dir>/appose/*.api files.");
 			System.exit(1);
 		}
 
@@ -207,6 +220,10 @@ public class DumpApi {
 			List<Map.Entry<String, TypeDeclaration<?>>> types = moduleEntry.getValue();
 
 			Path outputFile = outputDir.resolve(moduleName);
+
+			// Create parent directories if needed.
+			Files.createDirectories(outputFile.getParent());
+
 			try (PrintWriter writer = new PrintWriter(new FileWriter(outputFile.toFile()))) {
 				currentWriter = writer;
 
