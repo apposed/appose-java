@@ -35,6 +35,7 @@
  * are optional and require the {@code java.desktop} module.
  * </p>
  * <h2>Core Components</h2>
+ * <h3>Build Progress Components</h3>
  * <ul>
  *     <li>{@link org.apposed.appose.gui.BuildProgressPanel} - Reusable JPanel
  *     for displaying build progress with a status label, progress bar, and
@@ -43,6 +44,17 @@
  *     bridge between Builder subscription callbacks and Swing EDT updates.</li>
  *     <li>{@link org.apposed.appose.gui.ProgressDialogs} - Utility methods for
  *     common dialog patterns (modal and async build dialogs).</li>
+ * </ul>
+ * <h3>Environment Management Components</h3>
+ * <ul>
+ *     <li>{@link org.apposed.appose.gui.EnvironmentPanel} - Panel for managing
+ *     a single environment with install/update/delete capabilities.</li>
+ *     <li>{@link org.apposed.appose.gui.EnvironmentManagerPanel} - Panel for
+ *     managing multiple environments with refresh all functionality.</li>
+ *     <li>{@link org.apposed.appose.gui.EnvironmentDescriptor} - Describes an
+ *     environment for management UI purposes.</li>
+ *     <li>{@link org.apposed.appose.gui.EnvironmentUtils} - Utility methods
+ *     for environment operations (check status, calculate size, delete, etc.).</li>
  * </ul>
  * <h2>Usage Examples</h2>
  * <h3>Simple Modal Dialog</h3>
@@ -96,6 +108,25 @@
  *         // Handle error
  *     }
  * }).start();
+ * </pre>
+ * <h3>Environment Manager</h3>
+ * <pre>
+ * EnvironmentDescriptor[] envs = {
+ *     new EnvironmentDescriptor(
+ *         "Python Data Science",
+ *         "Python with numpy and pandas",
+ *         Appose.uv().python("3.10").include("numpy", "pandas").name("data-sci")
+ *     ),
+ *     new EnvironmentDescriptor(
+ *         "Conda Environment",
+ *         Appose.pixi().conda("python>=3.8").name("my-conda")
+ *     )
+ * };
+ * EnvironmentManagerPanel manager = new EnvironmentManagerPanel(
+ *     "My Environments",
+ *     envs
+ * );
+ * myFrame.add(manager);
  * </pre>
  * <h2>Thread Safety</h2>
  * <p>
