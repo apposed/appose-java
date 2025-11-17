@@ -71,55 +71,69 @@ public class DumpApi {
 	private static final Map<String, String> PACKAGE_TO_MODULE = new HashMap<>();
 	static {
 		// Core API classes.
-		PACKAGE_TO_MODULE.put("org.apposed.appose.Appose", "__init__.api");
-		PACKAGE_TO_MODULE.put("org.apposed.appose.Environment", "environment.api");
-		PACKAGE_TO_MODULE.put("org.apposed.appose.Service", "service.api");
-		PACKAGE_TO_MODULE.put("org.apposed.appose.Service.Task", "service.api");
-		PACKAGE_TO_MODULE.put("org.apposed.appose.Service.TaskStatus", "service.api");
-		PACKAGE_TO_MODULE.put("org.apposed.appose.Service.RequestType", "service.api");
-		PACKAGE_TO_MODULE.put("org.apposed.appose.Service.ResponseType", "service.api");
-		PACKAGE_TO_MODULE.put("org.apposed.appose.TaskEvent", "service.api");
-		PACKAGE_TO_MODULE.put("org.apposed.appose.NDArray", "shm.api");
-		PACKAGE_TO_MODULE.put("org.apposed.appose.NDArray.DType", "shm.api");
-		PACKAGE_TO_MODULE.put("org.apposed.appose.NDArray.Shape", "shm.api");
-		PACKAGE_TO_MODULE.put("org.apposed.appose.NDArray.Order", "shm.api");
-		PACKAGE_TO_MODULE.put("org.apposed.appose.SharedMemory", "shm.api");
+		PACKAGE_TO_MODULE.put("org.apposed.appose.Appose", "appose/__init__.api");
+		PACKAGE_TO_MODULE.put("org.apposed.appose.Environment", "appose/environment.api");
+		PACKAGE_TO_MODULE.put("org.apposed.appose.Service", "appose/service.api");
+		PACKAGE_TO_MODULE.put("org.apposed.appose.Service.Task", "appose/service.api");
+		PACKAGE_TO_MODULE.put("org.apposed.appose.Service.TaskStatus", "appose/service.api");
+		PACKAGE_TO_MODULE.put("org.apposed.appose.Service.RequestType", "appose/service.api");
+		PACKAGE_TO_MODULE.put("org.apposed.appose.Service.ResponseType", "appose/service.api");
+		PACKAGE_TO_MODULE.put("org.apposed.appose.TaskEvent", "appose/service.api");
+		PACKAGE_TO_MODULE.put("org.apposed.appose.NDArray", "appose/shm.api");
+		PACKAGE_TO_MODULE.put("org.apposed.appose.NDArray.DType", "appose/shm.api");
+		PACKAGE_TO_MODULE.put("org.apposed.appose.NDArray.Shape", "appose/shm.api");
+		PACKAGE_TO_MODULE.put("org.apposed.appose.NDArray.Order", "appose/shm.api");
+		PACKAGE_TO_MODULE.put("org.apposed.appose.SharedMemory", "appose/shm.api");
 
 		// Subsystem packages - all classes in package go to same file.
-		PACKAGE_TO_MODULE.put("org.apposed.appose.scheme", "scheme.api");
-		PACKAGE_TO_MODULE.put("org.apposed.appose.syntax", "syntax.api");
+		PACKAGE_TO_MODULE.put("org.apposed.appose.scheme", "appose/scheme.api");
+		PACKAGE_TO_MODULE.put("org.apposed.appose.syntax", "appose/syntax.api");
 
 		// Builder subsystem - core in builder/__init__.api, implementations in separate files.
-		PACKAGE_TO_MODULE.put("org.apposed.appose.Builder", "builder/__init__.api");
-		PACKAGE_TO_MODULE.put("org.apposed.appose.BuilderFactory", "builder/__init__.api");
-		PACKAGE_TO_MODULE.put("org.apposed.appose.builder.Builders", "builder/__init__.api");
-		PACKAGE_TO_MODULE.put("org.apposed.appose.builder.BaseBuilder", "builder/__init__.api");
-		PACKAGE_TO_MODULE.put("org.apposed.appose.builder.DynamicBuilder", "builder/__init__.api");
-		PACKAGE_TO_MODULE.put("org.apposed.appose.builder.SimpleBuilder", "builder/__init__.api");
-		PACKAGE_TO_MODULE.put("org.apposed.appose.builder.MambaBuilder", "builder/mamba.api");
-		PACKAGE_TO_MODULE.put("org.apposed.appose.builder.MambaBuilderFactory", "builder/mamba.api");
-		PACKAGE_TO_MODULE.put("org.apposed.appose.builder.PixiBuilder", "builder/pixi.api");
-		PACKAGE_TO_MODULE.put("org.apposed.appose.builder.PixiBuilderFactory", "builder/pixi.api");
-		PACKAGE_TO_MODULE.put("org.apposed.appose.builder.UvBuilder", "builder/uv.api");
-		PACKAGE_TO_MODULE.put("org.apposed.appose.builder.UvBuilderFactory", "builder/uv.api");
+		PACKAGE_TO_MODULE.put("org.apposed.appose.Builder", "appose/builder/__init__.api");
+		PACKAGE_TO_MODULE.put("org.apposed.appose.BuilderFactory", "appose/builder/__init__.api");
+		PACKAGE_TO_MODULE.put("org.apposed.appose.builder.Builders", "appose/builder/__init__.api");
+		PACKAGE_TO_MODULE.put("org.apposed.appose.builder.BaseBuilder", "appose/builder/__init__.api");
+		PACKAGE_TO_MODULE.put("org.apposed.appose.builder.DynamicBuilder", "appose/builder/__init__.api");
+		PACKAGE_TO_MODULE.put("org.apposed.appose.builder.SimpleBuilder", "appose/builder/__init__.api");
+		PACKAGE_TO_MODULE.put("org.apposed.appose.builder.MambaBuilder", "appose/builder/mamba.api");
+		PACKAGE_TO_MODULE.put("org.apposed.appose.builder.MambaBuilderFactory", "appose/builder/mamba.api");
+		PACKAGE_TO_MODULE.put("org.apposed.appose.builder.PixiBuilder", "appose/builder/pixi.api");
+		PACKAGE_TO_MODULE.put("org.apposed.appose.builder.PixiBuilderFactory", "appose/builder/pixi.api");
+		PACKAGE_TO_MODULE.put("org.apposed.appose.builder.UvBuilder", "appose/builder/uv.api");
+		PACKAGE_TO_MODULE.put("org.apposed.appose.builder.UvBuilderFactory", "appose/builder/uv.api");
 
 		// Tool subsystem - core in tool/__init__.api, implementations in separate files.
-		PACKAGE_TO_MODULE.put("org.apposed.appose.tool.Tool", "tool/__init__.api");
-		PACKAGE_TO_MODULE.put("org.apposed.appose.tool.Pixi", "tool/pixi.api");
-		PACKAGE_TO_MODULE.put("org.apposed.appose.tool.Mamba", "tool/mamba.api");
-		PACKAGE_TO_MODULE.put("org.apposed.appose.tool.Uv", "tool/uv.api");
+		PACKAGE_TO_MODULE.put("org.apposed.appose.tool.Tool", "appose/tool/__init__.api");
+		PACKAGE_TO_MODULE.put("org.apposed.appose.tool.Pixi", "appose/tool/pixi.api");
+		PACKAGE_TO_MODULE.put("org.apposed.appose.tool.Mamba", "appose/tool/mamba.api");
+		PACKAGE_TO_MODULE.put("org.apposed.appose.tool.Uv", "appose/tool/uv.api");
 
 		// Utility packages - singular naming.
-		PACKAGE_TO_MODULE.put("org.apposed.appose.util.Downloads", "util/download.api");
-		PACKAGE_TO_MODULE.put("org.apposed.appose.util.Environments", "util/environment.api");
-		PACKAGE_TO_MODULE.put("org.apposed.appose.util.FilePaths", "util/filepath.api");
-		PACKAGE_TO_MODULE.put("org.apposed.appose.util.Platforms", "util/platform.api");
-		PACKAGE_TO_MODULE.put("org.apposed.appose.util.Processes", "util/process.api");
-		PACKAGE_TO_MODULE.put("org.apposed.appose.util.Proxies", "util/proxy.api");
-		PACKAGE_TO_MODULE.put("org.apposed.appose.util.Types", "util/types.api");
+		PACKAGE_TO_MODULE.put("org.apposed.appose.util.Downloads", "appose/util/download.api");
+		PACKAGE_TO_MODULE.put("org.apposed.appose.util.Environments", "appose/util/environment.api");
+		PACKAGE_TO_MODULE.put("org.apposed.appose.util.FilePaths", "appose/util/filepath.api");
+		PACKAGE_TO_MODULE.put("org.apposed.appose.util.Platforms", "appose/util/platform.api");
+		PACKAGE_TO_MODULE.put("org.apposed.appose.util.Processes", "appose/util/process.api");
+		PACKAGE_TO_MODULE.put("org.apposed.appose.util.Proxies", "appose/util/proxy.api");
+		PACKAGE_TO_MODULE.put("org.apposed.appose.util.Types", "appose/util/types.api");
 
 		// Workers.
-		PACKAGE_TO_MODULE.put("org.apposed.appose.GroovyWorker", "groovy_worker.api");
+		PACKAGE_TO_MODULE.put("org.apposed.appose.GroovyWorker", "appose/groovy_worker.api");
+
+		// Test classes - map to tests/*.api files (aligned with Python structure).
+		PACKAGE_TO_MODULE.put("org.apposed.appose.ServiceTest", "tests/test_service.api");
+		PACKAGE_TO_MODULE.put("org.apposed.appose.SharedMemoryTest", "tests/test_shm.api");
+		PACKAGE_TO_MODULE.put("org.apposed.appose.SyntaxTest", "tests/test_syntax.api");
+		PACKAGE_TO_MODULE.put("org.apposed.appose.TaskExceptionTest", "tests/test_task_exception.api");
+		PACKAGE_TO_MODULE.put("org.apposed.appose.builder.MambaBuilderTest", "tests/builder/test_mamba.api");
+		PACKAGE_TO_MODULE.put("org.apposed.appose.builder.PixiBuilderTest", "tests/builder/test_pixi.api");
+		PACKAGE_TO_MODULE.put("org.apposed.appose.builder.SimpleBuilderTest", "tests/builder/test_simple.api");
+		PACKAGE_TO_MODULE.put("org.apposed.appose.builder.UvBuilderTest", "tests/builder/test_uv.api");
+		PACKAGE_TO_MODULE.put("org.apposed.appose.builder.WrapTest", "tests/builder/test_wrap.api");
+		PACKAGE_TO_MODULE.put("org.apposed.appose.util.FilePathsTest", "tests/util/test_filepath.api");
+		PACKAGE_TO_MODULE.put("org.apposed.appose.util.TypesTest", "tests/util/test_types.api");
+		PACKAGE_TO_MODULE.put("org.apposed.appose.util.VersionsTest", "tests/util/test_versions.api");
 	}
 
 	// Static utility classes to dump as module-level functions (not as classes).
@@ -132,7 +146,20 @@ public class DumpApi {
 		"org.apposed.appose.util.Platforms",
 		"org.apposed.appose.util.Processes",
 		"org.apposed.appose.util.Proxies",
-		"org.apposed.appose.util.Types"
+		"org.apposed.appose.util.Types",
+		// Test classes - dump as module-level test functions.
+		"org.apposed.appose.ServiceTest",
+		"org.apposed.appose.SharedMemoryTest",
+		"org.apposed.appose.SyntaxTest",
+		"org.apposed.appose.TaskExceptionTest",
+		"org.apposed.appose.builder.MambaBuilderTest",
+		"org.apposed.appose.builder.PixiBuilderTest",
+		"org.apposed.appose.builder.SimpleBuilderTest",
+		"org.apposed.appose.builder.UvBuilderTest",
+		"org.apposed.appose.builder.WrapTest",
+		"org.apposed.appose.util.FilePathsTest",
+		"org.apposed.appose.util.TypesTest",
+		"org.apposed.appose.util.VersionsTest"
 	));
 
 	// Classes to exclude from API dump (internal implementation details).
@@ -159,12 +186,12 @@ public class DumpApi {
 			System.err.println("Usage: java DumpApi <output-dir> <source-dir> [source-dir2 ...]");
 			System.err.println();
 			System.err.println("Dumps Java API in Python stub format for comparison with appose-python.");
-			System.err.println("Output will be written to <output-dir>/appose/*.api files.");
+			System.err.println("Output will be written to <output-dir>/*.api files.");
 			System.exit(1);
 		}
 
 		String outputDirArg = args[0];
-		Path outputDir = Paths.get(outputDirArg, "appose");
+		Path outputDir = Paths.get(outputDirArg);
 
 		// Create output directory if needed.
 		Files.createDirectories(outputDir);
@@ -333,11 +360,17 @@ public class DumpApi {
 			}
 		}
 
-		// Output static fields as module-level constants (public and private if INCLUDE_PRIVATE).
+		// Check if this is a test class (affects how we handle fields and methods).
+		// Test classes have instance fields/methods that should be dumped as module-level constants/functions.
+		boolean isTestClass = isTestClass(type);
+
+		// Output fields as module-level constants (static fields for utilities, instance fields for test classes).
 		for (BodyDeclaration<?> member : type.getMembers()) {
 			if (member instanceof FieldDeclaration) {
 				FieldDeclaration field = (FieldDeclaration) member;
-				if (field.isStatic() && (field.isPublic() || INCLUDE_PRIVATE)) {
+				// Include static fields for utilities, or instance/static fields for test classes.
+				boolean includeField = (field.isStatic() || isTestClass) && (field.isPublic() || INCLUDE_PRIVATE);
+				if (includeField) {
 					for (VariableDeclarator var : field.getVariables()) {
 						String fieldName = nonClassName(field, var).toUpperCase();
 						String fieldType = pythonType(var.getType());
@@ -347,12 +380,14 @@ public class DumpApi {
 			}
 		}
 
-		// Collect all static methods (public and private if INCLUDE_PRIVATE).
+		// Collect methods (static methods for utilities, instance methods for test classes).
 		Map<String, List<MethodDeclaration>> methodsByName = new LinkedHashMap<>();
 		for (BodyDeclaration<?> member : type.getMembers()) {
 			if (member instanceof MethodDeclaration) {
 				MethodDeclaration method = (MethodDeclaration) member;
-				if (method.isStatic() && (method.isPublic() || INCLUDE_PRIVATE)) {
+				// Include static methods for utilities, or instance methods for test classes.
+				boolean includeMethod = (method.isStatic() || isTestClass) && (method.isPublic() || INCLUDE_PRIVATE);
+				if (includeMethod) {
 					String methodName = nonClassName(method);
 					methodsByName.computeIfAbsent(methodName, k -> new ArrayList<>()).add(method);
 				}
