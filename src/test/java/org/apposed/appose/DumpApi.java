@@ -87,6 +87,8 @@ public class DumpApi {
 
 		// Subsystem packages - all classes in package go to same file.
 		PACKAGE_TO_MODULE.put("org.apposed.appose.scheme", "appose/scheme.api");
+		PACKAGE_TO_MODULE.put("org.apposed.appose.scheme.Schemes", "appose/scheme.api");
+		PACKAGE_TO_MODULE.put("org.apposed.appose.shm.Shms", "appose/shm.api");
 		PACKAGE_TO_MODULE.put("org.apposed.appose.syntax", "appose/syntax.api");
 
 		// Builder subsystem - core in builder/__init__.api, implementations in separate files.
@@ -117,11 +119,14 @@ public class DumpApi {
 		PACKAGE_TO_MODULE.put("org.apposed.appose.util.Processes", "appose/util/process.api");
 		PACKAGE_TO_MODULE.put("org.apposed.appose.util.Proxies", "appose/util/proxy.api");
 		PACKAGE_TO_MODULE.put("org.apposed.appose.util.Types", "appose/util/types.api");
+		PACKAGE_TO_MODULE.put("org.apposed.appose.util.Versions", "appose/util/versions.api");
+		PACKAGE_TO_MODULE.put("org.apposed.appose.util.XML", "appose/util/xml.api");
 
 		// Workers.
 		PACKAGE_TO_MODULE.put("org.apposed.appose.GroovyWorker", "appose/groovy_worker.api");
 
 		// Test classes - map to tests/*.api files (aligned with Python structure).
+		PACKAGE_TO_MODULE.put("org.apposed.appose.TestBase", "tests/test_base.api");
 		PACKAGE_TO_MODULE.put("org.apposed.appose.ServiceTest", "tests/test_service.api");
 		PACKAGE_TO_MODULE.put("org.apposed.appose.SharedMemoryTest", "tests/test_shm.api");
 		PACKAGE_TO_MODULE.put("org.apposed.appose.SyntaxTest", "tests/test_syntax.api");
@@ -140,6 +145,8 @@ public class DumpApi {
 	private static final Set<String> STATIC_UTILITY_CLASSES = new HashSet<>(Arrays.asList(
 		"org.apposed.appose.Appose",
 		"org.apposed.appose.builder.Builders",
+		"org.apposed.appose.scheme.Schemes",
+		"org.apposed.appose.shm.Shms",
 		"org.apposed.appose.util.Downloads",
 		"org.apposed.appose.util.Environments",
 		"org.apposed.appose.util.FilePaths",
@@ -147,7 +154,10 @@ public class DumpApi {
 		"org.apposed.appose.util.Processes",
 		"org.apposed.appose.util.Proxies",
 		"org.apposed.appose.util.Types",
+		"org.apposed.appose.util.Versions",
+		"org.apposed.appose.util.XML",
 		// Test classes - dump as module-level test functions.
+		"org.apposed.appose.TestBase",
 		"org.apposed.appose.ServiceTest",
 		"org.apposed.appose.SharedMemoryTest",
 		"org.apposed.appose.SyntaxTest",
@@ -174,9 +184,7 @@ public class DumpApi {
 		"org.apposed.appose.shm.Kernel32",
 		"org.apposed.appose.shm.LibC",
 		// Utility classes (keeping discovery/factory classes, excluding internal helpers).
-		"org.apposed.appose.util.Plugins",
-		// Test utility classes.
-		"org.apposed.appose.TestBase"
+		"org.apposed.appose.util.Plugins"
 	));
 
 	private static PrintWriter currentWriter = null;
