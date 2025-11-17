@@ -110,6 +110,8 @@ public class DumpApi {
 		PACKAGE_TO_MODULE.put("org.apposed.appose.tool.Uv", "tool/uv.api");
 
 		// Utility packages - singular naming.
+		PACKAGE_TO_MODULE.put("org.apposed.appose.util.Downloads", "util/download.api");
+		PACKAGE_TO_MODULE.put("org.apposed.appose.util.Environments", "util/environment.api");
 		PACKAGE_TO_MODULE.put("org.apposed.appose.util.FilePaths", "util/filepath.api");
 		PACKAGE_TO_MODULE.put("org.apposed.appose.util.Platforms", "util/platform.api");
 		PACKAGE_TO_MODULE.put("org.apposed.appose.util.Processes", "util/process.api");
@@ -124,6 +126,8 @@ public class DumpApi {
 	private static final Set<String> STATIC_UTILITY_CLASSES = new HashSet<>(Arrays.asList(
 		"org.apposed.appose.Appose",
 		"org.apposed.appose.builder.Builders",
+		"org.apposed.appose.util.Downloads",
+		"org.apposed.appose.util.Environments",
 		"org.apposed.appose.util.FilePaths",
 		"org.apposed.appose.util.Platforms",
 		"org.apposed.appose.util.Processes",
@@ -329,13 +333,13 @@ public class DumpApi {
 			}
 		}
 
-		// Output public static fields as module-level constants.
+		// Output static fields as module-level constants (public and private if INCLUDE_PRIVATE).
 		for (BodyDeclaration<?> member : type.getMembers()) {
 			if (member instanceof FieldDeclaration) {
 				FieldDeclaration field = (FieldDeclaration) member;
-				if (field.isPublic() && field.isStatic()) {
+				if (field.isStatic() && (field.isPublic() || INCLUDE_PRIVATE)) {
 					for (VariableDeclarator var : field.getVariables()) {
-						String fieldName = toSnakeCase(var.getNameAsString()).toUpperCase();
+						String fieldName = nonClassName(field, var).toUpperCase();
 						String fieldType = pythonType(var.getType());
 						out.println(fieldName + ": " + fieldType);
 					}
@@ -343,13 +347,13 @@ public class DumpApi {
 			}
 		}
 
-		// Collect all public static methods.
+		// Collect all static methods (public and private if INCLUDE_PRIVATE).
 		Map<String, List<MethodDeclaration>> methodsByName = new LinkedHashMap<>();
 		for (BodyDeclaration<?> member : type.getMembers()) {
 			if (member instanceof MethodDeclaration) {
 				MethodDeclaration method = (MethodDeclaration) member;
-				if (method.isPublic() && method.isStatic()) {
-					String methodName = toSnakeCase(method.getNameAsString());
+				if (method.isStatic() && (method.isPublic() || INCLUDE_PRIVATE)) {
+					String methodName = nonClassName(method);
 					methodsByName.computeIfAbsent(methodName, k -> new ArrayList<>()).add(method);
 				}
 			}
@@ -454,7 +458,7 @@ public class DumpApi {
 	static String formatModuleFunction(MethodDeclaration method) {
 		StringBuilder sb = new StringBuilder("def ");
 
-		String methodName = toSnakeCase(method.getNameAsString());
+		String methodName = nonClassName(method);
 		sb.append(methodName).append("(");
 
 		NodeList<Parameter> params = method.getParameters();
@@ -488,7 +492,7 @@ public class DumpApi {
 
 		StringBuilder sb = new StringBuilder("def ");
 
-		String methodName = toSnakeCase(longest.getNameAsString());
+		String methodName = nonClassName(longest);
 		sb.append(methodName).append("(");
 
 		NodeList<Parameter> params = longest.getParameters();

@@ -38,6 +38,7 @@ import org.apache.commons.compress.archivers.zip.ZipArchiveInputStream;
 import org.apache.commons.compress.compressors.bzip2.BZip2CompressorInputStream;
 import org.apache.commons.compress.compressors.gzip.GzipCompressorInputStream;
 import org.apposed.appose.Appose;
+import org.apposed.appose.Nullable;
 
 import java.io.BufferedInputStream;
 import java.io.File;
@@ -68,7 +69,7 @@ public final class Downloads {
 		// Prevent instantiation of utility class.
 	}
 
-	public static File download(String name, String urlPath, BiConsumer<Long, Long> progressConsumer)
+	public static File download(String name, String urlPath, @Nullable BiConsumer<Long, Long> progressConsumer)
 		throws IOException, InterruptedException, URISyntaxException
 	{
 		final File tempFile = File.createTempFile(name + "-", FilePaths.fileType(urlPath));
