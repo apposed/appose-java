@@ -106,10 +106,8 @@ public final class Downloads {
 	 * Decompress a bzip2 file into a new file.
 	 * The method is needed because Micromamba is distributed as a .tar.bz2 file and
 	 * many distributions do not have tools readily available to extract the required files.
-	 * @param source
-	 * 	.bzip2 file
-	 * @param destination
-	 * 	destination folder where the contents of the file are going to be decompressed
+	 * @param source .bzip2 file
+	 * @param destination destination folder where the contents of the file are going to be decompressed
 	 * @throws FileNotFoundException if the .bzip2 file is not found or does not exist
 	 * @throws IOException if the source file already exists or there is any error with the decompression
 	 * @throws InterruptedException if the thread where the decompression is happening is interrupted
@@ -126,10 +124,8 @@ public final class Downloads {
 	/**
 	 * Copies the content of an InputStream into an OutputStream.
 	 *
-	 * @param input
-	 * 	the InputStream to copy
-	 * @param output
-	 * 	the target, may be null to simulate output to dev/null on Linux and NUL on Windows
+	 * @param input the InputStream to copy
+	 * @param output the target, may be null to simulate output to dev/null on Linux and NUL on Windows
 	 * @return the number of bytes copied
 	 * @throws IOException if an error occurs copying the streams
 	 * @throws InterruptedException if the thread where this is happening is interrupted
@@ -161,8 +157,7 @@ public final class Downloads {
 	/**
 	 * Decompress a zip file into a directory.
 	 * @param source .zip file
-	 * @param destination
-	 * 	destination folder where the contents of the file are going to be decompressed
+	 * @param destination destination folder where the contents of the file are going to be decompressed
 	 * @throws FileNotFoundException if the .zip file is not found or does not exist
 	 * @throws IOException if the source file already exists or there is any error with the decompression
 	 * @throws InterruptedException if the thread where the decompression is happening is interrupted
@@ -214,26 +209,27 @@ public final class Downloads {
 				InputStream is = new FileInputStream(inputFile);
 				TarArchiveInputStream debInputStream = (TarArchiveInputStream) new ArchiveStreamFactory().createArchiveInputStream("tar", is);
 				) {
-		    TarArchiveEntry entry = null;
-		    while ((entry = debInputStream.getNextEntry()) != null) {
-		        final File outputFile = new File(outputDir, entry.getName());
-		        if (entry.isDirectory()) {
-		            if (!outputFile.exists()) {
-		                if (!outputFile.mkdirs()) {
-		                    throw new IOException(String.format("Couldn't create directory %s.", outputFile.getAbsolutePath()));
-		                }
-		            }
-		        } else {
-		        	if (!outputFile.getParentFile().exists()) {
-		        	    if (!outputFile.getParentFile().mkdirs())
-		        	        throw new IOException("Failed to create directory " + outputFile.getParentFile().getAbsolutePath());
-		        	}
-		            try (OutputStream outputFileStream = new FileOutputStream(outputFile)) {
-		            	copy(debInputStream, outputFileStream);
-		            }
-		        }
-		    }
-		} catch (ArchiveException e) {
+			TarArchiveEntry entry = null;
+			while ((entry = debInputStream.getNextEntry()) != null) {
+				final File outputFile = new File(outputDir, entry.getName());
+				if (entry.isDirectory()) {
+					if (!outputFile.exists()) {
+						if (!outputFile.mkdirs()) {
+							throw new IOException(String.format("Couldn't create directory %s.", outputFile.getAbsolutePath()));
+						}
+					}
+				} else {
+					if (!outputFile.getParentFile().exists()) {
+						if (!outputFile.getParentFile().mkdirs())
+							throw new IOException("Failed to create directory " + outputFile.getParentFile().getAbsolutePath());
+					}
+					try (OutputStream outputFileStream = new FileOutputStream(outputFile)) {
+						copy(debInputStream, outputFileStream);
+					}
+				}
+			}
+		}
+		catch (ArchiveException e) {
 			throw new IOException(e);
 		}
 
@@ -251,30 +247,31 @@ public final class Downloads {
 	 */
 	public static void unTarGz(final File inputFile, final File outputDir) throws FileNotFoundException, IOException, InterruptedException {
 		try (
-				InputStream is = new FileInputStream(inputFile);
-				InputStream gzipIs = new GzipCompressorInputStream(new BufferedInputStream(is));
-				TarArchiveInputStream tarInputStream = (TarArchiveInputStream) new ArchiveStreamFactory().createArchiveInputStream("tar", gzipIs);
-				) {
-		    TarArchiveEntry entry = null;
-		    while ((entry = tarInputStream.getNextEntry()) != null) {
-		        final File outputFile = new File(outputDir, entry.getName());
-		        if (entry.isDirectory()) {
-		            if (!outputFile.exists()) {
-		                if (!outputFile.mkdirs()) {
-		                    throw new IOException(String.format("Couldn't create directory %s.", outputFile.getAbsolutePath()));
-		                }
-		            }
-		        } else {
-		        	if (!outputFile.getParentFile().exists()) {
-		        	    if (!outputFile.getParentFile().mkdirs())
-		        	        throw new IOException("Failed to create directory " + outputFile.getParentFile().getAbsolutePath());
-		        	}
-		            try (OutputStream outputFileStream = new FileOutputStream(outputFile)) {
-		            	copy(tarInputStream, outputFileStream);
-		            }
-		        }
-		    }
-		} catch (ArchiveException e) {
+			InputStream is = new FileInputStream(inputFile);
+			InputStream gzipIs = new GzipCompressorInputStream(new BufferedInputStream(is));
+			TarArchiveInputStream tarInputStream = (TarArchiveInputStream) new ArchiveStreamFactory().createArchiveInputStream("tar", gzipIs);
+		) {
+			TarArchiveEntry entry = null;
+			while ((entry = tarInputStream.getNextEntry()) != null) {
+				final File outputFile = new File(outputDir, entry.getName());
+				if (entry.isDirectory()) {
+					if (!outputFile.exists()) {
+						if (!outputFile.mkdirs()) {
+							throw new IOException(String.format("Couldn't create directory %s.", outputFile.getAbsolutePath()));
+						}
+					}
+				} else {
+					if (!outputFile.getParentFile().exists()) {
+						if (!outputFile.getParentFile().mkdirs())
+							throw new IOException("Failed to create directory " + outputFile.getParentFile().getAbsolutePath());
+					}
+					try (OutputStream outputFileStream = new FileOutputStream(outputFile)) {
+						copy(tarInputStream, outputFileStream);
+					}
+				}
+			}
+		}
+		catch (ArchiveException e) {
 			throw new IOException(e);
 		}
 	}
@@ -286,15 +283,14 @@ public final class Downloads {
 	 * - {@link HttpURLConnection#HTTP_MOVED_PERM}
 	 * - {@link HttpURLConnection#HTTP_SEE_OTHER}
 	 * 
-	 * If that is not the response code or the connection does not work, the url
+	 * If that is not the response code or the connection does not work, the URL
 	 * returned will be the same as the provided.
-	 * If the method is used corretly, it will return the URL to which the original URL
-	 * has been redirected
-	 * @param url
-	 * 	original url. Connecting to that url must give a 301, 302 or 303 response code
-	 * @return the redirected url
-	 * @throws MalformedURLException if the url does not fulfil the requirements for an url to be correct
-	 * @throws URISyntaxException if the url is incorrect or there is no internet connection
+	 * If the method is used correctly, it will return the URL to which the original URL
+	 * has been redirected.
+	 * @param url original URL. Connecting to that URL must give a 301, 302 or 303 response code
+	 * @return the redirected URL
+	 * @throws MalformedURLException if the URL does not fulfil the requirements for an URL to be correct
+	 * @throws URISyntaxException if the URL is incorrect or there is no internet connection
 	 */
 	public static URL redirectedURL(URL url) throws MalformedURLException, URISyntaxException {
 		int statusCode;
@@ -302,7 +298,8 @@ public final class Downloads {
 		try {
 			conn = (HttpURLConnection) url.openConnection();
 			statusCode = conn.getResponseCode();
-		} catch (IOException ex) {
+		}
+		catch (IOException ex) {
 			return url;
 		}
 		if (statusCode < 300 || statusCode > 308)
@@ -310,26 +307,29 @@ public final class Downloads {
 		String newURL = conn.getHeaderField("Location");
 		try {
 			return redirectedURL(new URL(newURL));
-		} catch (MalformedURLException ex) {
+		}
+		catch (MalformedURLException ex) {
+			// Continue with other approaches.
 		}
 		try {
 			if (newURL.startsWith("//"))
 				return redirectedURL(new URL("http:" + newURL));
 			else
 				throw new MalformedURLException();
-		} catch (MalformedURLException ex) {
 		}
-        URI uri = url.toURI();
-        String scheme = uri.getScheme();
-        String host = uri.getHost();
-        String mainDomain = scheme + "://" + host;
+		catch (MalformedURLException ex) {
+			// Keep going with other approaches.
+		}
+		URI uri = url.toURI();
+		String scheme = uri.getScheme();
+		String host = uri.getHost();
+		String mainDomain = scheme + "://" + host;
 		return redirectedURL(new URL(mainDomain + newURL));
 	}
 
 	/**
-	 * Get the size of the file stored in the given URL
-	 * @param url
-	 * 	url where the file is stored
+	 * Gets the size of the file stored in the given URL.
+	 * @param url url where the file is stored
 	 * @return the size of the file
 	 */
 	public static long getFileSize(URL url) {
@@ -344,9 +344,11 @@ public final class Downloads {
 			long size = conn.getContentLengthLong();
 			conn.disconnect();
 			return size;
-		} catch (IOException e) {
+		}
+		catch (IOException e) {
 			throw new RuntimeException(e);
-		} catch (Exception ex) {
+		}
+		catch (Exception ex) {
 			ex.printStackTrace();
 			String msg = "Unable to connect to " + url.toString();
 			System.out.println(msg);
