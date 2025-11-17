@@ -405,4 +405,59 @@ public final class Downloads {
 		return "Appose/" + Appose.version() +
 			" (Java " + javaVersion + "/" + os + ")";
 	}
+
+	/**
+	 * Helper class for downloading content with or without cancelability.
+	 *
+	 * @author Carlos Garcia Lopez de Haro
+	 */
+	static class FileDownloader {
+		private static final long CHUNK_SIZE = 1024 * 1024 * 5;
+
+		private final ReadableByteChannel rbc;
+		private final FileOutputStream fos;
+
+		FileDownloader(ReadableByteChannel rbc, FileOutputStream fos) {
+			this.rbc = rbc;
+			this.fos = fos;
+		}
+
+		/**
+		 * Download a file without the possibility of interrupting the download.
+		 *
+		 * @throws IOException if there is any error downloading the file from the url
+		 */
+		void call() throws IOException {
+			fos.getChannel().transferFrom(rbc, 0, Long.MAX_VALUE);
+		}
+
+		/**
+		 * Download a file with the possibility of interrupting the download if the
+		 * parentThread is interrupted.
+		 *
+		 * @param parentThread
+		 * 	thread from where the download was launched; it is the reference used to stop the download
+		 * @throws IOException if there is any error downloading the file from the url
+		 * @throws InterruptedException if the download is interrupted because the parentThread is interrupted
+		 */
+		void call(Thread parentThread) throws IOException, InterruptedException {
+			long position = 0;
+			while (true) {
+				long transferred = fos.getChannel().transferFrom(rbc, position, CHUNK_SIZE);
+				if (transferred == 0) break;
+
+				position += transferred;
+				if (parentThread != null && !parentThread.isAlive()) {
+					// Close resources if needed and exit.
+					closeResources();
+					throw new InterruptedException("File download was interrupted.");
+				}
+			}
+		}
+
+		private void closeResources() throws IOException {
+			if (rbc != null) rbc.close();
+			if (fos != null) fos.close();
+		}
+	}
 }
