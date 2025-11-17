@@ -112,7 +112,7 @@ public final class Downloads {
 	 * @throws IOException if the source file already exists or there is any error with the decompression
 	 * @throws InterruptedException if the thread where the decompression is happening is interrupted
 	 */
-	public static void unBZip2(File source, File destination) throws FileNotFoundException, IOException, InterruptedException {
+	private static void unBZip2(File source, File destination) throws FileNotFoundException, IOException, InterruptedException {
 		try (
 			BZip2CompressorInputStream input = new BZip2CompressorInputStream(new BufferedInputStream(new FileInputStream(source)));
 			FileOutputStream output = new FileOutputStream(destination);
@@ -148,7 +148,7 @@ public final class Downloads {
 	public static void unpack(final File inputFile, final File outputDir) throws FileNotFoundException, IOException, InterruptedException {
 		String filename = inputFile.getName().toLowerCase();
 		if (filename.endsWith(".tar")) unTar(inputFile, outputDir);
-		else if (filename.endsWith(".tar.bz2")) unBZip2(inputFile, outputDir);
+		else if (filename.endsWith(".tar.bz2")) unTarBz2(inputFile, outputDir);
 		else if (filename.endsWith(".tar.gz")) unTarGz(inputFile, outputDir);
 		else if (filename.endsWith(".zip")) unZip(inputFile, outputDir);
 		else throw new IllegalArgumentException("Unsupported archive type for file: " + inputFile.getName());
@@ -162,7 +162,7 @@ public final class Downloads {
 	 * @throws IOException if the source file already exists or there is any error with the decompression
 	 * @throws InterruptedException if the thread where the decompression is happening is interrupted
 	 */
-	public static void unZip(File source, File destination) throws FileNotFoundException, IOException, InterruptedException {
+	private static void unZip(File source, File destination) throws FileNotFoundException, IOException, InterruptedException {
 		try (
 			InputStream is = new FileInputStream(source);
 			ZipArchiveInputStream zipInputStream = new ZipArchiveInputStream(new BufferedInputStream(is));
@@ -203,7 +203,7 @@ public final class Downloads {
 	 * @throws IOException
 	 * @throws FileNotFoundException
 	 */
-	public static void unTar(final File inputFile, final File outputDir) throws FileNotFoundException, IOException, InterruptedException {
+	private static void unTar(final File inputFile, final File outputDir) throws FileNotFoundException, IOException, InterruptedException {
 
 		try (
 				InputStream is = new FileInputStream(inputFile);
@@ -245,11 +245,50 @@ public final class Downloads {
 	 * @throws FileNotFoundException if the file is not found
 	 * @throws InterruptedException if the thread is interrupted
 	 */
-	public static void unTarGz(final File inputFile, final File outputDir) throws FileNotFoundException, IOException, InterruptedException {
+	private static void unTarGz(final File inputFile, final File outputDir) throws FileNotFoundException, IOException, InterruptedException {
 		try (
 			InputStream is = new FileInputStream(inputFile);
 			InputStream gzipIs = new GzipCompressorInputStream(new BufferedInputStream(is));
 			TarArchiveInputStream tarInputStream = (TarArchiveInputStream) new ArchiveStreamFactory().createArchiveInputStream("tar", gzipIs);
+		) {
+			TarArchiveEntry entry = null;
+			while ((entry = tarInputStream.getNextEntry()) != null) {
+				final File outputFile = new File(outputDir, entry.getName());
+				if (entry.isDirectory()) {
+					if (!outputFile.exists()) {
+						if (!outputFile.mkdirs()) {
+							throw new IOException(String.format("Couldn't create directory %s.", outputFile.getAbsolutePath()));
+						}
+					}
+				} else {
+					if (!outputFile.getParentFile().exists()) {
+						if (!outputFile.getParentFile().mkdirs())
+							throw new IOException("Failed to create directory " + outputFile.getParentFile().getAbsolutePath());
+					}
+					try (OutputStream outputFileStream = new FileOutputStream(outputFile)) {
+						copy(tarInputStream, outputFileStream);
+					}
+				}
+			}
+		}
+		catch (ArchiveException e) {
+			throw new IOException(e);
+		}
+	}
+
+	/**
+	 * Decompress and untar a .tar.bz2 file into a directory.
+	 * @param inputFile the input .tar.bz2 file
+	 * @param outputDir the output directory file.
+	 * @throws FileNotFoundException if the .tar.bz2 file is not found or does not exist
+	 * @throws IOException if there is any error with the decompression
+	 * @throws InterruptedException if the thread where the decompression is happening is interrupted
+	 */
+	private static void unTarBz2(final File inputFile, final File outputDir) throws FileNotFoundException, IOException, InterruptedException {
+		try (
+			InputStream is = new FileInputStream(inputFile);
+			InputStream bzip2Is = new BZip2CompressorInputStream(new BufferedInputStream(is));
+			TarArchiveInputStream tarInputStream = (TarArchiveInputStream) new ArchiveStreamFactory().createArchiveInputStream("tar", bzip2Is);
 		) {
 			TarArchiveEntry entry = null;
 			while ((entry = tarInputStream.getNextEntry()) != null) {

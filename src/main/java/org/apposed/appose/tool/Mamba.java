@@ -157,15 +157,12 @@ public class Mamba extends Tool {
 
 	@Override
 	protected void decompress(final File archive) throws IOException, InterruptedException {
-		final File tempTarFile = File.createTempFile("micromamba", ".tar");
-		tempTarFile.deleteOnExit();
-		Downloads.unBZip2(archive, tempTarFile);
 		File mambaBaseDir = new File(rootdir);
 		if (!mambaBaseDir.isDirectory() && !mambaBaseDir.mkdirs())
 			throw new IOException("Failed to create Micromamba default directory " +
 				mambaBaseDir.getParentFile().getAbsolutePath() +
 				". Please try installing it in another directory.");
-		Downloads.unTar(tempTarFile, mambaBaseDir);
+		Downloads.unpack(archive, mambaBaseDir);
 		File mmFile = new File(command);
 		if (!mmFile.exists()) throw new IOException("Expected micromamba binary is missing: " + command);
 		if (!mmFile.canExecute()) {
