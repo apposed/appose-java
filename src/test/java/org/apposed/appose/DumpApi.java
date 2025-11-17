@@ -103,6 +103,12 @@ public class DumpApi {
 		PACKAGE_TO_MODULE.put("org.apposed.appose.builder.UvBuilder", "builder/uv.api");
 		PACKAGE_TO_MODULE.put("org.apposed.appose.builder.UvBuilderFactory", "builder/uv.api");
 
+		// Tool subsystem - core in tool/__init__.api, implementations in separate files.
+		PACKAGE_TO_MODULE.put("org.apposed.appose.tool.Tool", "tool/__init__.api");
+		PACKAGE_TO_MODULE.put("org.apposed.appose.tool.Pixi", "tool/pixi.api");
+		PACKAGE_TO_MODULE.put("org.apposed.appose.tool.Mamba", "tool/mamba.api");
+		PACKAGE_TO_MODULE.put("org.apposed.appose.tool.Uv", "tool/uv.api");
+
 		// Utility packages - singular naming.
 		PACKAGE_TO_MODULE.put("org.apposed.appose.util.FilePaths", "util/filepath.api");
 		PACKAGE_TO_MODULE.put("org.apposed.appose.util.Platforms", "util/platform.api");
