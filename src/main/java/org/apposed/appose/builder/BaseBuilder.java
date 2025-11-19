@@ -64,7 +64,7 @@ public abstract class BaseBuilder<T extends BaseBuilder<T>> implements Builder<T
 	protected File envDir;
 
 	/** Configuration file content. */
-	protected String sourceContent;
+	protected String content;
 
 	/** Explicit scheme (e.g., "pixi.toml", "environment.yml"). */
 	protected String scheme;
@@ -128,7 +128,7 @@ public abstract class BaseBuilder<T extends BaseBuilder<T>> implements Builder<T
 
 	@Override
 	public T content(String content) {
-		this.sourceContent = content;
+		this.content = content;
 		return typedThis();
 	}
 
@@ -167,7 +167,7 @@ public abstract class BaseBuilder<T extends BaseBuilder<T>> implements Builder<T
 		return envName != null ? envName :
 			// No explicit environment name set;
 			// extract name from the source content.
-			scheme().envName(sourceContent);
+			scheme().envName(content);
 	}
 
 	protected File envDir() {
@@ -179,7 +179,7 @@ public abstract class BaseBuilder<T extends BaseBuilder<T>> implements Builder<T
 
 	protected Scheme scheme() {
 		return scheme != null ?
-			Schemes.fromName(scheme) : Schemes.fromContent(sourceContent);
+			Schemes.fromName(scheme) : Schemes.fromContent(content);
 	}
 
 	protected Environment createEnv(String base, List<String> binPaths, List<String> launchArgs) {

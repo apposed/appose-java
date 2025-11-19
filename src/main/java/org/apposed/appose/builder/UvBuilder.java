@@ -135,15 +135,15 @@ public final class UvBuilder extends BaseBuilder<UvBuilder> {
 			// Check if this is already a uv virtual environment.
 			boolean isUvVenv = new File(envDir, "pyvenv.cfg").isFile();
 
-			if (isUvVenv && sourceContent == null && packages.isEmpty()) {
+			if (isUvVenv && content == null && packages.isEmpty()) {
 				// Environment already exists and no new config/packages, just use it.
 				return createEnvironment(envDir);
 			}
 
 			// Handle source-based build (file or content).
-			if (sourceContent != null) {
+			if (content != null) {
 				// Infer scheme if not explicitly set.
-				if (scheme == null) scheme = Schemes.fromContent(sourceContent).name();
+				if (scheme == null) scheme = Schemes.fromContent(content).name();
 
 				if (!"requirements.txt".equals(scheme) && !"pyproject.toml".equals(scheme)) {
 					throw new IllegalArgumentException("UvBuilder only supports requirements.txt and pyproject.toml schemes, got: " + scheme);
@@ -158,7 +158,7 @@ public final class UvBuilder extends BaseBuilder<UvBuilder> {
 
 					// Write pyproject.toml to envDir.
 					File pyprojectFile = new File(envDir, "pyproject.toml");
-					Files.write(pyprojectFile.toPath(), sourceContent.getBytes(StandardCharsets.UTF_8));
+					Files.write(pyprojectFile.toPath(), content.getBytes(StandardCharsets.UTF_8));
 
 					// Run uv sync to create .venv and install dependencies.
 					uv.sync(envDir, pythonVersion);
@@ -171,7 +171,7 @@ public final class UvBuilder extends BaseBuilder<UvBuilder> {
 
 					// Write requirements.txt to envDir.
 					File reqsFile = new File(envDir, "requirements.txt");
-					Files.write(reqsFile.toPath(), sourceContent.getBytes(StandardCharsets.UTF_8));
+					Files.write(reqsFile.toPath(), content.getBytes(StandardCharsets.UTF_8));
 
 					// Install packages from requirements.txt.
 					uv.pipInstallFromRequirements(envDir, reqsFile.getAbsolutePath());
@@ -210,7 +210,7 @@ public final class UvBuilder extends BaseBuilder<UvBuilder> {
 			File pyprojectToml = new File(envDir, "pyproject.toml");
 			if (pyprojectToml.exists() && pyprojectToml.isFile()) {
 				// Read the content so rebuild() will work even after directory is deleted.
-				sourceContent = new String(Files.readAllBytes(pyprojectToml.toPath()), StandardCharsets.UTF_8);
+				content = new String(Files.readAllBytes(pyprojectToml.toPath()), StandardCharsets.UTF_8);
 				scheme = "pyproject.toml";
 			}
 			else {
@@ -218,7 +218,7 @@ public final class UvBuilder extends BaseBuilder<UvBuilder> {
 				File requirementsTxt = new File(envDir, "requirements.txt");
 				if (requirementsTxt.exists() && requirementsTxt.isFile()) {
 					// Read the content so rebuild() will work even after directory is deleted.
-					sourceContent = new String(Files.readAllBytes(requirementsTxt.toPath()), StandardCharsets.UTF_8);
+					content = new String(Files.readAllBytes(requirementsTxt.toPath()), StandardCharsets.UTF_8);
 					scheme = "requirements.txt";
 				}
 			}

@@ -93,7 +93,7 @@ public final class DynamicBuilder extends BaseBuilder<DynamicBuilder> {
 		delegate.env(envVars);
 		if (envName != null) delegate.name(envName);
 		if (envDir != null) delegate.base(envDir);
-		if (sourceContent != null) delegate.content(sourceContent);
+		if (content != null) delegate.content(content);
 		if (scheme != null) delegate.scheme(scheme);
 		delegate.channels(channels);
 		progressSubscribers.forEach(delegate::subscribeProgress);
@@ -115,7 +115,7 @@ public final class DynamicBuilder extends BaseBuilder<DynamicBuilder> {
 
 		// Detect scheme from content if content is provided but scheme is not.
 		String effectiveScheme = scheme;
-		if (effectiveScheme == null && sourceContent != null) {
+		if (effectiveScheme == null && content != null) {
 			effectiveScheme = scheme().name();
 		}
 

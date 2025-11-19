@@ -87,12 +87,12 @@ public final class MambaBuilder extends BaseBuilder<MambaBuilder> {
 		}
 
 		// Building a new environment - config content is required.
-		if (sourceContent == null) {
+		if (content == null) {
 			throw new IllegalStateException("No source specified for MambaBuilder. Use .file() or .content()");
 		}
 
 		// Infer scheme if not explicitly set.
-		if (scheme == null) scheme = Schemes.fromContent(sourceContent).name();
+		if (scheme == null) scheme = Schemes.fromContent(content).name();
 
 		if (!"environment.yml".equals(scheme)) {
 			throw new IllegalArgumentException("MambaBuilder only supports environment.yml scheme, got: " + scheme);
@@ -127,7 +127,7 @@ public final class MambaBuilder extends BaseBuilder<MambaBuilder> {
 
 			// Step 2: Write environment.yml to envDir.
 			File envYaml = new File(envDir, "environment.yml");
-			Files.write(envYaml.toPath(), sourceContent.getBytes(StandardCharsets.UTF_8));
+			Files.write(envYaml.toPath(), content.getBytes(StandardCharsets.UTF_8));
 
 			// Step 3: Update environment from yml.
 			mamba.update(envDir, envYaml);
@@ -148,7 +148,7 @@ public final class MambaBuilder extends BaseBuilder<MambaBuilder> {
 			File envYaml = new File(envDir, "environment.yml");
 			if (envYaml.exists() && envYaml.isFile()) {
 				// Read the content so rebuild() will work even after directory is deleted.
-				sourceContent = new String(Files.readAllBytes(envYaml.toPath()), StandardCharsets.UTF_8);
+				content = new String(Files.readAllBytes(envYaml.toPath()), StandardCharsets.UTF_8);
 			}
 		}
 		catch (IOException e) {
