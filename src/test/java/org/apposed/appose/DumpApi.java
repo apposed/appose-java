@@ -179,7 +179,6 @@ public class DumpApi {
 		"org.apposed.appose.shm.ShmMacOS",
 		"org.apposed.appose.shm.ShmWindows",
 		"org.apposed.appose.shm.ShmBase",
-		"org.apposed.appose.shm.SharedMemoryLinux",
 		"org.apposed.appose.shm.CLibrary",
 		"org.apposed.appose.shm.Kernel32",
 		"org.apposed.appose.shm.LibC",
