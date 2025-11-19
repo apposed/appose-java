@@ -221,9 +221,15 @@ public abstract class Tool {
 	}
 
 	/**
-	 * Executes a tool command with the specified arguments, without validating the tool installation beforehand,
-	 * without passing output to external listeners (see {@link #setOutputConsumer} and {@link #setErrorConsumer}),
-	 * and
+	 * Executes a tool command with the specified arguments, without validating
+	 * the tool installation beforehand, without passing output to external
+	 * listeners (see {@link #setOutputConsumer} and {@link #setErrorConsumer}),
+	 * and without including flags.
+	 * <p>
+	 * This method mainly exists for {@link #version()} checking, and subclasses
+	 * of {@code Tool} are unlikely to need it&mdash;they should probably use
+	 * {@link #exec} instead.
+	 * </p>
 	 *
 	 * @param args Command arguments for the tool.
 	 * @throws IOException If an I/O error occurs.
