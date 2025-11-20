@@ -37,6 +37,7 @@ import org.junit.jupiter.api.Test;
 
 import java.io.File;
 import java.io.IOException;
+import java.net.URL;
 
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -190,5 +191,22 @@ public class PixiBuilderTest extends TestBase {
 
 		assertInstanceOf(PixiBuilder.class, env.builder());
 		cowsayAndAssert(env, "toml!");
+	}
+
+	/** Tests building from a file:// URL to exercise URL support. */
+	@Test
+	public void testURLSupport() throws Exception {
+		// Get absolute path and convert to file:// URL
+		File configFile = new File("src/test/resources/envs/cowsay.yml").getAbsoluteFile();
+		URL fileURL = configFile.toURI().toURL();
+
+		Environment env = Appose
+			.pixi(fileURL)
+			.base("target/envs/pixi-url-test")
+			.logDebug()
+			.build();
+
+		assertInstanceOf(PixiBuilder.class, env.builder());
+		cowsayAndAssert(env, "url!");
 	}
 }
