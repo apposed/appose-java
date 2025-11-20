@@ -45,16 +45,6 @@ public class MambaBuilderFactory implements BuilderFactory {
 	}
 
 	@Override
-	public Builder<?> createBuilder(String source) throws BuildException {
-		return new MambaBuilder(source);
-	}
-
-	@Override
-	public Builder<?> createBuilder(String source, String scheme) throws BuildException {
-		return new MambaBuilder(source, scheme);
-	}
-
-	@Override
 	public String name() {
 		return "mamba";
 	}
@@ -62,12 +52,6 @@ public class MambaBuilderFactory implements BuilderFactory {
 	@Override
 	public boolean supportsScheme(String scheme) {
 		return "environment.yml".equals(scheme);
-	}
-
-	@Override
-	public boolean supportsSource(String source) {
-		// Support YAML environment files.
-		return source.endsWith(".yml") || source.endsWith(".yaml");
 	}
 
 	@Override

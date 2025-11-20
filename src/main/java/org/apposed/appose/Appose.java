@@ -39,6 +39,7 @@ import org.apposed.appose.builder.UvBuilder;
 import org.apposed.appose.util.Versions;
 
 import java.io.File;
+import java.net.URL;
 
 /**
  * Appose is a library for interprocess cooperation with shared memory. The
@@ -255,73 +256,182 @@ public class Appose {
 	 * Creates a Pixi-based environment builder.
 	 * Pixi supports both conda and PyPI packages natively.
 	 *
-	 * @return A new PixiBuilder instance.
+	 * @return A new {@link PixiBuilder} instance.
 	 */
 	public static PixiBuilder pixi() {
 		return new PixiBuilder();
 	}
 
 	/**
-	 * Creates a Pixi-based environment builder from a source file.
+	 * Creates a Pixi-based environment builder from a source (file path or URL).
+	 * Auto-detects whether the source is a local file or remote URL.
 	 *
-	 * @param source Path to pixi.toml or environment.yml file.
-	 * @return A new PixiBuilder instance.
+	 * @param source Path to configuration file (e.g., {@code "pixi.toml"},
+	 *               {@code "/path/to/environment.yml"}) or URL
+	 *               (e.g., {@code "https://example.com/pixi.toml"})
+	 * @return A new builder configured with the source content.
+	 * @throws BuildException If the source cannot be read or is invalid.
 	 */
 	public static PixiBuilder pixi(String source) throws BuildException {
-		return new PixiBuilder(source);
+		return isURL(source) ? pixi().url(source) : pixi().file(source);
+	}
+
+	/**
+	 * Creates a Pixi-based environment builder from a file.
+	 *
+	 * @param source File path of environment.yml file
+	 * @return A new builder configured with the file content.
+	 * @throws BuildException If the file cannot be read.
+	 */
+	public static PixiBuilder pixi(File source) throws BuildException {
+		return pixi().file(source);
+	}
+
+	/**
+	 * Creates a Pixi-based environment builder from a URL.
+	 *
+	 * @param source URL to configuration file (e.g., pixi.toml or environment.yml)
+	 * @return A new builder configured with the URL content.
+	 * @throws BuildException If the URL cannot be read.
+	 */
+	public static PixiBuilder pixi(URL source) throws BuildException {
+		return pixi().url(source);
 	}
 
 	/**
 	 * Creates a Micromamba-based environment builder.
 	 * Micromamba uses traditional conda environments.
 	 *
-	 * @return A new MambaBuilder instance.
+	 * @return A new {@link MambaBuilder} instance.
 	 */
 	public static MambaBuilder mamba() {
 		return new MambaBuilder();
 	}
 
 	/**
-	 * Creates a Micromamba-based environment builder from an environment.yml file.
+	 * Creates a Micromamba-based environment builder from a source (file path or URL).
+	 * Auto-detects whether the source is a local file or remote URL.
 	 *
-	 * @param source Path to environment.yml file.
-	 * @return A new MambaBuilder instance.
-	 * @throws BuildException If the source is incompatible with the mamba builder.
+	 * @param source Path to environment.yml file or URL to environment.yml
+	 * @return A new builder configured with the source content.
+	 * @throws BuildException If the source cannot be read or is invalid.
 	 */
 	public static MambaBuilder mamba(String source) throws BuildException {
-		return new MambaBuilder(source);
+		return isURL(source) ? mamba().url(source) : mamba().file(source);
+	}
+
+	/**
+	 * Creates a Micromamba-based environment builder from a file.
+	 *
+	 * @param source File path of environment.yml file
+	 * @return A new builder configured with the file content.
+	 * @throws BuildException If the file cannot be read.
+	 */
+	public static MambaBuilder mamba(File source) throws BuildException {
+		return mamba().file(source);
+	}
+
+	/**
+	 * Creates a Micromamba-based environment builder from a URL.
+	 *
+	 * @param source URL to environment.yml file
+	 * @return A new builder configured with the URL content.
+	 * @throws BuildException If the URL cannot be read.
+	 */
+	public static MambaBuilder mamba(URL source) throws BuildException {
+		return mamba().url(source);
 	}
 
 	/**
 	 * Creates a uv-based virtual environment builder.
 	 * uv is a fast Python package installer and resolver.
 	 *
-	 * @return A new UvBuilder instance.
+	 * @return A new {@link UvBuilder} instance.
 	 */
 	public static UvBuilder uv() {
 		return new UvBuilder();
 	}
 
 	/**
-	 * Creates a uv-based virtual environment builder from a requirements.txt file.
+	 * Creates a uv-based virtual environment builder from a source (file path or URL).
+	 * Auto-detects whether the source is a local file or remote URL.
 	 *
-	 * @param source Path to requirements.txt file.
-	 * @return A new UvBuilder instance.
-	 * @throws BuildException If the source is incompatible with the uv builder.
+	 * @param source Path to environment configuration (e.g. requirements.txt or pyproject.toml)
+	 * @return A new builder configured with the source content.
+	 * @throws BuildException If the source cannot be read or is invalid.
 	 */
 	public static UvBuilder uv(String source) throws BuildException {
-		return new UvBuilder(source);
+		return isURL(source) ? uv().url(source) : uv().file(source);
+	}
+
+	/**
+	 * Creates a uv-based virtual environment builder from a file.
+	 *
+	 * @param source File path of requirements.txt file
+	 * @return A new builder configured with the file content.
+	 * @throws BuildException If the file cannot be read.
+	 */
+	public static UvBuilder uv(File source) throws BuildException {
+		return uv().file(source);
+	}
+
+	/**
+	 * Creates a uv-based virtual environment builder from a URL.
+	 *
+	 * @param source URL to requirements.txt file
+	 * @return A new builder configured with the URL content.
+	 * @throws BuildException If the URL cannot be read.
+	 */
+	public static UvBuilder uv(URL source) throws BuildException {
+		return uv().url(source);
 	}
 
 	/**
 	 * Creates a builder that auto-detects the appropriate handler
-	 * based on the source file extension.
+	 * based on the file content.
 	 *
-	 * @param source Path to environment configuration file.
-	 * @return A new DynamicBuilder instance.
+	 * @param source Path to environment configuration file
+	 * @return A new builder configured with the file content.
+	 * @throws BuildException If the file cannot be read or is invalid.
 	 */
-	public static DynamicBuilder file(String source) {
-		return new DynamicBuilder(source);
+	public static DynamicBuilder file(String source) throws BuildException {
+		return new DynamicBuilder().file(source);
+	}
+
+	/**
+	 * Creates a builder that auto-detects the appropriate handler
+	 * based on the file content.
+	 *
+	 * @param source Path to environment configuration file
+	 * @return A new builder configured with the file content.
+	 * @throws BuildException If the file cannot be read.
+	 */
+	public static DynamicBuilder file(File source) throws BuildException {
+		return new DynamicBuilder().file(source);
+	}
+
+	/**
+	 * Creates a builder that auto-detects the appropriate handler
+	 * based on the URL content.
+	 *
+	 * @param source URL to environment configuration file
+	 * @return A new builder configured with the URL content.
+	 * @throws BuildException If the URL cannot be read or is invalid.
+	 */
+	public static DynamicBuilder url(String source) throws BuildException {
+		return new DynamicBuilder().url(source);
+	}
+
+	/**
+	 * Creates a builder that auto-detects the appropriate handler
+	 * based on the URL content.
+	 *
+	 * @param source URL to environment configuration file
+	 * @return A new builder configured with the URL content.
+	 * @throws BuildException If the URL cannot be read.
+	 */
+	public static DynamicBuilder url(URL source) throws BuildException {
+		return new DynamicBuilder().url(source);
 	}
 
 	/**
@@ -331,7 +441,6 @@ public class Appose {
 	 *
 	 * @param content Configuration file content (e.g., environment.yml or pixi.toml content).
 	 * @return A new DynamicBuilder instance pre-configured with the detected scheme.
-	 * @throws IllegalArgumentException If the scheme cannot be detected from the content.
 	 */
 	public static DynamicBuilder content(String content) {
 		return new DynamicBuilder().content(content);
@@ -361,7 +470,7 @@ public class Appose {
 		}
 
 		// Default to simple builder (no special activation, just use binaries in directory).
-		return new SimpleBuilder().wrap(envDir);
+		return custom().wrap(envDir);
 	}
 
 	/**
@@ -393,7 +502,7 @@ public class Appose {
 	 */
 	public static Environment system() {
 		try {
-			return new SimpleBuilder()
+			return custom()
 				.inheritRunningJava()
 				.appendSystemPath()
 				.build();
@@ -410,7 +519,7 @@ public class Appose {
 	 * Creates a custom simple environment builder with no defaults. Use this
 	 * when you need explicit control over binary paths and configuration.
 	 *
-	 * @return A new SimpleBuilder instance.
+	 * @return A new {@link SimpleBuilder} instance.
 	 * @see #wrap(File)
 	 * @see #wrap(String)
 	 */
@@ -428,5 +537,21 @@ public class Appose {
 	public static String version() {
 		String v = Versions.version(Appose.class);
 		return v == null ? "(unknown)" : v;
+	}
+
+	// -- Helper methods --
+
+	/**
+	 * Checks if a string appears to be a URL.
+	 * Currently detects http:// and https:// prefixes (case-insensitive).
+	 * Does not treat single-letter schemes like "C:" as URLs.
+	 *
+	 * @param source The source string to check
+	 * @return true if the string looks like a URL
+	 */
+	private static boolean isURL(String source) {
+		if (source == null || source.isEmpty()) return false;
+		String lower = source.toLowerCase();
+		return lower.startsWith("http://") || lower.startsWith("https://");
 	}
 }

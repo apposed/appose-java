@@ -49,17 +49,6 @@ import java.util.List;
  */
 public final class MambaBuilder extends BaseBuilder<MambaBuilder> {
 
-	public MambaBuilder() {}
-
-	public MambaBuilder(String source) throws BuildException {
-		file(source);
-	}
-
-	public MambaBuilder(String source, String scheme) throws BuildException {
-		file(source);
-		this.scheme = scheme;
-	}
-
 	// -- Builder methods --
 
 	@Override

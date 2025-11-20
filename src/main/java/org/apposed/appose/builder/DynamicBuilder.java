@@ -41,16 +41,7 @@ import org.apposed.appose.Environment;
  */
 public final class DynamicBuilder extends BaseBuilder<DynamicBuilder> {
 
-	private final String source;
 	private String builderName;
-
-	public DynamicBuilder() {
-		this.source = null;
-	}
-
-	public DynamicBuilder(String source) {
-		this.source = source;
-	}
 
 	// -- DynamicBuilder methods --
 
@@ -74,14 +65,14 @@ public final class DynamicBuilder extends BaseBuilder<DynamicBuilder> {
 
 	@Override
 	public Environment build() throws BuildException {
-		Builder<?> delegate = createBuilder(builderName, source, scheme);
+		Builder<?> delegate = createBuilder(builderName, scheme);
 		copyConfigToDelegate(delegate);
 		return delegate.build();
 	}
 
 	@Override
 	public Environment rebuild() throws BuildException {
-		Builder<?> delegate = createBuilder(builderName, source, scheme);
+		Builder<?> delegate = createBuilder(builderName, scheme);
 		copyConfigToDelegate(delegate);
 		return delegate.rebuild();
 	}
@@ -101,16 +92,12 @@ public final class DynamicBuilder extends BaseBuilder<DynamicBuilder> {
 		errorSubscribers.forEach(delegate::subscribeError);
 	}
 
-	private Builder<?> createBuilder(String name, String source, String scheme) throws BuildException {
+	private Builder<?> createBuilder(String name, String scheme) {
 		// Find the builder matching the specified name, if any.
 		if (name != null) {
 			BuilderFactory factory = Builders.findFactoryByName(name);
 			if (factory == null) throw new IllegalArgumentException("Unknown builder: " + name);
-			if (source != null) {
-				return factory.createBuilder(source, scheme);
-			} else {
-				return factory.createBuilder();
-			}
+			return factory.createBuilder();
 		}
 
 		// Detect scheme from content if content is provided but scheme is not.
@@ -123,21 +110,9 @@ public final class DynamicBuilder extends BaseBuilder<DynamicBuilder> {
 		if (effectiveScheme != null) {
 			BuilderFactory factory = Builders.findFactoryByScheme(effectiveScheme);
 			if (factory == null) throw new IllegalArgumentException("No builder supports scheme: " + effectiveScheme);
-			if (source != null) {
-				return factory.createBuilder(source, effectiveScheme);
-			} else {
-				// Only content and scheme provided - create builder and configure via fluent API.
-				return factory.createBuilder();
-			}
+			return factory.createBuilder();
 		}
 
-		// Find the highest-priority builder that supports this source.
-		if (source != null) {
-			BuilderFactory factory = Builders.findFactoryBySource(source);
-			if (factory == null) throw new IllegalArgumentException("No builder supports source: " + source);
-			return factory.createBuilder(source);
-		}
-
-		throw new IllegalArgumentException("At least one of builder name, source, content, and scheme must be non-null");
+		throw new IllegalArgumentException("Content and/or scheme must be provided for dynamic builder");
 	}
 }

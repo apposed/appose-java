@@ -31,9 +31,16 @@ package org.apposed.appose;
 
 import org.apposed.appose.builder.BuildException;
 
+import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.IOException;
+import java.io.InputStream;
+import java.net.MalformedURLException;
 import java.net.URL;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
@@ -113,9 +120,9 @@ public interface Builder<T extends Builder<T>> {
 	 * configuration files present for future rebuild() calls.
 	 * <p>
 	 * This method examines the directory for known configuration files
-	 * (e.g., pixi.toml, environment.yml, requirements.txt) and populates
-	 * the builder's configuration accordingly. If a configuration file is
-	 * found, it will be used when rebuild() is called later.
+	 * (e.g., pixi.toml, environment.yml, requirements.txt, pyproject.toml)
+	 * and populates the builder's configuration accordingly. If a configuration
+	 * file is found, it will be used when {@link #rebuild()} is called later.
 	 * </p>
 	 *
 	 * @param envDir The existing environment directory to wrap.
@@ -216,18 +223,58 @@ public interface Builder<T extends Builder<T>> {
 	 *
 	 * @param path Path to configuration file (e.g., "pixi.toml", "environment.yml")
 	 * @return This builder instance, for fluent-style programming.
-	 * @throws BuildException If the file cannot be read
+	 * @throws BuildException If the file cannot be read or is invalid
 	 */
 	default T file(String path) throws BuildException {
 		try {
-			java.nio.file.Path filePath = java.nio.file.Paths.get(path);
+			Path filePath = Paths.get(path);
 			String fileContent = new String(
-					java.nio.file.Files.readAllBytes(filePath),
-					java.nio.charset.StandardCharsets.UTF_8
+					Files.readAllBytes(filePath),
+					StandardCharsets.UTF_8
 			);
 			return content(fileContent);
 		}
 		catch (IOException e) {
+			throw new BuildException(this, e);
+		}
+	}
+
+	/**
+	 * Specifies a URL to fetch configuration content from.
+	 * Reads the URL content immediately and delegates to {@link #content(String)}.
+	 *
+	 * @param url URL to configuration file
+	 * @return This builder instance, for fluent-style programming.
+	 * @throws BuildException If the URL cannot be read
+	 */
+	default T url(URL url) throws BuildException {
+		try (InputStream stream = url.openStream()) {
+			ByteArrayOutputStream result = new ByteArrayOutputStream();
+			byte[] buffer = new byte[8192];
+			int length;
+			while ((length = stream.read(buffer)) != -1) {
+				result.write(buffer, 0, length);
+			}
+			return content(result.toString(StandardCharsets.UTF_8.name()));
+		}
+		catch (IOException e) {
+			throw new BuildException(this, e);
+		}
+	}
+
+	/**
+	 * Specifies a URL to fetch configuration content from.
+	 * Reads the URL content immediately and delegates to {@link #content(String)}.
+	 *
+	 * @param path URL path of configuration file
+	 * @return This builder instance, for fluent-style programming.
+	 * @throws BuildException If the URL cannot be read or is invalid
+	 */
+	default T url(String path) throws BuildException {
+		try {
+			return url(new URL(path));
+		}
+		catch (MalformedURLException e) {
 			throw new BuildException(this, e);
 		}
 	}
@@ -242,34 +289,10 @@ public interface Builder<T extends Builder<T>> {
 	T content(String content);
 
 	/**
-	 * Specifies a URL to fetch configuration content from.
-	 * Reads the URL content immediately and delegates to {@link #content(String)}.
-	 *
-	 * @param url URL to configuration file
-	 * @return This builder instance, for fluent-style programming.
-	 * @throws BuildException If the URL cannot be read
-	 */
-	default T url(URL url) throws BuildException {
-		try (java.io.InputStream stream = url.openStream()) {
-			java.io.ByteArrayOutputStream result = new java.io.ByteArrayOutputStream();
-			byte[] buffer = new byte[8192];
-			int length;
-			while ((length = stream.read(buffer)) != -1) {
-				result.write(buffer, 0, length);
-			}
-			String urlContent = result.toString(java.nio.charset.StandardCharsets.UTF_8.name());
-			return content(urlContent);
-		}
-		catch (IOException e) {
-			throw new BuildException(this, e);
-		}
-	}
-
-	/**
 	 * Explicitly specifies the scheme for the configuration.
 	 * This overrides auto-detection.
 	 *
-	 * @param scheme The scheme (e.g., "pixi.toml", "environment.yml", "requirements.txt")
+	 * @param scheme The scheme (e.g., "pixi.toml", "environment.yml", "requirements.txt", "pyproject.toml")
 	 * @return This builder instance, for fluent-style programming.
 	 */
 	T scheme(String scheme);

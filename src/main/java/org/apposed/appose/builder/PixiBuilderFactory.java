@@ -44,16 +44,6 @@ public class PixiBuilderFactory implements BuilderFactory {
 	}
 
 	@Override
-	public Builder<?> createBuilder(String source) throws BuildException {
-		return new PixiBuilder(source);
-	}
-
-	@Override
-	public Builder<?> createBuilder(String source, String scheme) throws BuildException {
-		return new PixiBuilder(source, scheme);
-	}
-
-	@Override
 	public String name() {
 		return "pixi";
 	}
@@ -69,14 +59,6 @@ public class PixiBuilderFactory implements BuilderFactory {
 			default:
 				return false;
 		}
-	}
-
-	@Override
-	public boolean supportsSource(String source) {
-		// Support pixi.toml and YAML environment files.
-		return source.endsWith("pixi.toml") ||
-		       source.endsWith(".yml") ||
-		       source.endsWith(".yaml");
 	}
 
 	@Override

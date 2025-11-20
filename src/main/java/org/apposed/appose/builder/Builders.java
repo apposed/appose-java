@@ -83,18 +83,6 @@ public final class Builders {
 	}
 
 	/**
-	 * Finds the first factory that can build from the given source file.
-	 * Factories are checked in priority order (highest priority first).
-	 *
-	 * @param source The source file path to find a factory for.
-	 * @return The first factory that can build from the source, or null if none found.
-	 */
-	public static BuilderFactory findFactoryBySource(String source) {
-		if (source == null) throw new IllegalStateException("Cannot auto-detect builder: no source specified");
-		return Plugins.find(ALL, factory -> factory.supportsSource(source));
-	}
-
-	/**
 	 * Checks if the given directory can be wrapped as a known environment type.
 	 * This is a convenience method equivalent to {@code findFactoryForWrapping(envDir) != null}.
 	 *

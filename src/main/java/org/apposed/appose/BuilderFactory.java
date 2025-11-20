@@ -29,7 +29,6 @@
 
 package org.apposed.appose;
 
-import org.apposed.appose.builder.BuildException;
 import org.apposed.appose.builder.Builders;
 
 import java.io.File;
@@ -44,32 +43,18 @@ import java.io.File;
  * @author Curtis Rueden
  */
 public interface BuilderFactory {
+
 	/**
 	 * Creates a new builder instance with no configuration.
+	 * Configuration should be provided via the fluent API
+	 * (e.g., {@link Builder#content}, {@link Builder#scheme}).
 	 *
 	 * @return A new builder instance
 	 */
 	Builder<?> createBuilder();
 
 	/**
-	 * Creates a new builder instance configured with a source file.
-	 *
-	 * @param source The source file path
-	 * @return A new configured builder instance
-	 */
-	Builder<?> createBuilder(String source) throws BuildException;
-
-	/**
-	 * Creates a new builder instance configured with a source file and scheme.
-	 *
-	 * @param source The source file path
-	 * @param scheme The scheme (e.g., "environment.yml", "pixi.toml")
-	 * @return A new configured builder instance
-	 */
-	Builder<?> createBuilder(String source, String scheme) throws BuildException;
-
-	/**
-	 * Returns the name of this builder (e.g., "pixi", "mamba", "system").
+	 * Returns the name of this builder (e.g., "pixi", "mamba", "uv", "system").
 	 *
 	 * @return The builder name
 	 */
@@ -82,15 +67,6 @@ public interface BuilderFactory {
 	 * @return true if this builder supports the scheme
 	 */
 	boolean supportsScheme(String scheme);
-
-	/**
-	 * Checks if this builder can build from the given source file.
-	 * This allows builders to inspect file extensions or content to determine compatibility.
-	 *
-	 * @param source The source file path to check
-	 * @return true if this builder can build from the source
-	 */
-	boolean supportsSource(String source);
 
 	/**
 	 * Returns the priority of this builder for scheme resolution.

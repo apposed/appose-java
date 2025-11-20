@@ -54,17 +54,6 @@ public final class UvBuilder extends BaseBuilder<UvBuilder> {
 	private String pythonVersion;
 	private final List<String> packages = new ArrayList<>();
 
-	public UvBuilder() {}
-
-	public UvBuilder(String source) throws BuildException {
-		file(source);
-	}
-
-	public UvBuilder(String source, String scheme) throws BuildException {
-		file(source);
-		this.scheme = scheme;
-	}
-
 	// -- UvBuilder methods --
 
 	/**

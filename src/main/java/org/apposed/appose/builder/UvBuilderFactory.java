@@ -44,16 +44,6 @@ public class UvBuilderFactory implements BuilderFactory {
 	}
 
 	@Override
-	public Builder<?> createBuilder(String source) throws BuildException {
-		return new UvBuilder(source);
-	}
-
-	@Override
-	public Builder<?> createBuilder(String source, String scheme) throws BuildException {
-		return new UvBuilder(source, scheme);
-	}
-
-	@Override
 	public String name() {
 		return "uv";
 	}
@@ -67,12 +57,6 @@ public class UvBuilderFactory implements BuilderFactory {
 			default:
 				return false;
 		}
-	}
-
-	@Override
-	public boolean supportsSource(String source) {
-		// Support requirements.txt files.
-		return source.endsWith("requirements.txt") || source.endsWith(".txt");
 	}
 
 	@Override

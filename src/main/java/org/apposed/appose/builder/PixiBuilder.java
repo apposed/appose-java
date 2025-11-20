@@ -53,17 +53,6 @@ public final class PixiBuilder extends BaseBuilder<PixiBuilder> {
 	private final List<String> condaPackages = new ArrayList<>();
 	private final List<String> pypiPackages = new ArrayList<>();
 
-	public PixiBuilder() {}
-
-	public PixiBuilder(String source) throws BuildException {
-		file(source);
-	}
-
-	public PixiBuilder(String source, String scheme) throws BuildException {
-		file(source);
-		this.scheme = scheme;
-	}
-
 	// -- PixiBuilder methods --
 
 	/**
