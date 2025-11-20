@@ -70,7 +70,7 @@ mvn clean package
   - Core terminator method: `build()`
   - Subscription methods: `subscribeProgress()`, `subscribeOutput()`, `subscribeError()`, `logDebug()`
 - **BuilderFactory**: Factory for creating and discovering builders
-  - Factory methods: `createBuilder()`, `createBuilder(source)`, `createBuilder(source, scheme)`
+  - Factory method: `createBuilder()`
   - Discovery methods: `name()`, `supportsScheme(scheme)`, `canWrap(File)`, `priority()`
   - Implementations discovered via ServiceLoader and managed by `Builders` utility class
 - **Scheme**: Interface for configuration file format detection and parsing
@@ -95,7 +95,6 @@ The project uses Java's ServiceLoader mechanism for extensibility, with utility 
 - **Builders** (`org.apposed.appose.builder.Builders`) - Builder discovery and management
   - `findFactoryByName(name)` - Find builder by name (e.g., "pixi", "mamba")
   - `findFactoryByScheme(scheme)` - Find builder supporting a scheme (e.g., "pixi-toml", "conda")
-  - `findFactoryBySource(source)` - Auto-detect builder from file path
   - `findFactoryForWrapping(envDir)` - Detect builder for existing environment
   - Factories cached and sorted by priority
 
@@ -135,16 +134,19 @@ Some tests (like `testConda`) build conda environments and may take time on firs
 The `Appose` class provides static factory methods for creating environments:
 
 **Type-safe builders:**
-- `Appose.pixi()` / `Appose.pixi(source)` - Creates a PixiBuilder
-- `Appose.mamba()` / `Appose.mamba(source)` - Creates a MambaBuilder
-- `Appose.uv()` / `Appose.uv(source)` - Creates a UvBuilder
+- `Appose.pixi()` / `Appose.pixi(String|File|URL)` - Creates a PixiBuilder
+- `Appose.mamba()` / `Appose.mamba(String|File|URL)` - Creates a MambaBuilder
+- `Appose.uv()` / `Appose.uv(String|File|URL)` - Creates a UvBuilder
 
 **Dynamic builder:**
-- `Appose.file(source)` - Creates a DynamicBuilder that auto-detects builder based on file extension
+- `Appose.file(String|File)` - Creates a DynamicBuilder that auto-detects builder based on file content
+- `Appose.url(String|URL)` - Creates a DynamicBuilder from a URL
+- `Appose.content(String)` - Creates a DynamicBuilder from configuration content
 
 **Direct environment creation:**
-- `Appose.system()` - Creates a SimpleBuilder with system PATH and inherited Java
-- `Appose.wrap(directory)` - Wraps an existing environment directory, auto-detecting its type
+- `Appose.system()` - Creates an environment with system PATH and inherited Java
+- `Appose.wrap(String|File)` - Wraps an existing environment directory, auto-detecting its type
+- `Appose.custom()` - Creates a SimpleBuilder for custom environments without package management
 
 ## Important Notes
 
@@ -184,18 +186,17 @@ The project provides type-safe builder classes for different environment types:
 - Environment structure: `<envDir>/bin` (or `Scripts` on Windows)
 - Location: `org.apposed.appose.builder.UvBuilder`
 
-**DynamicBuilder** - Auto-detects appropriate builder based on source file
-- Created via `Appose.file(source)`
-- Methods: `scheme(scheme)`, `builder(builderName)`
-- Delegates to PixiBuilder or MambaBuilder based on file extension or explicit scheme
+**DynamicBuilder** - Auto-detects appropriate builder based on configuration content
+- Created via `Appose.file(source)`, `Appose.url(source)`, or `Appose.content(content)`
+- Methods: `scheme(scheme)`, `builder(builderName)`, `content(content)`
+- Delegates to PixiBuilder, MambaBuilder, or UvBuilder based on content or explicit scheme
 - Uses ServiceLoader discovery with builder priorities
 - Location: `org.apposed.appose.builder.DynamicBuilder`
 
 **SimpleBuilder** - Uses an existing working directory without installing packages
-- Created via `Appose.system()` or `Appose.custom().base("/path/to/cwd").build()`
+- Created via `Appose.custom()` or implicitly via `Appose.system()`
 - No package installation; uses whatever executables are on the system
-- Method: `useSystemPath(boolean)` to control PATH inclusion
-- Method: `inheritRunningJava()` to add running JVM's bin folder to binPaths
+- Methods: `binPaths(paths...)`, `appendSystemPath()`, `inheritRunningJava()`
 - Location: `org.apposed.appose.builder.SimpleBuilder`
 
 ### API Examples
@@ -211,7 +212,8 @@ Environment env = Appose.pixi()
     .conda("python>=3.8", "numpy")
     .pypi("cowsay")
     .channels("conda-forge")
-    .build("my-env");
+    .name("my-env")
+    .build();
 
 // Mamba builder
 Environment env = Appose.mamba("path/to/environment.yml")
@@ -225,7 +227,8 @@ Environment env = Appose.uv("path/to/requirements.txt")
 Environment env = Appose.uv()
     .python("3.11")
     .include("numpy", "pandas", "matplotlib")
-    .build("my-env");
+    .name("my-env")
+    .build();
 
 // Dynamic builder (auto-detects)
 Environment env = Appose.file("path/to/environment.yml")
@@ -245,7 +248,7 @@ Builders are discovered via `BuilderFactory` implementations managed by the `Bui
 - Each factory implements `supportsScheme(scheme)` to declare supported file types and package schemes
 - Each factory implements `canWrap(File)` to declare if it can wrap an existing environment directory
 - Factories have priorities for conflict resolution when multiple support the same scheme
-- `DynamicBuilder` uses `Builders.findFactoryBySource()` to automatically select the appropriate builder
+- `DynamicBuilder` uses scheme auto-detection from content to select the appropriate builder
 - `Appose.wrap()` uses `Builders.findFactoryForWrapping()` to auto-detect environment type
 
 ### Environment Configuration
