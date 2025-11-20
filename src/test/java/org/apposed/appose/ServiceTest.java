@@ -87,18 +87,13 @@ public class ServiceTest extends TestBase {
 	}
 
 	@Test
-	public void testServiceStartupFailure() throws IOException, InterruptedException, TaskException {
+	public void testServiceStartupFailure() throws Exception {
 		// Create an environment with no binPaths to test startup failure.
 		File tempDir = new File("no-pythons-to-be-found-here");
 		tempDir.mkdirs();
 		tempDir.deleteOnExit();
 
-		Environment env = new Environment() {
-			@Override public String base() { return tempDir.getAbsolutePath(); }
-			@Override public List<String> binPaths() { return new ArrayList<>(); }
-			@Override public List<String> launchArgs() { return new ArrayList<>(); }
-			@Override public Builder<?> builder() { return null; }
-		};
+		Environment env = Appose.custom().base(tempDir).build();
 		try (Service service = env.python()) {
 			String info = "";
 			try {
