@@ -543,8 +543,9 @@ public class Appose {
 
 	/**
 	 * Checks if a string appears to be a URL.
-	 * Currently detects http:// and https:// prefixes (case-insensitive).
-	 * Does not treat single-letter schemes like "C:" as URLs.
+	 * Detects common URL schemes (e.g. http, https, ftp, file, jar) by using
+	 * a pattern of 3+ letter scheme followed by "://" to avoid matching
+	 * Windows drive letters like "C:".
 	 *
 	 * @param source The source string to check
 	 * @return true if the string looks like a URL
@@ -552,6 +553,8 @@ public class Appose {
 	private static boolean isURL(String source) {
 		if (source == null || source.isEmpty()) return false;
 		String lower = source.toLowerCase();
-		return lower.startsWith("http://") || lower.startsWith("https://");
+		// Match any scheme with 3+ letters followed by ://
+		// This avoids matching Windows drive letters (e.g., "C:")
+		return lower.matches("^[a-z]{3,}://.*");
 	}
 }
