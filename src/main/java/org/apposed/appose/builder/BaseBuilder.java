@@ -178,8 +178,9 @@ public abstract class BaseBuilder<T extends BaseBuilder<T>> implements Builder<T
 	}
 
 	protected Scheme scheme() {
-		return scheme != null ?
-			Schemes.fromName(scheme) : Schemes.fromContent(content);
+		if (scheme != null) return Schemes.fromName(scheme);
+		if (content != null) return Schemes.fromContent(content);
+		throw new IllegalStateException("Cannot determine scheme: neither scheme nor content is set");
 	}
 
 	protected Environment createEnv(String base, List<String> binPaths, List<String> launchArgs) {
