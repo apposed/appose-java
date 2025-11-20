@@ -106,7 +106,6 @@ abstract class ShmBase<HANDLE> implements SharedMemory {
 		sb.append(getClass().getSimpleName()).append("{");
 		sb.append("name='").append(name()).append("', size=").append(size());
 		if (info.pointer != null) sb.append(", pointer=").append(info.pointer);
-		if (info.writePointer != null) sb.append(", writePointer=").append(info.writePointer);
 		if (info.handle != null) sb.append("handle=").append(info.handle);
 		sb.append(", closed=").append(closed);
 		sb.append(", unlinked=").append(unlinked);
@@ -128,8 +127,6 @@ abstract class ShmBase<HANDLE> implements SharedMemory {
 
 		/** Pointer referencing the shared memory. */
 		Pointer pointer;
-
-		Pointer writePointer;
 
 		/** File handle for the shared memory block's (pseudo-)file. */
 		HANDLE handle;

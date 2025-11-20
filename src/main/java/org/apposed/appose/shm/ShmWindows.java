@@ -64,7 +64,7 @@ public class ShmWindows implements ShmFactory {
 
 		@Override
 		protected void doClose() {
-			cleanup(info.pointer, info.writePointer, info.handle);
+			cleanup(info.pointer, info.handle);
 		}
 
 		@Override
@@ -115,24 +115,15 @@ public class ShmWindows implements ShmFactory {
 				throw new RuntimeException("Error mapping shared memory: " + lastError());
 			}
 
-			Pointer writePointer = Kernel32.INSTANCE.VirtualAllocEx(
-				Kernel32.INSTANCE.GetCurrentProcess(),
-				pointer,
-				new BaseTSD.SIZE_T(rsize),
-				WinNT.MEM_COMMIT,
-				WinNT.PAGE_READWRITE
-			);
-			if (isNull(writePointer)) {
-				cleanup(pointer, writePointer, hMapFile);
-				throw new RuntimeException("Error committing to the shared memory pages: " + lastError());
-			}
+			// Note: MapViewOfFile already returns a writable pointer.
+			// We do not need VirtualAllocEx, which is for allocating memory in other processes.
+			// The mapped view is already committed and accessible.
 
 			ShmInfo<WinNT.HANDLE> info = new ShmInfo<>();
 			info.name = shmName;
 			info.rsize = rsize; // REQUESTED size
 			info.size = shm_size; // ALLOCATED size
 			info.pointer = pointer;
-			info.writePointer = writePointer;
 			info.handle = hMapFile;
 			info.unlinkOnClose = create;
 			return info;
@@ -192,8 +183,7 @@ public class ShmWindows implements ShmFactory {
 		}
 	}
 
-	private static void cleanup(Pointer pointer, Pointer writePointer, WinNT.HANDLE handle) {
-		if (!isNull(writePointer)) Kernel32.INSTANCE.UnmapViewOfFile(writePointer);
+	private static void cleanup(Pointer pointer, WinNT.HANDLE handle) {
 		if (!isNull(pointer)) Kernel32.INSTANCE.UnmapViewOfFile(pointer);
 		if (handle != null) Kernel32.INSTANCE.CloseHandle(handle);
 	}
