@@ -34,6 +34,8 @@ import org.junit.jupiter.api.Test;
 
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
+import java.io.File;
+import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.OutputStreamWriter;
@@ -52,7 +54,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 public class SharedMemoryTest {
 
 	@Test
-	public void testShmCreate() throws IOException {
+	public void testShmCreate() throws Exception {
 		int rsize = 456;
 		try (SharedMemory shm = SharedMemory.create(rsize)) {
 			assertNotNull(shm.name());
@@ -89,72 +91,118 @@ public class SharedMemoryTest {
 	}
 
 	@Test
-	public void testShmAttach() throws IOException {
+	public void testShmAttach() throws Exception {
 		// Create a named shared memory block in a separate process.
-		// NB: I originally tried passing the Python script as an argument to `-c`,
-		// but it gets truncated (don't know why) and the program fails to execute.
-		// So instead, the program is passed in via stdin. But that means the
-		// program itself cannot read from stdin as a means of waiting for Java to
-		// signal its completion of the test asserts; we use a hacky sleep instead.
-		String output = runPython(
+		// The Python process waits for a signal from stdin before unlinking,
+		// ensuring deterministic coordination with the Java test.
+		try (PythonProcess py = startPythonAndWait(
+			"import sys\n" +
 			"from appose import SharedMemory\n" +
-			"from sys import stdout\n" +
 			"shm = SharedMemory(create=True, rsize=345)\n" +
 			"shm.buf[0] = 12\n" +
 			"shm.buf[100] = 234\n" +
 			"shm.buf[344] = 7\n" +
-			"stdout.write(f'{shm.name}|{shm.rsize}|{shm.size}\\n')\n" +
-			"stdout.flush()\n" +
-			"import time; time.sleep(0.5)\n" + // HACK: horrible, but keeps things simple
+			"sys.stdout.write(f'{shm.name}|{shm.rsize}|{shm.size}\\n')\n" +
+			"sys.stdout.flush()\n" +
+			"input()  # Wait for Java to signal completion\n" +
 			"shm.unlink()\n"
-		);
+		)) {
+			// Parse the output into the name and size of the shared memory block.
+			String[] shmInfo = py.firstLine.split("\\|");
+			assertEquals(3, shmInfo.length);
+			String shmName = shmInfo[0];
+			assertNotNull(shmName);
+			assertFalse(shmName.isEmpty());
+			int shmRSize = Integer.parseInt(shmInfo[1]);
+			assertEquals(345, shmRSize);
+			int shmSize = Integer.parseInt(shmInfo[2]);
+			assertTrue(shmSize >= 345);
 
-		// Parse the output into the name and size of the shared memory block.
-		String[] shmInfo = output.split("\\|");
-		assertEquals(3, shmInfo.length);
-		String shmName = shmInfo[0];
-		assertNotNull(shmName);
-		assertFalse(shmName.isEmpty());
-		int shmRSize = Integer.parseInt(shmInfo[1]);
-		assertEquals(345, shmRSize);
-		int shmSize = Integer.parseInt(shmInfo[2]);
-		assertTrue(shmSize >= 345);
-
-		// Attach to the shared memory and verify it matches expectations.
-		try (SharedMemory shm = SharedMemory.attach(shmName, shmRSize)) {
-			assertNotNull(shm);
-			assertEquals(shmName, shm.name());
-			assertEquals(shmRSize, shm.rsize());
-			// Note: We do not test that shmSize and shm.size() match exactly,
-			// because Python and appose-java's SharedMemory code will not
-			// necessarily behave identically when it comes to block rounding.
-			// Notably, on Windows, Python does not round, whereas ShmWindows
-			// rounds up to the next block size (4K on GitHub Actions CI).
-			assertTrue(shm.size() >= 345);
-			ByteBuffer buf = shm.buf();
-			assertNotNull(buf);
-			assertEquals(shmRSize, buf.limit());
-			assertEquals(12, buf.get(0));
-			assertEquals((byte) 234, buf.get(100));
-			assertEquals(7, buf.get(344));
+			// Attach to the shared memory and verify it matches expectations.
+			try (SharedMemory shm = SharedMemory.attach(shmName, shmRSize)) {
+				assertNotNull(shm);
+				assertEquals(shmName, shm.name());
+				assertEquals(shmRSize, shm.rsize());
+				// Note: We do not test that shmSize and shm.size() match exactly,
+				// because Python and appose-java's SharedMemory code will not
+				// necessarily behave identically when it comes to block rounding.
+				// Notably, on Windows, Python does not round, whereas ShmWindows
+				// rounds up to the next block size (4K on GitHub Actions CI).
+				assertTrue(shm.size() >= 345);
+				ByteBuffer buf = shm.buf();
+				assertNotNull(buf);
+				assertEquals(shmRSize, buf.limit());
+				assertEquals(12, buf.get(0));
+				assertEquals((byte) 234, buf.get(100));
+				assertEquals(7, buf.get(344));
+			}
 		}
-
-		// NB: No need to clean up the shared memory explicitly,
-		// since the Python program will unlink it and terminate
-		// upon completion of the sleep instruction.
 	}
 
-	private static String runPython(String script) throws IOException {
-		String pythonCommand = Platforms.isWindows() ? "python.exe" : "python";
-		ProcessBuilder pb = new ProcessBuilder().command(pythonCommand);
-		Process p = pb.start();
-		try (BufferedWriter os = new BufferedWriter(new OutputStreamWriter(p.getOutputStream()))) {
-			os.write(script);
-			os.flush();
+	private static String pythonCommand() {
+		return Platforms.isWindows() ? "python.exe" : "python";
+	}
+
+	/**
+	 * Runs a Python script, reads the first line of output, and waits for completion.
+	 * For scripts that need to coordinate with Java before exiting, use startPythonAndWait.
+	 */
+	private static String runPython(String script) throws Exception {
+		try (PythonProcess py = startPythonAndWait(script)) {
+			return py.firstLine;
 		}
-		BufferedReader is = new BufferedReader(new InputStreamReader(p.getInputStream()));
-		String line = is.readLine();
+	}
+
+	/**
+	 * Starts a Python process with the given script, waits for first line of output,
+	 * but keeps the process alive for later coordination via stdin.
+	 * The returned PythonProcess must be closed (signals Python to exit via stdin).
+	 */
+	private static PythonProcess startPythonAndWait(String script) throws IOException {
+		// Write script to a temp file so stdin is available for coordination
+		File tempScript = File.createTempFile("appose-test-", ".py");
+		tempScript.deleteOnExit();
+		try (FileWriter fw = new FileWriter(tempScript)) {
+			fw.write(script);
+		}
+
+		Process p = new ProcessBuilder(pythonCommand(), "-u", tempScript.getAbsolutePath()).start();
+		BufferedWriter stdin = new BufferedWriter(new OutputStreamWriter(p.getOutputStream()));
+		BufferedReader stdout = new BufferedReader(new InputStreamReader(p.getInputStream()));
+		String line = stdout.readLine();
 		assertNotNull(line, "Python program returned no output");
-		return line;
+		return new PythonProcess(p, stdin, line);
+	}
+
+	/**
+	 * Helper class to hold a running Python process and its first output line.
+	 * Implements AutoCloseable to handle cleanup automatically.
+	 */
+	private static class PythonProcess implements AutoCloseable {
+		final Process process;
+		final BufferedWriter stdin;
+		final String firstLine;
+
+		PythonProcess(Process process, BufferedWriter stdin, String firstLine) {
+			this.process = process;
+			this.stdin = stdin;
+			this.firstLine = firstLine;
+		}
+
+		@Override
+		public void close() throws Exception {
+			// Signal Python to exit by sending a newline and closing stdin
+			try {
+				stdin.write("\n");
+				stdin.flush();
+				stdin.close();
+			} catch (IOException e) {
+				// Ignore - process may have already exited
+			}
+			boolean exited = process.waitFor(2, java.util.concurrent.TimeUnit.SECONDS);
+			if (!exited) {
+				process.destroyForcibly();
+			}
+		}
 	}
 }
