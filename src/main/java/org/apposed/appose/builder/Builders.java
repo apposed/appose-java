@@ -48,7 +48,7 @@ public final class Builders {
 	}
 
 	/** All known {@link BuilderFactory} implementations, in priority order. */
-	private static final List<BuilderFactory> ALL = Plugins.discover(BuilderFactory.class,
+	private static final List<BuilderFactory> BUILDERS = Plugins.discover(BuilderFactory.class,
 		(a, b) -> Double.compare(b.priority(), a.priority()));
 
 	/**
@@ -58,7 +58,7 @@ public final class Builders {
 	 * @return The factory with matching name, or null if not found.
 	 */
 	public static @Nullable BuilderFactory findFactoryByName(String name) {
-		return Plugins.find(ALL, factory -> factory.name().equalsIgnoreCase(name));
+		return Plugins.find(BUILDERS, factory -> factory.name().equalsIgnoreCase(name));
 	}
 
 	/**
@@ -69,7 +69,18 @@ public final class Builders {
 	 * @return The first factory that supports the scheme, or null if none found.
 	 */
 	public static @Nullable BuilderFactory findFactoryByScheme(String scheme) {
-		return Plugins.find(ALL, factory -> factory.supportsScheme(scheme));
+		return Plugins.find(BUILDERS, factory -> factory.supportsScheme(scheme));
+	}
+
+	/**
+	 * Finds the first factory that can wrap the given environment directory.
+	 * Factories are checked in priority order (highest priority first).
+	 *
+	 * @param envDir The directory to find a factory for.
+	 * @return The first factory that can wrap the directory, or null if none found.
+	 */
+	public static @Nullable BuilderFactory findFactoryForWrapping(String envDir) {
+		return findFactoryForWrapping(new File(envDir));
 	}
 
 	/**
@@ -80,7 +91,18 @@ public final class Builders {
 	 * @return The first factory that can wrap the directory, or null if none found.
 	 */
 	public static @Nullable BuilderFactory findFactoryForWrapping(File envDir) {
-		return Plugins.find(ALL, factory -> factory.canWrap(envDir));
+		return Plugins.find(BUILDERS, factory -> factory.canWrap(envDir));
+	}
+
+	/**
+	 * Checks if the given directory can be wrapped as a known environment type.
+	 * This is a convenience method equivalent to {@code findFactoryForWrapping(envDir) != null}.
+	 *
+	 * @param envDir The directory to check.
+	 * @return true if the directory can be wrapped by any known builder, false otherwise.
+	 */
+	public static boolean canWrap(String envDir) {
+		return canWrap(new File(envDir));
 	}
 
 	/**

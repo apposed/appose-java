@@ -69,6 +69,12 @@ public final class Downloads {
 		// Prevent instantiation of utility class.
 	}
 
+	public static File download(String name, String urlPath)
+		throws IOException, InterruptedException, URISyntaxException
+	{
+		return download(name, urlPath, null);
+	}
+
 	public static File download(String name, String urlPath, @Nullable BiConsumer<Long, Long> progressConsumer)
 		throws IOException, InterruptedException, URISyntaxException
 	{

@@ -84,5 +84,16 @@ public interface BuilderFactory {
 	 * @param envDir The directory to check
 	 * @return true if this builder can wrap the directory
 	 */
+	default boolean canWrap(String envDir) {
+		return canWrap(new File(envDir));
+	}
+
+	/**
+	 * Checks if this builder can wrap the given existing environment directory.
+	 * Used by {@link Appose#wrap(File)} to auto-detect environment type.
+	 *
+	 * @param envDir The directory to check
+	 * @return true if this builder can wrap the directory
+	 */
 	boolean canWrap(File envDir);
 }

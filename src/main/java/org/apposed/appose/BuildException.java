@@ -40,25 +40,40 @@ public class BuildException extends Exception {
 	@Nullable
 	public final Builder<?> builder;
 
+	public BuildException() {
+		this(null, null, null);
+	}
+
+	public BuildException(Builder<?> builder) {
+		this(builder, null, null);
+	}
+
 	public BuildException(String message) {
-		this(null, message);
+		this(null, message, null);
 	}
 
 	public BuildException(Throwable cause) {
-		this(null, cause);
+		this(null, null, cause);
 	}
 
-	public BuildException(@Nullable Builder<?> builder, String message) {
-		super(message);
-		this.builder = builder;
+	public BuildException(Builder<?> builder, String message) {
+		this(builder, message, null);
 	}
 
-	public BuildException(@Nullable Builder<?> builder, Throwable cause) {
-		this(builder, makeMessage(builder, cause), cause);
+	public BuildException(Builder<?> builder, Throwable cause) {
+		this(builder, null, cause);
 	}
 
-	public BuildException(@Nullable Builder<?> builder, String message, Throwable cause) {
-		super(message, cause);
+	public BuildException(String message, Throwable cause) {
+		this(null, message, cause);
+	}
+
+	public BuildException(
+		@Nullable Builder<?> builder,
+		@Nullable String message,
+		@Nullable Throwable cause)
+	{
+		super(message == null ? makeMessage(builder, cause) : message, cause);
 		this.builder = builder;
 	}
 

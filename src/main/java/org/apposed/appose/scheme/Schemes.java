@@ -53,7 +53,7 @@ public final class Schemes {
 	 * since both are TOML files but {@code pyproject.toml} has more specific markers.
 	 * </p>
 	 */
-	private static final List<Scheme> ALL = Plugins.discover(Scheme.class,
+	private static final List<Scheme> SCHEMES = Plugins.discover(Scheme.class,
 		(a, b) -> Double.compare(b.priority(), a.priority()));
 
 	/**
@@ -64,7 +64,7 @@ public final class Schemes {
 	 * @throws IllegalArgumentException If no scheme can handle the content
 	 */
 	public static Scheme fromContent(String content) {
-		Scheme result = Plugins.find(ALL, scheme -> scheme.supportsContent(content));
+		Scheme result = Plugins.find(SCHEMES, scheme -> scheme.supportsContent(content));
 		if (result != null) return result;
 		throw new IllegalArgumentException(
 			"Cannot infer scheme from content. " +
@@ -79,7 +79,7 @@ public final class Schemes {
 	 * @throws IllegalArgumentException If no scheme matches the name
 	 */
 	public static Scheme fromName(String name) {
-		Scheme result = Plugins.find(ALL, scheme -> scheme.name().equals(name));
+		Scheme result = Plugins.find(SCHEMES, scheme -> scheme.name().equals(name));
 		if (result != null) return result;
 		throw new IllegalArgumentException("Unknown scheme: " + name);
 	}

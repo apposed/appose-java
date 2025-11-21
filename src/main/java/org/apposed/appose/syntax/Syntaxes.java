@@ -48,7 +48,7 @@ public final class Syntaxes {
 	}
 
 	/** All known script syntax implementations. */
-	private static final List<ScriptSyntax> ALL =
+	private static final List<ScriptSyntax> SYNTAXES =
 		Plugins.discover(ScriptSyntax.class, null);
 
 	/**
@@ -58,7 +58,7 @@ public final class Syntaxes {
 	 * @return The matching script syntax object, or null if no syntax with the given name
 	 */
 	public static @Nullable ScriptSyntax get(String name) {
-		return Plugins.find(ALL, syntax -> name.equals(syntax.name()));
+		return Plugins.find(SYNTAXES, syntax -> name.equals(syntax.name()));
 	}
 
 	/**

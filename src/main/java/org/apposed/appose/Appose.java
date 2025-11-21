@@ -449,6 +449,17 @@ public class Appose {
 
 	/**
 	 * Wraps an existing environment directory, automatically detecting the environment type.
+	 *
+	 * @param envDir The path to the directory containing the environment.
+	 * @return An Environment configured for the detected type.
+	 * @throws BuildException If the directory doesn't exist or type cannot be determined.
+	 */
+	public static Environment wrap(String envDir) throws BuildException {
+		return wrap(new File(envDir));
+	}
+
+	/**
+	 * Wraps an existing environment directory, automatically detecting the environment type.
 	 * This method intelligently detects whether the directory contains a pixi, mamba/conda,
 	 * or other environment and sets up the appropriate activation.
 	 *
@@ -470,17 +481,6 @@ public class Appose {
 
 		// Default to simple builder (no special activation, just use binaries in directory).
 		return custom().wrap(envDir);
-	}
-
-	/**
-	 * Wraps an existing environment directory, automatically detecting the environment type.
-	 *
-	 * @param envDir The path to the directory containing the environment.
-	 * @return An Environment configured for the detected type.
-	 * @throws BuildException If the directory doesn't exist or type cannot be determined.
-	 */
-	public static Environment wrap(String envDir) throws BuildException {
-		return wrap(new File(envDir));
 	}
 
 	/**

@@ -89,7 +89,7 @@ public class ServiceTest extends TestBase {
 	@Test
 	public void testServiceStartupFailure() throws Exception {
 		// Create an environment with no binPaths to test startup failure.
-		File tempDir = new File("no-pythons-to-be-found-here");
+		File tempDir = new File("target", "no-pythons-to-be-found-here");
 		tempDir.mkdirs();
 		tempDir.deleteOnExit();
 
