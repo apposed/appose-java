@@ -29,12 +29,12 @@
 
 package org.apposed.appose.builder;
 
+import org.apposed.appose.BuildException;
 import org.apposed.appose.Builder;
 import org.apposed.appose.Environment;
 import org.apposed.appose.util.Environments;
 
 import java.io.File;
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;

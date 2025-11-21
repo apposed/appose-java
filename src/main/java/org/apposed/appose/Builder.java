@@ -29,8 +29,6 @@
 
 package org.apposed.appose;
 
-import org.apposed.appose.builder.BuildException;
-
 import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.IOException;

@@ -29,7 +29,6 @@
 
 package org.apposed.appose;
 
-import org.apposed.appose.builder.BuildException;
 import org.apposed.appose.util.FilePaths;
 
 import java.io.File;

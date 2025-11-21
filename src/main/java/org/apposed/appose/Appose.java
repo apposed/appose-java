@@ -29,7 +29,6 @@
 
 package org.apposed.appose;
 
-import org.apposed.appose.builder.BuildException;
 import org.apposed.appose.builder.Builders;
 import org.apposed.appose.builder.DynamicBuilder;
 import org.apposed.appose.builder.MambaBuilder;

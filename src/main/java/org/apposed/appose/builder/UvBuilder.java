@@ -29,6 +29,7 @@
 
 package org.apposed.appose.builder;
 
+import org.apposed.appose.BuildException;
 import org.apposed.appose.Environment;
 import org.apposed.appose.util.FilePaths;
 import org.apposed.appose.util.Platforms;
