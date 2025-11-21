@@ -68,7 +68,7 @@ public class DumpApi {
 
 	// Mapping from Java package/class to Python module file.
 	// Based on notes/python-package-structure.md.
-	private static final Map<String, String> PACKAGE_TO_MODULE = new HashMap<>();
+	private static final Map<String, String> PACKAGE_TO_MODULE = new LinkedHashMap<>();
 	static {
 		// Core API classes.
 		PACKAGE_TO_MODULE.put("org.apposed.appose.Appose", "appose/__init__.api");
@@ -92,12 +92,13 @@ public class DumpApi {
 		PACKAGE_TO_MODULE.put("org.apposed.appose.syntax", "appose/syntax.api");
 
 		// Builder subsystem - core in builder/__init__.api, implementations in separate files.
+		PACKAGE_TO_MODULE.put("org.apposed.appose.BuildException", "appose/builder/__init__.api");
 		PACKAGE_TO_MODULE.put("org.apposed.appose.Builder", "appose/builder/__init__.api");
 		PACKAGE_TO_MODULE.put("org.apposed.appose.BuilderFactory", "appose/builder/__init__.api");
-		PACKAGE_TO_MODULE.put("org.apposed.appose.builder.Builders", "appose/builder/__init__.api");
 		PACKAGE_TO_MODULE.put("org.apposed.appose.builder.BaseBuilder", "appose/builder/__init__.api");
-		PACKAGE_TO_MODULE.put("org.apposed.appose.builder.DynamicBuilder", "appose/builder/__init__.api");
 		PACKAGE_TO_MODULE.put("org.apposed.appose.builder.SimpleBuilder", "appose/builder/__init__.api");
+		PACKAGE_TO_MODULE.put("org.apposed.appose.builder.DynamicBuilder", "appose/builder/__init__.api");
+		PACKAGE_TO_MODULE.put("org.apposed.appose.builder.Builders", "appose/builder/__init__.api");
 		PACKAGE_TO_MODULE.put("org.apposed.appose.builder.MambaBuilder", "appose/builder/mamba.api");
 		PACKAGE_TO_MODULE.put("org.apposed.appose.builder.MambaBuilderFactory", "appose/builder/mamba.api");
 		PACKAGE_TO_MODULE.put("org.apposed.appose.builder.PixiBuilder", "appose/builder/pixi.api");
@@ -186,6 +187,19 @@ public class DumpApi {
 		"org.apposed.appose.util.Plugins"
 	));
 
+	// Classes whose generic type parameters should be stripped from output.
+	// These are typically self-referential generics used for fluent API chaining,
+	// which are implementation details not relevant for cross-language API comparison.
+	private static final Set<String> STRIP_GENERICS = new HashSet<>(Arrays.asList(
+		"Builder",
+		"BaseBuilder",
+		"PixiBuilder",
+		"MambaBuilder",
+		"UvBuilder",
+		"SimpleBuilder",
+		"DynamicBuilder"
+	));
+
 	private static PrintWriter currentWriter = null;
 
 	public static void main(String[] args) throws Exception {
@@ -247,14 +261,32 @@ public class DumpApi {
 			}
 		}
 
-		// Group types by target Python module.
+		// Group types by target Python module, preserving PACKAGE_TO_MODULE order.
+		// We iterate through PACKAGE_TO_MODULE to respect its insertion order.
 		Map<String, List<Map.Entry<String, TypeDeclaration<?>>>> moduleGroups = new LinkedHashMap<>();
-		for (Map.Entry<String, TypeDeclaration<?>> entry : allTypes.entrySet()) {
-			String fullName = entry.getKey();
-			String moduleName = getModuleName(fullName);
+		for (Map.Entry<String, String> packageEntry : PACKAGE_TO_MODULE.entrySet()) {
+			String packageOrClass = packageEntry.getKey();
+			String moduleName = packageEntry.getValue();
 
-			if (moduleName != null) {
-				moduleGroups.computeIfAbsent(moduleName, k -> new ArrayList<>()).add(entry);
+			// Check if this is a package mapping (no uppercase letters = package).
+			boolean isPackage = !packageOrClass.matches(".*\\.[A-Z].*");
+
+			if (isPackage) {
+				// Collect all types in this package.
+				for (Map.Entry<String, TypeDeclaration<?>> typeEntry : allTypes.entrySet()) {
+					String fullName = typeEntry.getKey();
+					if (fullName.startsWith(packageOrClass + ".")) {
+						moduleGroups.computeIfAbsent(moduleName, k -> new ArrayList<>()).add(typeEntry);
+					}
+				}
+			} else {
+				// This is a specific class mapping.
+				TypeDeclaration<?> type = allTypes.get(packageOrClass);
+				if (type != null) {
+					Map.Entry<String, TypeDeclaration<?>> entry =
+						new AbstractMap.SimpleEntry<>(packageOrClass, type);
+					moduleGroups.computeIfAbsent(moduleName, k -> new ArrayList<>()).add(entry);
+				}
 			}
 		}
 
@@ -429,30 +461,13 @@ public class DumpApi {
 	}
 
 	/**
-	 * Collapse overloaded module-level functions (similar to collapseMethods but without 'self').
+	 * Format module-level functions (no collapsing - output all overloads).
 	 */
 	static List<String> collapseModuleFunctions(List<MethodDeclaration> methods) {
-		if (methods.size() == 1) {
-			return Collections.singletonList(formatModuleFunction(methods.get(0)));
-		}
-
-		// Try to collapse overloads.
 		List<String> result = new ArrayList<>();
-
-		// Sort by parameter count (ascending).
-		List<MethodDeclaration> sorted = new ArrayList<>(methods);
-		sorted.sort(Comparator.comparingInt(m -> m.getParameters().size()));
-
-		// Check if these are simple overloads that differ only by optional params.
-		if (canCollapseToOptionalParams(sorted)) {
-			result.add(formatModuleFunctionWithOptionalParams(sorted));
-		} else {
-			// Output all overloads.
-			for (MethodDeclaration method : methods) {
-				result.add(formatModuleFunction(method));
-			}
+		for (MethodDeclaration method : methods) {
+			result.add(formatModuleFunction(method));
 		}
-
 		return result;
 	}
 
@@ -473,23 +488,31 @@ public class DumpApi {
 	}
 
 	/**
-	 * Format the return type of a method, adding " | None" if the method can return null.
+	 * Format the return type of a method, adding "?" suffix if the method can return null.
 	 */
 	static String formatReturnType(MethodDeclaration method) {
 		String baseType = pythonType(method.getType());
-		if (isNullableMethod(method) && !baseType.equals("None") && !baseType.contains(" | None")) {
-			return baseType + " | None";
+		if (isNullableMethod(method) && !baseType.equals("None") && !baseType.endsWith("?")) {
+			return baseType + "?";
 		}
 		return baseType;
 	}
 
 	/**
-	 * Format a parameter type, adding " | None" if the parameter is nullable.
+	 * Format a parameter type, adding "?" suffix if the parameter is nullable.
+	 * For varargs parameters, extracts the component type since Python uses *args: T not *args: list[T].
 	 */
 	static String formatParameterType(Parameter param) {
-		String baseType = pythonType(param.getType());
-		if (isNullableParameter(param) && !baseType.equals("None") && !baseType.contains(" | None")) {
-			return baseType + " | None";
+		Type paramType = param.getType();
+
+		// For varargs, use the component type (e.g., str) not the array type (e.g., list[str])
+		if (param.isVarArgs() && paramType.isArrayType()) {
+			paramType = paramType.asArrayType().getComponentType();
+		}
+
+		String baseType = pythonType(paramType);
+		if (isNullableParameter(param) && !baseType.equals("None") && !baseType.endsWith("?")) {
+			return baseType + "?";
 		}
 		return baseType;
 	}
@@ -525,59 +548,6 @@ public class DumpApi {
 		return sb.toString();
 	}
 
-	/**
-	 * Format module-level function with optional parameters based on overloads.
-	 */
-	static String formatModuleFunctionWithOptionalParams(List<MethodDeclaration> methods) {
-		MethodDeclaration longest = methods.get(methods.size() - 1);
-		MethodDeclaration shortest = methods.get(0);
-
-		StringBuilder sb = new StringBuilder("def ");
-
-		String methodName = nonClassName(longest);
-		sb.append(methodName).append("(");
-
-		NodeList<Parameter> params = longest.getParameters();
-		NodeList<Parameter> shortParams = shortest.getParameters();
-
-		// Determine how many parameters are required (non-optional).
-		boolean bothHaveVarargs = (shortParams.get(shortParams.size() - 1).isVarArgs() &&
-		                           params.get(params.size() - 1).isVarArgs());
-		int requiredParamCount = bothHaveVarargs ?
-		                         (shortParams.size() - 1) :
-		                         shortest.getParameters().size();
-
-		for (int i = 0; i < params.size(); i++) {
-			if (i > 0) sb.append(", ");
-
-			Parameter param = params.get(i);
-			String paramName = toSnakeCase(param.getNameAsString());
-			String paramType = formatParameterType(param);
-
-			// Handle varargs.
-			if (param.isVarArgs()) {
-				sb.append(paramName).append(": list[").append(paramType).append("]");
-				sb.append(" | None = None");
-			} else {
-				sb.append(paramName).append(": ").append(paramType);
-
-				// Make parameter optional if it's beyond the shortest signature.
-				// Only add | None if not already present (from @Nullable annotation).
-				if (i >= requiredParamCount) {
-					if (!paramType.contains(" | None")) {
-						sb.append(" | None");
-					}
-					sb.append(" = None");
-				}
-			}
-		}
-
-		sb.append(") -> ");
-		sb.append(formatReturnType(longest));
-		sb.append(": ...");
-
-		return sb.toString();
-	}
 
 	static void dumpType(TypeDeclaration<?> type, String fullName) {
 		// Skip non-public types unless INCLUDE_PRIVATE
@@ -770,15 +740,9 @@ public class DumpApi {
 	}
 
 	/**
-	 * Collapse overloaded constructors into minimal set of signatures with optional parameters.
+	 * Format constructors (no collapsing - output all overloads).
 	 */
 	static List<String> collapseConstructors(List<ConstructorDeclaration> constructors) {
-		if (constructors.size() == 1) {
-			return Collections.singletonList(formatConstructor(constructors.get(0)));
-		}
-
-		// For now, output all overloads - full collapsing is complex.
-		// TODO: Implement smart merging of overloads.
 		List<String> result = new ArrayList<>();
 		for (ConstructorDeclaration ctor : constructors) {
 			result.add(formatConstructor(ctor));
@@ -787,138 +751,16 @@ public class DumpApi {
 	}
 
 	/**
-	 * Collapse overloaded methods into minimal set of signatures with optional parameters.
+	 * Format methods (no collapsing - output all overloads).
 	 */
 	static List<String> collapseMethods(List<MethodDeclaration> methods) {
-		if (methods.size() == 1) {
-			return Collections.singletonList(formatMethod(methods.get(0)));
-		}
-
-		// Try to collapse overloads.
 		List<String> result = new ArrayList<>();
-
-		// Sort by parameter count (ascending) to process simpler signatures first.
-		List<MethodDeclaration> sorted = new ArrayList<>(methods);
-		sorted.sort(Comparator.comparingInt(m -> m.getParameters().size()));
-
-		// Check if these are simple overloads that differ only by optional params.
-		if (canCollapseToOptionalParams(sorted)) {
-			result.add(formatMethodWithOptionalParams(sorted));
-		} else {
-			// Output all overloads.
-			for (MethodDeclaration method : methods) {
-				result.add(formatMethod(method));
-			}
+		for (MethodDeclaration method : methods) {
+			result.add(formatMethod(method));
 		}
-
 		return result;
 	}
 
-	/**
-	 * Check if methods can be collapsed by making some parameters optional.
-	 */
-	static boolean canCollapseToOptionalParams(List<MethodDeclaration> methods) {
-		if (methods.size() != 2) return false; // Only handle 2-overload case for now
-
-		MethodDeclaration shortest = methods.get(0);
-		MethodDeclaration longest = methods.get(methods.size() - 1);
-
-		// Must have same static/instance nature.
-		if (shortest.isStatic() != longest.isStatic()) return false;
-
-		// Must have same return type.
-		if (!shortest.getType().equals(longest.getType())) return false;
-
-		NodeList<Parameter> shortParams = shortest.getParameters();
-		NodeList<Parameter> longParams = longest.getParameters();
-
-		if (shortParams.size() >= longParams.size()) return false;
-		if (shortParams.isEmpty() || longParams.isEmpty()) return false;
-
-		// Special case: both end with varargs of same type.
-		// E.g., groovy(String... args) and groovy(List<String> classPath, String... args)
-		// Or: java(String main, String... args) and java(String main, List<String> cp, String... args)
-		if (shortParams.get(shortParams.size() - 1).isVarArgs() &&
-		    longParams.get(longParams.size() - 1).isVarArgs()) {
-			Type shortVarType = shortParams.get(shortParams.size() - 1).getType();
-			Type longVarType = longParams.get(longParams.size() - 1).getType();
-			if (shortVarType.equals(longVarType)) {
-				// Check that all non-varargs params in shortest match beginning of longest.
-				for (int i = 0; i < shortParams.size() - 1; i++) {
-					if (!shortParams.get(i).getType().equals(longParams.get(i).getType())) {
-						return false;
-					}
-				}
-				return true; // Can collapse by making middle params optional
-			}
-		}
-
-		// Standard case: Check if shortest is a prefix of longest (common pattern for optional params).
-		for (int i = 0; i < shortParams.size(); i++) {
-			if (!shortParams.get(i).getType().equals(longParams.get(i).getType())) {
-				return false;
-			}
-		}
-
-		return true;
-	}
-
-	/**
-	 * Format method with optional parameters based on overloads.
-	 */
-	static String formatMethodWithOptionalParams(List<MethodDeclaration> methods) {
-		MethodDeclaration longest = methods.get(methods.size() - 1);
-		MethodDeclaration shortest = methods.get(0);
-
-		StringBuilder sb = new StringBuilder("def ");
-		boolean isStatic = longest.isStatic();
-
-		String methodName = nonClassName(longest);
-		sb.append(methodName).append("(");
-
-		if (!isStatic) {
-			sb.append("self");
-		}
-
-		NodeList<Parameter> params = longest.getParameters();
-		NodeList<Parameter> shortParams = shortest.getParameters();
-
-		// Determine how many parameters are required (non-optional).
-		// If both end with varargs, required count is all non-varargs params from shortest.
-		boolean bothHaveVarargs = (shortParams.get(shortParams.size() - 1).isVarArgs() &&
-		                           params.get(params.size() - 1).isVarArgs());
-		int requiredParamCount = bothHaveVarargs ?
-		                         (shortParams.size() - 1) :  // Exclude varargs from count
-		                         shortest.getParameters().size();
-
-		for (int i = 0; i < params.size(); i++) {
-			if (!isStatic || i > 0) sb.append(", ");
-
-			Parameter param = params.get(i);
-			String paramName = nonClassName(param);
-			String paramType = pythonType(param.getType());
-
-			// Handle varargs - convert to optional list parameter instead of *args.
-			if (param.isVarArgs()) {
-				sb.append(paramName).append(": list[").append(paramType).append("]");
-				// Varargs are always optional in Python.
-				sb.append(" | None = None");
-			} else {
-				sb.append(paramName).append(": ").append(paramType);
-
-				// Make parameter optional if it's beyond the shortest signature.
-				if (i >= requiredParamCount) {
-					sb.append(" | None = None");
-				}
-			}
-		}
-
-		sb.append(") -> ");
-		sb.append(pythonType(longest.getType()));
-		sb.append(": ...");
-
-		return sb.toString();
-	}
 
 	static String formatConstructor(ConstructorDeclaration ctor) {
 		StringBuilder sb = new StringBuilder("def __init__(self");
@@ -1029,6 +871,7 @@ public class DumpApi {
 		if (typeStr.equals("Path") || typeStr.endsWith(".Path")) return "Path";
 		if (typeStr.equals("URL") || typeStr.endsWith(".URL")) return "str";
 		if (typeStr.equals("URI") || typeStr.endsWith(".URI")) return "str";
+		if (typeStr.equals("Throwable") || typeStr.endsWith(".Throwable")) return "Exception";
 		if (typeStr.equals("Thread") || typeStr.endsWith(".Thread")) return "threading.Thread";
 		if (typeStr.equals("Process") || typeStr.endsWith(".Process")) return "subprocess.Popen";
 		if (typeStr.equals("ByteBuffer") || typeStr.endsWith(".ByteBuffer")) return "bytes";
@@ -1061,6 +904,11 @@ public class DumpApi {
 			Optional<NodeList<Type>> typeArgs = classType.getTypeArguments();
 			if (typeArgs.isPresent()) {
 				NodeList<Type> args = typeArgs.get();
+
+				// Strip generics for self-referential fluent API builders.
+				if (STRIP_GENERICS.contains(baseName)) {
+					return pythonTypeName(baseName);
+				}
 
 				// Map common Java collection types to Python equivalents.
 				if (baseName.equals("List") || baseName.equals("ArrayList") ||
@@ -1173,7 +1021,17 @@ public class DumpApi {
 			return "Any";
 		}
 
-		return pythonTypeName(typeStr);
+		String result = pythonTypeName(typeStr);
+
+		// Final cleanup: strip generics from builder classes.
+		// E.g., "Builder[Any]" -> "Builder"
+		for (String builderClass : STRIP_GENERICS) {
+			if (result.startsWith(builderClass + "[")) {
+				return builderClass;
+			}
+		}
+
+		return result;
 	}
 
 	static String pythonTypeName(String javaName) {
@@ -1182,6 +1040,16 @@ public class DumpApi {
 		if (simpleName.contains(".")) {
 			simpleName = simpleName.substring(simpleName.lastIndexOf('.') + 1);
 		}
+
+		// Strip generic type parameters for self-referential fluent API classes.
+		// E.g., Builder[Any] -> Builder
+		if (simpleName.contains("[")) {
+			String baseName = simpleName.substring(0, simpleName.indexOf('['));
+			if (STRIP_GENERICS.contains(baseName)) {
+				return baseName;
+			}
+		}
+
 		return simpleName;
 	}
 
