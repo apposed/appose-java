@@ -30,6 +30,7 @@
 package org.apposed.appose.builder;
 
 import org.apposed.appose.BuilderFactory;
+import org.apposed.appose.Nullable;
 import org.apposed.appose.util.Plugins;
 
 import java.io.File;
@@ -56,7 +57,7 @@ public final class Builders {
 	 * @param name The builder name to search for.
 	 * @return The factory with matching name, or null if not found.
 	 */
-	public static BuilderFactory findFactoryByName(String name) {
+	public static @Nullable BuilderFactory findFactoryByName(String name) {
 		return Plugins.find(ALL, factory -> factory.name().equalsIgnoreCase(name));
 	}
 
@@ -67,7 +68,7 @@ public final class Builders {
 	 * @param scheme The scheme to find a factory for.
 	 * @return The first factory that supports the scheme, or null if none found.
 	 */
-	public static BuilderFactory findFactoryByScheme(String scheme) {
+	public static @Nullable BuilderFactory findFactoryByScheme(String scheme) {
 		return Plugins.find(ALL, factory -> factory.supportsScheme(scheme));
 	}
 
@@ -78,7 +79,7 @@ public final class Builders {
 	 * @param envDir The directory to find a factory for.
 	 * @return The first factory that can wrap the directory, or null if none found.
 	 */
-	public static BuilderFactory findFactoryForWrapping(File envDir) {
+	public static @Nullable BuilderFactory findFactoryForWrapping(File envDir) {
 		return Plugins.find(ALL, factory -> factory.canWrap(envDir));
 	}
 
@@ -100,7 +101,7 @@ public final class Builders {
 	 * @param envDir The directory to check.
 	 * @return The environment type name (e.g., "pixi", "mamba", "uv"), or null if not a known environment.
 	 */
-	public static String envType(File envDir) {
+	public static @Nullable String envType(File envDir) {
 		BuilderFactory factory = findFactoryForWrapping(envDir);
 		return factory == null ? null : factory.name();
 	}

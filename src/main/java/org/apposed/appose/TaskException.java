@@ -72,7 +72,7 @@ public class TaskException extends Exception {
 	 *
 	 * @return The task's error message, or null if none was set.
 	 */
-	public String getTaskError() {
+	public @Nullable String getTaskError() {
 		return task.error;
 	}
 }

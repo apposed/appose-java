@@ -29,6 +29,7 @@
 
 package org.apposed.appose.syntax;
 
+import org.apposed.appose.Nullable;
 import org.apposed.appose.ScriptSyntax;
 import org.apposed.appose.Service;
 import org.apposed.appose.util.Plugins;
@@ -56,7 +57,7 @@ public final class Syntaxes {
 	 * @param name Name of the script syntax
 	 * @return The matching script syntax object, or null if no syntax with the given name
 	 */
-	public static ScriptSyntax get(String name) {
+	public static @Nullable ScriptSyntax get(String name) {
 		return Plugins.find(ALL, syntax -> name.equals(syntax.name()));
 	}
 

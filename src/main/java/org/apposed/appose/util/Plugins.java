@@ -29,6 +29,8 @@
 
 package org.apposed.appose.util;
 
+import org.apposed.appose.Nullable;
+
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Comparator;
@@ -66,13 +68,13 @@ public final class Plugins {
 		return singletons;
 	}
 
-	public static <E extends Throwable, T> T find(Collection<T> plugins,
-		Predicate<T> condition)
+	public static <E extends Throwable, T> @Nullable T find(Collection<T> plugins,
+															Predicate<T> condition)
 	{
 		return plugins.stream().filter(condition).findFirst().orElse(null);
 	}
 
-	public static <T, U> U create(Class<T> iface, Function<T, U> creator) {
+	public static <T, U> @Nullable U create(Class<T> iface, Function<T, U> creator) {
 		ServiceLoader<T> loader = ServiceLoader.load(iface);
 		for (T factory : loader) {
 			U result = creator.apply(factory);

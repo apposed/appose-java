@@ -63,8 +63,7 @@ public final class FilePaths {
 	 * @param c The class whose file path should be discerned.
 	 * @return File path of the JAR file containing the given class, or null if it cannot be determined.
 	 */
-	@Nullable
-	public static File location(Class<?> c) {
+	public static @Nullable File location(Class<?> c) {
 		try {
 			ProtectionDomain domain = c.getProtectionDomain();
 			if (domain == null) return null;
@@ -86,8 +85,7 @@ public final class FilePaths {
 		return m.group(1);
 	}
 
-	@Nullable
-	public static File findExe(List<String> dirs, List<String> exes) {
+	public static @Nullable File findExe(List<String> dirs, List<String> exes) {
 		for (String exe : exes) {
 			File exeFile = new File(exe);
 			if (exeFile.isAbsolute()) {
