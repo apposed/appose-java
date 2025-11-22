@@ -777,7 +777,12 @@ public class DumpApi {
 	}
 
 	static String formatMethod(MethodDeclaration method) {
-		StringBuilder sb = new StringBuilder("def ");
+		StringBuilder sb = new StringBuilder();
+
+		// Add abstract keyword for abstract methods
+		if (method.isAbstract()) sb.append("abstract ");
+
+		sb.append("def ");
 
 		// Static methods don't have 'self'
 		boolean isStatic = method.isStatic();
