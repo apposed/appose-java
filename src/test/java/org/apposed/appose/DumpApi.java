@@ -201,6 +201,7 @@ public class DumpApi {
 	));
 
 	private static PrintWriter currentWriter = null;
+	private static TypeDeclaration<?> currentType = null;
 
 	public static void main(String[] args) throws Exception {
 		if (args.length < 2) {
@@ -386,6 +387,7 @@ public class DumpApi {
 	 * In Python, these static methods become global functions in the module.
 	 */
 	static void dumpStaticUtilityAsModuleFunctions(TypeDeclaration<?> type) {
+		currentType = type;
 		PrintWriter out = currentWriter != null ? currentWriter : new PrintWriter(System.out);
 
 		// First output any inner enums (like OperatingSystem, CpuArchitecture).
@@ -553,6 +555,7 @@ public class DumpApi {
 		// Skip non-public types unless INCLUDE_PRIVATE
 		if (!INCLUDE_PRIVATE && !type.isPublic()) return;
 
+		currentType = type;
 		PrintWriter out = currentWriter != null ? currentWriter : new PrintWriter(System.out);
 
 		// Special case: Static utility classes should be dumped as module-level functions.
@@ -896,6 +899,39 @@ public class DumpApi {
 			ClassOrInterfaceType classType = type.asClassOrInterfaceType();
 			String baseName = classType.getNameAsString();
 
+			// Check if this is a type parameter (e.g., T, E, K, V) used in a generic class.
+			// Type parameters are often single uppercase letters or short uppercase names.
+			if (baseName.matches("^[A-Z]$|^[A-Z][A-Z0-9]*$") && baseName.length() <= 3) {
+				if (currentType != null) {
+					String className = currentType.getNameAsString();
+					// For builder classes with self-referential generics, resolve T to the class name.
+					if (STRIP_GENERICS.contains(className)) {
+						return className;
+					}
+					// Try to find this type parameter in the class declaration.
+					if (currentType instanceof ClassOrInterfaceDeclaration) {
+						ClassOrInterfaceDeclaration classDecl = (ClassOrInterfaceDeclaration) currentType;
+						NodeList<TypeParameter> typeParams = classDecl.getTypeParameters();
+						for (TypeParameter typeParam : typeParams) {
+							if (typeParam.getNameAsString().equals(baseName)) {
+								// Check if there's a bound (e.g., T extends Builder<T>)
+								NodeList<ClassOrInterfaceType> typeBound = typeParam.getTypeBound();
+								if (!typeBound.isEmpty()) {
+									String boundName = typeBound.get(0).getNameAsString();
+									if (STRIP_GENERICS.contains(boundName)) {
+										return boundName;
+									}
+								}
+								// No useful bound, return the class name for STRIP_GENERICS classes.
+								if (STRIP_GENERICS.contains(className)) {
+									return className;
+								}
+							}
+						}
+					}
+				}
+			}
+
 			// Check for simple type mappings first (File, Thread, Process, etc.).
 			if (baseName.equals("File")) return "Path";
 			if (baseName.equals("Process")) return "subprocess.Popen";
@@ -1018,6 +1054,36 @@ public class DumpApi {
 
 		// Type variables (e.g., T, E).
 		if (type.isTypeParameter()) {
+			// For builder classes with self-referential generics, resolve T to the class name.
+			if (currentType != null) {
+				String className = currentType.getNameAsString();
+				if (STRIP_GENERICS.contains(className)) {
+					return className;
+				}
+
+				// Try to resolve the type parameter from the class declaration.
+				if (currentType instanceof ClassOrInterfaceDeclaration) {
+					ClassOrInterfaceDeclaration classDecl = (ClassOrInterfaceDeclaration) currentType;
+					NodeList<TypeParameter> typeParams = classDecl.getTypeParameters();
+					if (!typeParams.isEmpty()) {
+						String typeVarName = type.asTypeParameter().getNameAsString();
+						for (TypeParameter typeParam : typeParams) {
+							if (typeParam.getNameAsString().equals(typeVarName)) {
+								// Check if there's a bound (e.g., T extends Builder<T>)
+								NodeList<ClassOrInterfaceType> typeBound = typeParam.getTypeBound();
+								if (!typeBound.isEmpty()) {
+									// Use the simple name of the first bound.
+									String boundName = typeBound.get(0).getNameAsString();
+									// If the bound is in STRIP_GENERICS, use it directly.
+									if (STRIP_GENERICS.contains(boundName)) {
+										return boundName;
+									}
+								}
+							}
+						}
+					}
+				}
+			}
 			return type.asTypeParameter().getNameAsString();
 		}
 
