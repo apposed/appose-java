@@ -33,7 +33,7 @@ import groovy.lang.Binding;
 import groovy.lang.GroovyShell;
 import org.apposed.appose.Service.RequestType;
 import org.apposed.appose.Service.ResponseType;
-import org.apposed.appose.util.Types;
+import org.apposed.appose.util.Messages;
 
 import java.io.BufferedReader;
 import java.io.File;
@@ -111,7 +111,7 @@ public class GroovyWorker {
 				break;
 			}
 
-			Map<String, Object> request = Types.decode(line);
+			Map<String, Object> request = Messages.decode(line);
 			String uuid = (String) request.get("task");
 			String requestType = (String) request.get("requestType");
 
@@ -300,7 +300,7 @@ public class GroovyWorker {
 				reportCompletion();
 			}
 			catch (Exception exc) {
-				fail(Types.stackTrace(exc));
+				fail(Messages.stackTrace(exc));
 			}
 		}
 
@@ -329,7 +329,7 @@ public class GroovyWorker {
 			response.put("task", uuid);
 			response.put("responseType", responseType.toString());
 			try {
-				System.out.println(Types.encode(response));
+				System.out.println(Messages.encode(response));
 			}
 			catch (Exception exc) {
 				if (alreadyTerminated) {
@@ -341,7 +341,7 @@ public class GroovyWorker {
 				// Encoding can fail due to unsupported types, when the
 				// response or its elements are not supported by JSON encoding.
 				// No matter what goes wrong, we want to tell the caller.
-				fail(Types.stackTrace(exc));
+				fail(Messages.stackTrace(exc));
 			}
 			// NB: Flush is necessary to ensure service receives the data!
 			System.out.flush();

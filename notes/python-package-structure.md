@@ -171,7 +171,7 @@ api/appose/
 | `org.apposed.appose.util.Platforms` | `platform.py`         |
 | `org.apposed.appose.util.Processes` | `process.py`          |
 | `org.apposed.appose.util.Proxies`   | `proxy.py`            |
-| `org.apposed.appose.util.Types`     | `types.py`            |
+| `org.apposed.appose.util.Messages`  | `message.py`          |
 | `org.apposed.appose.GroovyWorker`   | N/A                   |
 
 ### Special Cases

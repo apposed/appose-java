@@ -30,9 +30,9 @@
 package org.apposed.appose;
 
 import org.apposed.appose.syntax.Syntaxes;
+import org.apposed.appose.util.Messages;
 import org.apposed.appose.util.Processes;
 import org.apposed.appose.util.Proxies;
-import org.apposed.appose.util.Types;
 
 import java.io.BufferedReader;
 import java.io.File;
@@ -515,7 +515,7 @@ public class Service implements AutoCloseable {
 			}
 			catch (IOException exc) {
 				// Something went wrong reading the line. Panic!
-				debugService(Types.stackTrace(exc));
+				debugService(Messages.stackTrace(exc));
 				break;
 			}
 
@@ -524,7 +524,7 @@ public class Service implements AutoCloseable {
 				break;
 			}
 			try {
-				Map<String, Object> response = Types.decode(line);
+				Map<String, Object> response = Messages.decode(line);
 				debugService(line); // Echo the line to the debug listener.
 				Object uuid = response.get("task");
 				if (uuid == null) {
@@ -557,7 +557,7 @@ public class Service implements AutoCloseable {
 			}
 			catch (IOException exc) {
 				// Something went wrong reading the line. Panic!
-				debugService(Types.stackTrace(exc));
+				debugService(Messages.stackTrace(exc));
 				break;
 			}
 			if (line == null) {
@@ -578,7 +578,7 @@ public class Service implements AutoCloseable {
 			}
 			catch (InterruptedException exc) {
 				// Treat interruption as a request to shut down.
-				debugService(Types.stackTrace(exc));
+				debugService(Messages.stackTrace(exc));
 				break;
 			}
 		}
@@ -766,7 +766,7 @@ public class Service implements AutoCloseable {
 			request.put("task", uuid);
 			request.put("requestType", requestType.toString());
 			if (args != null) request.putAll(args);
-			String encoded = Types.encode(request);
+			String encoded = Messages.encode(request);
 
 			stdin.println(encoded);
 			// NB: Flush is necessary to ensure worker receives the data!

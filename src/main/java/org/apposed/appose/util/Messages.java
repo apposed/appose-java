@@ -45,14 +45,14 @@ import java.util.function.BiConsumer;
 import static org.apposed.appose.NDArray.Shape.Order.C_ORDER;
 
 /**
- * Utility class for type conversion and JSON wrangling.
+ * Utility class for encoding and decoding messages.
  *
  * @author Curtis Rueden
  * @author Tobias Pietzsch
  */
-public final class Types {
+public final class Messages {
 
-	private Types() {
+	private Messages() {
 		// Prevent instantiation of utility class.
 	}
 

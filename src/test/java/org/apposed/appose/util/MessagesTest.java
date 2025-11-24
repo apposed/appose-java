@@ -43,11 +43,11 @@ import java.util.stream.Collectors;
 import static org.junit.jupiter.api.Assertions.*;
 
 /**
- * Tests {@link Types}.
+ * Tests {@link Messages}.
  *
  * @author Curtis Rueden
  */
-public class TypesTest {
+public class MessagesTest {
 
 	private static final long SHM_RSIZE = 4000;
 
@@ -110,7 +110,7 @@ public class TypesTest {
 		NDArray.Shape shape = new NDArray.Shape(NDArray.Shape.Order.C_ORDER, 2, 20, 25);
 		try (NDArray ndArray = new NDArray(dtype, shape)) {
 			data.put("ndArray", ndArray);
-			String json = Types.encode(data);
+			String json = Messages.encode(data);
 			assertNotNull(json);
 			String expected = JSON.replaceAll("SHM_NAME", ndArray.shm().name());
 			assertEquals(expected, json);
@@ -128,7 +128,7 @@ public class TypesTest {
 			shmName = shm.name();
 			shmRSize = shm.rsize();
 			String json = JSON.replaceAll("SHM_NAME", shmName);
-			data = Types.decode(json);
+			data = Messages.decode(json);
 		}
 
 		// Validate results.
