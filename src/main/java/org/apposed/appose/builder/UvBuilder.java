@@ -222,18 +222,6 @@ public final class UvBuilder extends BaseBuilder<UvBuilder> {
 		return build();
 	}
 
-	/**
-	 * Adds PyPI index URLs for package discovery.
-	 * These are alternative or additional package indexes beyond the default pypi.org.
-	 *
-	 * @param indexes Index URLs (e.g., custom PyPI mirrors or private package repositories)
-	 * @return This builder instance, for fluent-style programming.
-	 */
-	@Override
-	public UvBuilder channels(String... indexes) {
-		return super.channels(indexes);
-	}
-
 	// -- Helper methods --
 
 	private Environment createEnvironment(File envDir) {

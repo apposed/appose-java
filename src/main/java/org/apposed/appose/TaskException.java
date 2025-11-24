@@ -42,37 +42,10 @@ import org.apposed.appose.Service.TaskStatus;
  */
 public class TaskException extends Exception {
 
-	private final Task task;
+	public final Task task;
 
 	public TaskException(String message, Task task) {
 		super(message);
 		this.task = task;
-	}
-
-	/**
-	 * Returns the task that failed.
-	 *
-	 * @return The task associated with this exception.
-	 */
-	public Task getTask() {
-		return task;
-	}
-
-	/**
-	 * Returns the status of the failed task.
-	 *
-	 * @return The task's status (FAILED, CANCELED, or CRASHED).
-	 */
-	public TaskStatus getStatus() {
-		return task.status;
-	}
-
-	/**
-	 * Returns the error message from the task, if available.
-	 *
-	 * @return The task's error message, or null if none was set.
-	 */
-	public @Nullable String getTaskError() {
-		return task.error;
 	}
 }

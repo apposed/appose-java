@@ -73,6 +73,7 @@ public class DumpApi {
 		// Core API classes.
 		PACKAGE_TO_MODULE.put("org.apposed.appose.Appose", "appose/__init__.api");
 		PACKAGE_TO_MODULE.put("org.apposed.appose.Environment", "appose/environment.api");
+		PACKAGE_TO_MODULE.put("org.apposed.appose.TaskException", "appose/service.api");
 		PACKAGE_TO_MODULE.put("org.apposed.appose.Service", "appose/service.api");
 		PACKAGE_TO_MODULE.put("org.apposed.appose.Service.Task", "appose/service.api");
 		PACKAGE_TO_MODULE.put("org.apposed.appose.Service.TaskStatus", "appose/service.api");
@@ -86,7 +87,11 @@ public class DumpApi {
 		PACKAGE_TO_MODULE.put("org.apposed.appose.SharedMemory", "appose/shm.api");
 
 		// Subsystem packages - all classes in package go to same file.
-		PACKAGE_TO_MODULE.put("org.apposed.appose.scheme", "appose/scheme.api");
+		PACKAGE_TO_MODULE.put("org.apposed.appose.Scheme", "appose/scheme.api");
+		PACKAGE_TO_MODULE.put("org.apposed.appose.scheme.PixiTomlScheme", "appose/scheme.api");
+		PACKAGE_TO_MODULE.put("org.apposed.appose.scheme.EnvironmentYmlScheme", "appose/scheme.api");
+		PACKAGE_TO_MODULE.put("org.apposed.appose.scheme.PyProjectTomlScheme", "appose/scheme.api");
+		PACKAGE_TO_MODULE.put("org.apposed.appose.scheme.RequirementsTxtScheme", "appose/scheme.api");
 		PACKAGE_TO_MODULE.put("org.apposed.appose.scheme.Schemes", "appose/scheme.api");
 		PACKAGE_TO_MODULE.put("org.apposed.appose.shm.Shms", "appose/shm.api");
 		PACKAGE_TO_MODULE.put("org.apposed.appose.syntax", "appose/syntax.api");

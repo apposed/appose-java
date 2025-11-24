@@ -57,17 +57,6 @@ public final class MambaBuilder extends BaseBuilder<MambaBuilder> {
 		return "mamba";
 	}
 
-	/**
-	 * Adds conda channels to search for packages.
-	 *
-	 * @param channels Channel names (e.g., "conda-forge", "bioconda")
-	 * @return This builder instance, for fluent-style programming.
-	 */
-	@Override
-	public MambaBuilder channels(String... channels) {
-		return super.channels(channels);
-	}
-
 	@Override
 	public Environment build() throws BuildException {
 		File envDir = resolveEnvDir();
@@ -80,11 +69,14 @@ public final class MambaBuilder extends BaseBuilder<MambaBuilder> {
 			throw new BuildException(this, "Cannot use MambaBuilder: environment already managed by uv/venv at " + envDir);
 		}
 
+		// Create Mamba tool instance early so it's available for wrapping.
+		Mamba mamba = new Mamba();
+
 		// Is this envDir an already-existing conda directory?
 		boolean isCondaDir = new File(envDir, "conda-meta").isDirectory();
 		if (isCondaDir) {
 			// Environment already exists, just wrap it.
-			return createEnvironment(envDir);
+			return createEnvironment(mamba, envDir);
 		}
 
 		// Building a new environment - config content is required.
@@ -98,8 +90,6 @@ public final class MambaBuilder extends BaseBuilder<MambaBuilder> {
 		if (!"environment.yml".equals(scheme.name())) {
 			throw new IllegalArgumentException("MambaBuilder only supports environment.yml scheme, got: " + scheme);
 		}
-
-		Mamba mamba = new Mamba();
 
 		// Set up progress/output consumers.
 		mamba.setOutputConsumer(msg -> outputSubscribers.forEach(sub -> sub.accept(msg)));
@@ -133,7 +123,7 @@ public final class MambaBuilder extends BaseBuilder<MambaBuilder> {
 			// Step 3: Update environment from yml.
 			mamba.update(envDir, envYaml);
 
-			return createEnvironment(envDir);
+			return createEnvironment(mamba, envDir);
 		}
 		catch (IOException | InterruptedException e) {
 			throw new BuildException(this, e);
@@ -161,8 +151,7 @@ public final class MambaBuilder extends BaseBuilder<MambaBuilder> {
 		return build();
 	}
 
-	private Environment createEnvironment(File envDir) {
-		Mamba mamba = new Mamba();
+	private Environment createEnvironment(Mamba mamba, File envDir) {
 		String base = envDir.getAbsolutePath();
 		List<String> launchArgs = Arrays.asList(mamba.command, "run", "-p", base);
 		List<String> binPaths = Collections.singletonList(envDir.toPath().resolve("bin").toString());

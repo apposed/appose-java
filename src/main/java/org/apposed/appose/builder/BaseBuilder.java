@@ -55,12 +55,12 @@ import java.util.function.Consumer;
  */
 public abstract class BaseBuilder<T extends BaseBuilder<T>> implements Builder<T> {
 
-	public final List<ProgressConsumer> progressSubscribers = new ArrayList<>();
-	public final List<Consumer<String>> outputSubscribers = new ArrayList<>();
-	public final List<Consumer<String>> errorSubscribers = new ArrayList<>();
-	public final Map<String, String> envVars = new HashMap<>();
-	public final List<String> channels = new ArrayList<>();
-	public final List<String> flags = new ArrayList<>();
+	protected final List<ProgressConsumer> progressSubscribers = new ArrayList<>();
+	protected final List<Consumer<String>> outputSubscribers = new ArrayList<>();
+	protected final List<Consumer<String>> errorSubscribers = new ArrayList<>();
+	protected final Map<String, String> envVars = new HashMap<>();
+	protected final List<String> channels = new ArrayList<>();
+	protected final List<String> flags = new ArrayList<>();
 	protected String envName;
 	protected File envDir;
 

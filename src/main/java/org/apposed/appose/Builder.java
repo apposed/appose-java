@@ -204,18 +204,6 @@ public interface Builder<T extends Builder<T>> {
 	T channels(List<String> channels);
 
 	/**
-	 * Specifies a configuration file to build from.
-	 * Reads the file content immediately and delegates to {@link #content(String)}.
-	 *
-	 * @param file Configuration file (e.g., pixi.toml, environment.yml)
-	 * @return This builder instance, for fluent-style programming.
-	 * @throws BuildException If the file cannot be read
-	 */
-	default T file(File file) throws BuildException {
-		return file(file.getAbsolutePath());
-	}
-
-	/**
 	 * Specifies a configuration file path to build from.
 	 * Reads the file content immediately and delegates to {@link #content(String)}.
 	 *
@@ -224,15 +212,44 @@ public interface Builder<T extends Builder<T>> {
 	 * @throws BuildException If the file cannot be read or is invalid
 	 */
 	default T file(String path) throws BuildException {
+		return file(new File(path));
+	}
+
+	/**
+	 * Specifies a configuration file to build from.
+	 * Reads the file content immediately and delegates to {@link #content(String)}.
+	 *
+	 * @param file Configuration file (e.g., pixi.toml, environment.yml)
+	 * @return This builder instance, for fluent-style programming.
+	 * @throws BuildException If the file cannot be read
+	 */
+	default T file(File file) throws BuildException {
 		try {
-			Path filePath = Paths.get(path);
+			Path filePath = file.toPath();
 			String fileContent = new String(
-					Files.readAllBytes(filePath),
-					StandardCharsets.UTF_8
+				Files.readAllBytes(filePath),
+				StandardCharsets.UTF_8
 			);
 			return content(fileContent);
 		}
 		catch (IOException e) {
+			throw new BuildException(this, e);
+		}
+	}
+
+	/**
+	 * Specifies a URL to fetch configuration content from.
+	 * Reads the URL content immediately and delegates to {@link #content(String)}.
+	 *
+	 * @param path URL path of configuration file
+	 * @return This builder instance, for fluent-style programming.
+	 * @throws BuildException If the URL cannot be read or is invalid
+	 */
+	default T url(String path) throws BuildException {
+		try {
+			return url(new URL(path));
+		}
+		catch (MalformedURLException e) {
 			throw new BuildException(this, e);
 		}
 	}
@@ -256,23 +273,6 @@ public interface Builder<T extends Builder<T>> {
 			return content(result.toString(StandardCharsets.UTF_8.name()));
 		}
 		catch (IOException e) {
-			throw new BuildException(this, e);
-		}
-	}
-
-	/**
-	 * Specifies a URL to fetch configuration content from.
-	 * Reads the URL content immediately and delegates to {@link #content(String)}.
-	 *
-	 * @param path URL path of configuration file
-	 * @return This builder instance, for fluent-style programming.
-	 * @throws BuildException If the URL cannot be read or is invalid
-	 */
-	default T url(String path) throws BuildException {
-		try {
-			return url(new URL(path));
-		}
-		catch (MalformedURLException e) {
 			throw new BuildException(this, e);
 		}
 	}

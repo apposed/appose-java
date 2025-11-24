@@ -246,17 +246,6 @@ public final class PixiBuilder extends BaseBuilder<PixiBuilder> {
 		return build();
 	}
 
-	/**
-	 * Adds conda channels to search for packages.
-	 *
-	 * @param channels Channel names (e.g.: {@code "conda-forge", "bioconda"})
-	 * @return This builder instance, for fluent-style programming.
-	 */
-	@Override
-	public PixiBuilder channels(String... channels) {
-		return super.channels(channels);
-	}
-
 	// -- Helper methods --
 
 	private Environment createEnvironment(Pixi pixi, File envDir) {

@@ -63,10 +63,10 @@ public class TaskExceptionTest extends TestBase {
 				assertTrue(e.getMessage().contains("NameError"));
 
 				// Verify we can access the task and its details through the exception.
-				assertSame(task, e.getTask());
-				assertEquals(TaskStatus.FAILED, e.getStatus());
-				assertNotNull(e.getTaskError());
-				assertTrue(e.getTaskError().contains("NameError"));
+				assertSame(task, e.task);
+				assertEquals(TaskStatus.FAILED, e.task.status);
+				assertNotNull(e.task.error);
+				assertTrue(e.task.error.contains("NameError"));
 			}
 		}
 	}
