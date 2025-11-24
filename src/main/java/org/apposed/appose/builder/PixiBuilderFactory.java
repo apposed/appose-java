@@ -44,7 +44,7 @@ public class PixiBuilderFactory implements BuilderFactory {
 	}
 
 	@Override
-	public String name() {
+	public String envType() {
 		return "pixi";
 	}
 

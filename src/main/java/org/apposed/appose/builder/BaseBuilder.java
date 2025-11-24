@@ -68,13 +68,13 @@ public abstract class BaseBuilder<T extends BaseBuilder<T>> implements Builder<T
 	protected String content;
 
 	/** Explicit scheme (e.g., "pixi.toml", "environment.yml"). */
-	protected String scheme;
+	protected Scheme scheme;
 
 	// -- Builder methods --
 
 	@Override
 	public void delete() throws IOException {
-		File dir = envDir();
+		File dir = resolveEnvDir();
 		if (dir.exists()) FilePaths.deleteRecursively(dir);
 	}
 
@@ -135,7 +135,7 @@ public abstract class BaseBuilder<T extends BaseBuilder<T>> implements Builder<T
 
 	@Override
 	public T scheme(String scheme) {
-		this.scheme = scheme;
+		this.scheme = Schemes.fromName(scheme);
 		return typedThis();
 	}
 
@@ -164,22 +164,22 @@ public abstract class BaseBuilder<T extends BaseBuilder<T>> implements Builder<T
 		return (T) this;
 	}
 
-	protected String envName() {
-		return envName != null ? envName :
-			// No explicit environment name set;
-			// extract name from the source content.
-			scheme().envName(content);
-	}
-
-	protected File envDir() {
+	/** Determines the environment directory path. */
+	protected File resolveEnvDir() {
 		if (envDir != null) return envDir;
+
 		// No explicit environment directory set; fall back to
 		// a subfolder of the Appose-managed environments directory.
-		return Paths.get(Environments.apposeEnvsDir(), envName()).toFile();
+		String dirName = envName != null ? envName :
+			// No explicit environment name set; extract name from the source content.
+			resolveScheme().envName(content);
+		return dirName == null ? null :
+			Paths.get(Environments.apposeEnvsDir(), dirName).toFile();
 	}
 
-	protected Scheme scheme() {
-		if (scheme != null) return Schemes.fromName(scheme);
+	/** Determines the scheme, detecting from content if needed. */
+	protected Scheme resolveScheme() {
+		if (scheme != null) return scheme;
 		if (content != null) return Schemes.fromContent(content);
 		throw new IllegalStateException("Cannot determine scheme: neither scheme nor content is set");
 	}

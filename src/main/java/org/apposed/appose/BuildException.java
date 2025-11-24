@@ -78,7 +78,7 @@ public class BuildException extends Exception {
 	}
 
 	private static String makeMessage(Builder<?> builder, Throwable cause) {
-		String noun = builder == null ? "build" : builder.name() + " build";
+		String noun = builder == null ? "build" : builder.envType() + " build";
 		String verb = cause instanceof InterruptedException ? "interrupted" : "failed";
 		return noun + " " + verb;
 	}

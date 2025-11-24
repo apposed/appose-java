@@ -33,6 +33,7 @@ import org.apposed.appose.BuildException;
 import org.apposed.appose.Builder;
 import org.apposed.appose.BuilderFactory;
 import org.apposed.appose.Environment;
+import org.apposed.appose.Scheme;
 
 /**
  * Dynamic builder that auto-detects the appropriate specific builder
@@ -42,38 +43,38 @@ import org.apposed.appose.Environment;
  */
 public final class DynamicBuilder extends BaseBuilder<DynamicBuilder> {
 
-	private String builderName;
+	private String envType;
 
 	// -- DynamicBuilder methods --
 
 	/**
 	 * Specifies the preferred builder to use.
 	 *
-	 * @param builderName The builder name (e.g., "pixi", "mamba", "uv")
+	 * @param envType The builder's environment type (e.g., "pixi", "mamba", "uv")
 	 * @return This builder instance, for fluent-style programming.
 	 */
-	public DynamicBuilder builder(String builderName) {
-		this.builderName = builderName;
+	public DynamicBuilder builder(String envType) {
+		this.envType = envType;
 		return this;
 	}
 
 	// -- Builder methods --
 
 	@Override
-	public String name() {
-		return "dynamic";
+	public String envType() {
+		return envType != null ? envType : "dynamic";
 	}
 
 	@Override
 	public Environment build() throws BuildException {
-		Builder<?> delegate = createBuilder(builderName, scheme);
+		Builder<?> delegate = createBuilder();
 		copyConfigToDelegate(delegate);
 		return delegate.build();
 	}
 
 	@Override
 	public Environment rebuild() throws BuildException {
-		Builder<?> delegate = createBuilder(builderName, scheme);
+		Builder<?> delegate = createBuilder();
 		copyConfigToDelegate(delegate);
 		return delegate.rebuild();
 	}
@@ -86,31 +87,31 @@ public final class DynamicBuilder extends BaseBuilder<DynamicBuilder> {
 		if (envName != null) delegate.name(envName);
 		if (envDir != null) delegate.base(envDir);
 		if (content != null) delegate.content(content);
-		if (scheme != null) delegate.scheme(scheme);
+		if (scheme != null) delegate.scheme(scheme.name());
 		delegate.channels(channels);
 		progressSubscribers.forEach(delegate::subscribeProgress);
 		outputSubscribers.forEach(delegate::subscribeOutput);
 		errorSubscribers.forEach(delegate::subscribeError);
 	}
 
-	private Builder<?> createBuilder(String name, String scheme) {
+	private Builder<?> createBuilder() {
 		// Find the builder matching the specified name, if any.
-		if (name != null) {
-			BuilderFactory factory = Builders.findFactoryByName(name);
-			if (factory == null) throw new IllegalArgumentException("Unknown builder: " + name);
+		if (envType != null) {
+			BuilderFactory factory = Builders.findFactoryByEnvType(envType);
+			if (factory == null) throw new IllegalArgumentException("Unknown builder: " + envType);
 			return factory.createBuilder();
 		}
 
 		// Detect scheme from content if content is provided but scheme is not.
-		String effectiveScheme = scheme;
-		if (effectiveScheme == null && content != null) {
-			effectiveScheme = scheme().name();
+		Scheme actualScheme = scheme;
+		if (actualScheme == null && content != null) {
+			actualScheme = resolveScheme();
 		}
 
 		// Find the highest-priority builder that supports this scheme.
-		if (effectiveScheme != null) {
-			BuilderFactory factory = Builders.findFactoryByScheme(effectiveScheme);
-			if (factory == null) throw new IllegalArgumentException("No builder supports scheme: " + effectiveScheme);
+		if (actualScheme != null) {
+			BuilderFactory factory = Builders.findFactoryByScheme(actualScheme.name());
+			if (factory == null) throw new IllegalArgumentException("No builder supports scheme: " + actualScheme.name());
 			return factory.createBuilder();
 		}
 

@@ -58,7 +58,7 @@ public interface Environment {
 	}
 
 	/**
-	 * Returns the builder that created this environment.
+	 * Gets the builder that created this environment.
 	 * This enables re-configuration and rebuilding of the environment.
 	 *
 	 * @return The builder instance.
@@ -66,13 +66,12 @@ public interface Environment {
 	Builder<?> builder();
 
 	/**
-	 * Returns the type of this environment (e.g., "pixi", "mamba", "uv", "system").
-	 * By default, delegates to the builder's name.
+	 * Gets the type of this environment (e.g., "pixi", "mamba", "uv").
 	 *
-	 * @return The environment type name.
+	 * @return The environment type.
 	 */
 	default String type() {
-		return builder().name();
+		return builder().envType();
 	}
 
 	/**

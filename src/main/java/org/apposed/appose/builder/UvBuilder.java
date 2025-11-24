@@ -82,13 +82,13 @@ public final class UvBuilder extends BaseBuilder<UvBuilder> {
 	// -- Builder methods --
 
 	@Override
-	public String name() {
+	public String envType() {
 		return "uv";
 	}
 
 	@Override
 	public Environment build() throws BuildException {
-		File envDir = envDir();
+		File envDir = resolveEnvDir();
 
 		// Check for incompatible existing environments.
 		if (new File(envDir, ".pixi").isDirectory()) {
@@ -133,13 +133,13 @@ public final class UvBuilder extends BaseBuilder<UvBuilder> {
 			// Handle source-based build (file or content).
 			if (content != null) {
 				// Infer scheme if not explicitly set.
-				if (scheme == null) scheme = Schemes.fromContent(content).name();
+				if (scheme == null) scheme = Schemes.fromContent(content);
 
-				if (!"requirements.txt".equals(scheme) && !"pyproject.toml".equals(scheme)) {
+				if (!"requirements.txt".equals(scheme.name()) && !"pyproject.toml".equals(scheme.name())) {
 					throw new IllegalArgumentException("UvBuilder only supports requirements.txt and pyproject.toml schemes, got: " + scheme);
 				}
 
-				if ("pyproject.toml".equals(scheme)) {
+				if ("pyproject.toml".equals(scheme.name())) {
 					// Handle pyproject.toml - uses uv sync.
 					// Create envDir if it doesn't exist.
 					if (!envDir.exists() && !envDir.mkdirs()) {
@@ -201,7 +201,7 @@ public final class UvBuilder extends BaseBuilder<UvBuilder> {
 			if (pyprojectToml.exists() && pyprojectToml.isFile()) {
 				// Read the content so rebuild() will work even after directory is deleted.
 				content = new String(Files.readAllBytes(pyprojectToml.toPath()), StandardCharsets.UTF_8);
-				scheme = "pyproject.toml";
+				scheme = Schemes.fromName("pyproject.toml");
 			}
 			else {
 				// Fall back to requirements.txt.
@@ -209,7 +209,7 @@ public final class UvBuilder extends BaseBuilder<UvBuilder> {
 				if (requirementsTxt.exists() && requirementsTxt.isFile()) {
 					// Read the content so rebuild() will work even after directory is deleted.
 					content = new String(Files.readAllBytes(requirementsTxt.toPath()), StandardCharsets.UTF_8);
-					scheme = "requirements.txt";
+					scheme = Schemes.fromName("requirements.txt");
 				}
 			}
 		}

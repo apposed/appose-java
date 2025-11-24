@@ -64,11 +64,11 @@ import java.util.function.Consumer;
 public interface Builder<T extends Builder<T>> {
 
 	/**
-	 * Returns the name of this builder (e.g., "pixi", "mamba", "uv", "system").
+	 * Gets the environment type constructed by this builder (e.g., "pixi", "mamba", "uv").
 	 *
-	 * @return The builder name.
+	 * @return The builder's associated environment type.
 	 */
-	String name();
+	String envType();
 
 	/**
 	 * Builds the environment. This is the terminator method for any fluid building chain.

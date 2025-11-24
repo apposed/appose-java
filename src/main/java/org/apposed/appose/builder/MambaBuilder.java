@@ -53,7 +53,7 @@ public final class MambaBuilder extends BaseBuilder<MambaBuilder> {
 	// -- Builder methods --
 
 	@Override
-	public String name() {
+	public String envType() {
 		return "mamba";
 	}
 
@@ -70,7 +70,7 @@ public final class MambaBuilder extends BaseBuilder<MambaBuilder> {
 
 	@Override
 	public Environment build() throws BuildException {
-		File envDir = envDir();
+		File envDir = resolveEnvDir();
 
 		// Check for incompatible existing environments.
 		if (new File(envDir, ".pixi").isDirectory()) {
@@ -93,9 +93,9 @@ public final class MambaBuilder extends BaseBuilder<MambaBuilder> {
 		}
 
 		// Infer scheme if not explicitly set.
-		if (scheme == null) scheme = Schemes.fromContent(content).name();
+		if (scheme == null) scheme = Schemes.fromContent(content);
 
-		if (!"environment.yml".equals(scheme)) {
+		if (!"environment.yml".equals(scheme.name())) {
 			throw new IllegalArgumentException("MambaBuilder only supports environment.yml scheme, got: " + scheme);
 		}
 

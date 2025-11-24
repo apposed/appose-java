@@ -44,7 +44,7 @@ public class UvBuilderFactory implements BuilderFactory {
 	}
 
 	@Override
-	public String name() {
+	public String envType() {
 		return "uv";
 	}
 

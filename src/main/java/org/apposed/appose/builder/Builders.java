@@ -52,13 +52,14 @@ public final class Builders {
 		(a, b) -> Double.compare(b.priority(), a.priority()));
 
 	/**
-	 * Finds a factory by name.
+	 * Finds the first factory capable of building a particular type of environment.
+	 * Factories are checked in priority order.
 	 *
-	 * @param name The builder name to search for.
-	 * @return The factory with matching name, or null if not found.
+	 * @param envType The environment type to target.
+	 * @return A factory supporting that environment type, or null if not found.
 	 */
-	public static @Nullable BuilderFactory findFactoryByName(String name) {
-		return Plugins.find(BUILDERS, factory -> factory.name().equalsIgnoreCase(name));
+	public static @Nullable BuilderFactory findFactoryByEnvType(String envType) {
+		return Plugins.find(BUILDERS, factory -> factory.envType().equalsIgnoreCase(envType));
 	}
 
 	/**
@@ -74,7 +75,7 @@ public final class Builders {
 
 	/**
 	 * Finds the first factory that can wrap the given environment directory.
-	 * Factories are checked in priority order (highest priority first).
+	 * Factories are checked in priority order.
 	 *
 	 * @param envDir The directory to find a factory for.
 	 * @return The first factory that can wrap the directory, or null if none found.
@@ -117,14 +118,25 @@ public final class Builders {
 	}
 
 	/**
-	 * Returns the environment type name for the given directory.
-	 * This is a convenience method equivalent to {@code findFactoryForWrapping(envDir).name()}.
+	 * Returns the given directory's environment type.
+	 * This is a convenience method equivalent to {@code findFactoryForWrapping(envDir).type()}.
 	 *
 	 * @param envDir The directory to check.
-	 * @return The environment type name (e.g., "pixi", "mamba", "uv"), or null if not a known environment.
+	 * @return The environment type (e.g., "pixi", "mamba", "uv"), or null if not a known environment.
+	 */
+	public static @Nullable String envType(String envDir) {
+		return envType(new File(envDir));
+	}
+
+	/**
+	 * Returns the given directory's environment type.
+	 * This is a convenience method equivalent to {@code findFactoryForWrapping(envDir).type()}.
+	 *
+	 * @param envDir The directory to check.
+	 * @return The environment type (e.g., "pixi", "mamba", "uv"), or null if not a known environment.
 	 */
 	public static @Nullable String envType(File envDir) {
 		BuilderFactory factory = findFactoryForWrapping(envDir);
-		return factory == null ? null : factory.name();
+		return factory == null ? null : factory.envType();
 	}
 }

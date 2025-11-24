@@ -49,16 +49,16 @@ public interface BuilderFactory {
 	 * Configuration should be provided via the fluent API
 	 * (e.g., {@link Builder#content}, {@link Builder#scheme}).
 	 *
-	 * @return A new builder instance
+	 * @return A new builder instance.
 	 */
 	Builder<?> createBuilder();
 
 	/**
-	 * Returns the name of this builder (e.g., "pixi", "mamba", "uv", "system").
+	 * Gets the environment type handled by this builder (e.g., "pixi", "mamba", "uv").
 	 *
-	 * @return The builder name
+	 * @return The builder's associated environment type.
 	 */
-	String name();
+	String envType();
 
 	/**
 	 * Checks if this builder supports the given scheme.

@@ -118,13 +118,13 @@ public final class SimpleBuilder extends BaseBuilder<SimpleBuilder> {
 	// -- Builder methods --
 
 	@Override
-	public String name() {
+	public String envType() {
 		return "custom";
 	}
 
 	@Override
 	public Environment build() throws BuildException {
-		File base = envDir();
+		File base = resolveEnvDir();
 		if (base == null) base = new File(".");
 
 		// Create directory if it doesn't exist.
@@ -180,7 +180,7 @@ public final class SimpleBuilder extends BaseBuilder<SimpleBuilder> {
 	// -- Internal methods --
 
 	@Override
-	protected File envDir() {
+	protected File resolveEnvDir() {
 		return envDir != null ? envDir : new File(".");
 	}
 }

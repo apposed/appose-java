@@ -45,7 +45,7 @@ public class MambaBuilderFactory implements BuilderFactory {
 	}
 
 	@Override
-	public String name() {
+	public String envType() {
 		return "mamba";
 	}
 
