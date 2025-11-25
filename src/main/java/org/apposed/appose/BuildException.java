@@ -40,10 +40,6 @@ public class BuildException extends Exception {
 	@Nullable
 	public final Builder<?> builder;
 
-	public BuildException() {
-		this(null, null, null);
-	}
-
 	public BuildException(Builder<?> builder) {
 		this(builder, null, null);
 	}
