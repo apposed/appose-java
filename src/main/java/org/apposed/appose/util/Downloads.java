@@ -53,6 +53,9 @@ import java.net.MalformedURLException;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.net.URL;
+import java.net.URLDecoder;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import java.nio.channels.Channels;
 import java.nio.channels.ReadableByteChannel;
 import java.util.function.BiConsumer;
@@ -78,9 +81,42 @@ public final class Downloads {
 	public static File download(String name, String urlPath, @Nullable BiConsumer<Long, Long> progressConsumer)
 		throws IOException, InterruptedException, URISyntaxException
 	{
-		final File tempFile = File.createTempFile(name + "-", FilePaths.fileType(urlPath));
-		tempFile.deleteOnExit();
+		// Resolve redirects and get final URL
 		URL url = Downloads.redirectedURL(new URL(urlPath));
+
+		// Try to get file extension from final URL (after redirects)
+		String fileExt = FilePaths.fileType(url.toString());
+		if (fileExt.isEmpty()) {
+			// Try to extract filename from query parameters (e.g., ?response-content-disposition=...)
+			String query = url.getQuery();
+			if (query != null) {
+				// Parse query parameters
+				String[] params = query.split("&");
+				for (String param : params) {
+					String[] keyValue = param.split("=", 2);
+					if (keyValue.length == 2 && keyValue[0].equals("response-content-disposition")) {
+						// Parse Content-Disposition header value
+						String contentDisp = URLDecoder.decode(keyValue[1], "UTF-8");
+						// Extract filename from 'filename="..."' or filename*=UTF-8''...
+						Pattern pattern = Pattern.compile("filename[*]?=(?:UTF-8'')?[\"']?([^\"';&#]+)");
+						Matcher matcher = pattern.matcher(contentDisp);
+						if (matcher.find()) {
+							String filename = URLDecoder.decode(matcher.group(1), "UTF-8");
+							fileExt = FilePaths.fileType(filename);
+						}
+						break;
+					}
+				}
+			}
+
+			// Fallback to original URL if still no extension
+			if (fileExt.isEmpty()) {
+				fileExt = FilePaths.fileType(urlPath);
+			}
+		}
+
+		final File tempFile = File.createTempFile(name + "-", fileExt);
+		tempFile.deleteOnExit();
 		long size = Downloads.getFileSize(url);
 		Thread currentThread = Thread.currentThread();
 		IOException[] ioe = {null};
