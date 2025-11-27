@@ -945,7 +945,6 @@ public class DumpApi {
 			if (baseName.equals("PrintWriter") || baseName.equals("BufferedReader") ||
 			    baseName.equals("InputStream") || baseName.equals("OutputStream")) return "object";
 			if (baseName.equals("URL") || baseName.equals("URI")) return "str";
-			if (baseName.equals("ProgressConsumer")) return "Callable[[int, int], None]";
 
 			Optional<NodeList<Type>> typeArgs = classType.getTypeArguments();
 			if (typeArgs.isPresent()) {
