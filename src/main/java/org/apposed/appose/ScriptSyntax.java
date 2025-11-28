@@ -121,7 +121,7 @@ public interface ScriptSyntax {
 	 * </ul>
 	 * <p>
 	 * If the result is a method reference, it will be auto-proxied as a {@link WorkerObject}
-	 * that can be called using {@link WorkerObject#call(Object...)}.
+	 * that can be called using {@link WorkerObject#invoke(Object...)}.
 	 * </p>
 	 *
 	 * @param objectVarName The name of the variable referencing the object.

@@ -208,7 +208,7 @@ public class WorkerObject {
 	 * <p>
 	 * If the result is a method reference or other non-JSON-serializable object,
 	 * it will be auto-proxied as a {@code WorkerObject} that can be called using
-	 * {@link #call(Object...)}.
+	 * {@link #invoke(Object...)}.
 	 * </p>
 	 * <p>
 	 * This is a blocking operation that waits for the remote operation to complete.
