@@ -75,11 +75,11 @@ public class DumpApi {
 		PACKAGE_TO_MODULE.put("org.apposed.appose.Environment", "appose/environment.api");
 		PACKAGE_TO_MODULE.put("org.apposed.appose.TaskException", "appose/service.api");
 		PACKAGE_TO_MODULE.put("org.apposed.appose.Service", "appose/service.api");
-		PACKAGE_TO_MODULE.put("org.apposed.appose.Service.Task", "appose/service.api");
 		PACKAGE_TO_MODULE.put("org.apposed.appose.Service.TaskStatus", "appose/service.api");
 		PACKAGE_TO_MODULE.put("org.apposed.appose.Service.RequestType", "appose/service.api");
 		PACKAGE_TO_MODULE.put("org.apposed.appose.Service.ResponseType", "appose/service.api");
 		PACKAGE_TO_MODULE.put("org.apposed.appose.TaskEvent", "appose/service.api");
+		PACKAGE_TO_MODULE.put("org.apposed.appose.Service.Task", "appose/service.api");
 		PACKAGE_TO_MODULE.put("org.apposed.appose.NDArray", "appose/shm.api");
 		PACKAGE_TO_MODULE.put("org.apposed.appose.NDArray.DType", "appose/shm.api");
 		PACKAGE_TO_MODULE.put("org.apposed.appose.NDArray.Shape", "appose/shm.api");
@@ -129,7 +129,8 @@ public class DumpApi {
 		PACKAGE_TO_MODULE.put("org.apposed.appose.util.XML", "appose/util/xml.api");
 
 		// Workers.
-		PACKAGE_TO_MODULE.put("org.apposed.appose.GroovyWorker", "appose/groovy_worker.api");
+		PACKAGE_TO_MODULE.put("org.apposed.appose.GroovyWorker", "appose/worker.api");
+		PACKAGE_TO_MODULE.put("org.apposed.appose.GroovyWorker.Task", "appose/worker.api");
 
 		// Test classes - map to tests/*.api files (aligned with Python structure).
 		PACKAGE_TO_MODULE.put("org.apposed.appose.TestBase", "tests/test_base.api");
@@ -740,11 +741,19 @@ public class DumpApi {
 	}
 
 	private static String nonClassName(NodeWithSimpleName<?> n) {
-		return prefix(n) + toSnakeCase(n.getNameAsString());
+		return prefix(n) + nonClassNameAfterPrefix(n);
 	}
 
 	private static String nonClassName(NodeWithPublicModifier<?> p, NodeWithSimpleName<?> n) {
-		return prefix(p) + toSnakeCase(n.getNameAsString());
+		return prefix(p) + nonClassNameAfterPrefix(n);
+	}
+
+	private static String nonClassNameAfterPrefix(NodeWithSimpleName<?> n) {
+		String nodeName = n.getNameAsString();
+		final String name;
+		if ("toString".equals(nodeName)) name = "__str__";
+		else name = nodeName;
+		return toSnakeCase(name);
 	}
 
 	/**
@@ -981,7 +990,8 @@ public class DumpApi {
 				    baseName.equals("TreeMap") || baseName.equals("LinkedHashMap") ||
 				    baseName.equals("Dictionary")) {
 					if (args.size() == 2) {
-						return "dict[" + pythonType(args.get(0)) + ", " + pythonType(args.get(1)) + "]";
+						String typedDict = "dict[" + pythonType(args.get(0)) + ", " + pythonType(args.get(1)) + "]";
+						return typedDict.equals("dict[str, Any]") ? "Args" : typedDict;
 					}
 					return "dict";
 				}

@@ -89,8 +89,8 @@ public class Service implements AutoCloseable {
 	private Thread stderrThread;
 	private Thread monitorThread;
 
-	private Consumer<String> debugListener;
-	private String initScript;
+	private @Nullable Consumer<String> debugListener;
+	private @Nullable String initScript;
 	private ScriptSyntax syntax;
 
 
@@ -514,7 +514,7 @@ public class Service implements AutoCloseable {
 				line = stdout.readLine();
 			}
 			catch (IOException exc) {
-				// Something went wrong reading the line. Panic!
+				// Something went wrong reading the stdout line. Panic!
 				debugService(Messages.stackTrace(exc));
 				break;
 			}
@@ -556,7 +556,7 @@ public class Service implements AutoCloseable {
 				line = stderr.readLine();
 			}
 			catch (IOException exc) {
-				// Something went wrong reading the line. Panic!
+				// Something went wrong reading the stderr line. Panic!
 				debugService(Messages.stackTrace(exc));
 				break;
 			}
@@ -569,12 +569,11 @@ public class Service implements AutoCloseable {
 		}
 	}
 
-	@SuppressWarnings("BusyWait")
 	private void monitorLoop() {
 		// Wait until the worker process terminates.
 		while (process.isAlive() || stdoutThread.isAlive() || stderrThread.isAlive()) {
 			try {
-				Thread.sleep(10);
+				process.waitFor();
 			}
 			catch (InterruptedException exc) {
 				// Treat interruption as a request to shut down.
@@ -588,24 +587,21 @@ public class Service implements AutoCloseable {
 		int exitCode = process.exitValue();
 		if (exitCode != 0) debugService("<worker process terminated with exit code " + exitCode + ">");
 		int taskCount = tasks.size();
-		if (taskCount > 0) {
-			debugService("<worker process terminated with " +
-				taskCount + " pending task" + (taskCount == 1 ? "" : "s") + ">");
-		}
+		if (taskCount == 0) return; // No hanging tasks to clean up.
 
-		Collection<Task> remainingTasks = tasks.values();
-		if (!remainingTasks.isEmpty()) {
-			// Notify any remaining tasks about the process crash.
-			StringBuilder sb = new StringBuilder();
-			String nl = System.lineSeparator();
-			sb.append("Worker crashed with exit code ").append(exitCode).append(".").append(nl);
-			String stdout = invalidLines.isEmpty() ? "<none>" : String.join(nl, invalidLines);
-			String stderr = errorLines.isEmpty() ? "<none>" : String.join(nl, errorLines);
-			sb.append(nl).append("[stdout]").append(nl).append(stdout).append(nl);
-			sb.append(nl).append("[stderr]").append(nl).append(stderr).append(nl);
-			String error = sb.toString();
-			remainingTasks.forEach(task -> task.crash(error));
-		}
+		debugService("<worker process terminated with " +
+			taskCount + " pending task" + (taskCount == 1 ? "" : "s") + ">");
+
+		// Notify remaining tasks about the process crash.
+		StringBuilder sb = new StringBuilder();
+		String nl = System.lineSeparator();
+		sb.append("Worker crashed with exit code ").append(exitCode).append(".").append(nl);
+		String stdout = invalidLines.isEmpty() ? "<none>" : String.join(nl, invalidLines);
+		String stderr = errorLines.isEmpty() ? "<none>" : String.join(nl, errorLines);
+		sb.append(nl).append("[stdout]").append(nl).append(stdout).append(nl);
+		sb.append(nl).append("[stderr]").append(nl).append(stderr).append(nl);
+		String error = sb.toString();
+		tasks.values().forEach(task -> task.crash(error));
 		tasks.clear();
 	}
 

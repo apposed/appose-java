@@ -122,12 +122,6 @@ public abstract class BaseBuilder<T extends BaseBuilder<T>> implements Builder<T
 	}
 
 	@Override
-	public T flags(List<String> flags) {
-		this.flags.addAll(flags);
-		return typedThis();
-	}
-
-	@Override
 	public T content(String content) {
 		this.content = content;
 		return typedThis();
@@ -154,6 +148,12 @@ public abstract class BaseBuilder<T extends BaseBuilder<T>> implements Builder<T
 	@Override
 	public T subscribeError(Consumer<String> subscriber) {
 		errorSubscribers.add(subscriber);
+		return typedThis();
+	}
+
+	@Override
+	public T flags(List<String> flags) {
+		this.flags.addAll(flags);
 		return typedThis();
 	}
 
