@@ -104,4 +104,30 @@ public interface ScriptSyntax {
 	 * @see Service#proxy
 	 */
 	String invokeMethod(String objectVarName, String methodName, List<String> argVarNames);
+
+	/**
+	 * Generates a script expression to retrieve an attribute from an object.
+	 * <p>
+	 * The object must have been previously exported using {@code task.export()}.
+	 * This is used to access fields or obtain method references from remote objects.
+	 * </p>
+	 * <p>
+	 * The behavior depends on the language:
+	 * </p>
+	 * <ul>
+	 * <li><strong>Python:</strong> Returns the attribute value (field) or bound method object.</li>
+	 * <li><strong>Groovy:</strong> Tries field access first; if no such field exists,
+	 *     returns a method reference using {@code .&} syntax.</li>
+	 * </ul>
+	 * <p>
+	 * If the result is a method reference, it will be auto-proxied as a {@link WorkerObject}
+	 * that can be called using {@link WorkerObject#call(Object...)}.
+	 * </p>
+	 *
+	 * @param objectVarName The name of the variable referencing the object.
+	 * @param attributeName The name of the attribute to retrieve.
+	 * @return A script expression that evaluates to the attribute value or method reference.
+	 * @see WorkerObject#getAttribute(String)
+	 */
+	String getAttribute(String objectVarName, String attributeName);
 }

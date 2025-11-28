@@ -74,4 +74,15 @@ public class GroovySyntax implements ScriptSyntax {
 		// Groovy method invocation: object.method(arg0, arg1, ...)
 		return objectVarName + "." + methodName + "(" + String.join(", ", argVarNames) + ")";
 	}
+
+	@Override
+	public String getAttribute(String objectVarName, String attributeName) {
+		// Groovy attribute access: try field first, then method reference.
+		// This handles the case where both field and method exist with same name:
+		// field access takes precedence (Groovy semantics).
+		// The .& syntax creates a method reference (closure) that can be called later.
+		return "try { " + objectVarName + "." + attributeName + " } " +
+			"catch (groovy.lang.MissingPropertyException e) { " +
+			objectVarName + ".&" + attributeName + " }";
+	}
 }

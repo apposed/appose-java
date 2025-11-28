@@ -290,6 +290,51 @@ public class SyntaxTest extends TestBase {
 		}
 	}
 
+	/** Tests getAttribute and invoke for field and method access. */
+	@Test
+	public void testGetAttributeGroovy() throws Exception {
+		Environment env = Appose.system();
+		try (Service service = env.groovy()) {
+			maybeDebug(service);
+
+			// Create a class with both fields and methods
+			Task setup = service.task(
+				"class TestClass {\n" +
+				"  String fieldValue = 'field_data'\n" +
+				"  String methodValue() { return 'method_data' }\n" +
+				"  String compute(int x, int y) { return \"result: ${x + y}\" }\n" +
+				"}\n" +
+				"new TestClass()"
+			).waitFor();
+			assertComplete(setup);
+
+			// Get the WorkerObject
+			WorkerObject testObj = (WorkerObject) setup.result();
+
+			// Test 1: Field access via getAttribute - should return value directly
+			Object fieldResult = testObj.getAttribute("fieldValue");
+			assertInstanceOf(String.class, fieldResult);
+			assertEquals("field_data", fieldResult);
+
+			// Test 2: Method reference via getAttribute + invoke
+			// methodValue has no field, so getAttribute returns method reference
+			Object methodAttr = testObj.getAttribute("methodValue");
+			assertInstanceOf(WorkerObject.class, methodAttr);
+			Object methodResult = ((WorkerObject) methodAttr).invoke();
+			assertEquals("method_data", methodResult);
+
+			// Test 3: Method reference with arguments
+			Object computeAttr = testObj.getAttribute("compute");
+			assertInstanceOf(WorkerObject.class, computeAttr);
+			Object computeResult = ((WorkerObject) computeAttr).invoke(5, 7);
+			assertEquals("result: 12", computeResult);
+
+			// Test 4: Compare with direct method invocation (existing functionality)
+			Object directResult = testObj.call("compute", 3, 4);
+			assertEquals("result: 7", directResult);
+		}
+	}
+
 	/** Tests automatic proxying of non-serializable task outputs. */
 	@Test
 	public void testAutoProxyGroovy() throws Exception {

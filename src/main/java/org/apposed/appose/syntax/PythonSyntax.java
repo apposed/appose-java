@@ -73,4 +73,11 @@ public class PythonSyntax implements ScriptSyntax {
 		// Python method invocation: object.method(arg0, arg1, ...)
 		return objectVarName + "." + methodName + "(" + String.join(", ", argVarNames) + ")";
 	}
+
+	@Override
+	public String getAttribute(String objectVarName, String attributeName) {
+		// Python attribute access: object.attribute
+		// This returns either the field value or a bound method object.
+		return objectVarName + "." + attributeName;
+	}
 }

@@ -112,9 +112,11 @@ public class WorkerObject {
 	}
 
 	/**
-	 * Calls a method on the remote object.
+	 * Calls a method on the remote object by name.
 	 * <p>
 	 * This is a blocking operation that waits for the remote method to complete.
+	 * Uses {@link ScriptSyntax#invokeMethod(String, String, java.util.List)} to
+	 * generate the method invocation script.
 	 * </p>
 	 *
 	 * @param methodName The name of the method to invoke.
@@ -137,6 +139,106 @@ public class WorkerObject {
 		String script = service.syntax().invokeMethod(varName, methodName, argNames);
 
 		Service.Task task = service.task(script, inputs, queue);
+		task.waitFor();
+		if (task.status != Service.TaskStatus.COMPLETE) {
+			throw new TaskException("Task failed: " + task.error, task);
+		}
+		return task.result();
+	}
+
+	/**
+	 * Invokes this remote object as a callable (function, method reference, or closure).
+	 * <p>
+	 * This is used when this WorkerObject represents a callable object, such as:
+	 * </p>
+	 * <ul>
+	 * <li>A method reference obtained via {@link #getAttribute(String)}</li>
+	 * <li>A function or closure</li>
+	 * <li>Any object with a {@code __call__} method (Python) or {@code call} method (Groovy)</li>
+	 * </ul>
+	 * <p>
+	 * This is a blocking operation that waits for the remote invocation to complete.
+	 * Uses {@link ScriptSyntax#call(String, java.util.List)} to generate the call script.
+	 * </p>
+	 * <p>
+	 * Example:
+	 * </p>
+	 * <pre>
+	 * WorkerObject obj = ...;
+	 * WorkerObject methodRef = (WorkerObject) obj.getAttribute("compute");
+	 * Object result = methodRef.invoke(arg1, arg2);  // Invokes the method reference
+	 * </pre>
+	 *
+	 * @param args The arguments to pass to the callable.
+	 * @return The result of invoking the remote object.
+	 * @throws InterruptedException If the calling thread is interrupted while waiting.
+	 * @throws TaskException If the invocation fails in the worker process.
+	 */
+	public Object invoke(Object... args) throws InterruptedException, TaskException {
+		// Build the call script using the service's syntax.
+		java.util.Map<String, Object> inputs = new java.util.HashMap<>();
+		java.util.List<String> argNames = new java.util.ArrayList<>();
+		for (int i = 0; i < args.length; i++) {
+			String argName = "arg" + i;
+			inputs.put(argName, args[i]);
+			argNames.add(argName);
+		}
+
+		org.apposed.appose.syntax.Syntaxes.validate(service);
+		String script = service.syntax().call(varName, argNames);
+
+		Service.Task task = service.task(script, inputs, queue);
+		task.waitFor();
+		if (task.status != Service.TaskStatus.COMPLETE) {
+			throw new TaskException("Task failed: " + task.error, task);
+		}
+		return task.result();
+	}
+
+	/**
+	 * Retrieves an attribute from the remote object.
+	 * <p>
+	 * The behavior depends on the worker language:
+	 * </p>
+	 * <ul>
+	 * <li><strong>Python:</strong> Returns the attribute value (field) or bound method object.</li>
+	 * <li><strong>Groovy:</strong> Tries field access first; if no such field exists,
+	 *     returns a method reference (closure).</li>
+	 * </ul>
+	 * <p>
+	 * If the result is a method reference or other non-JSON-serializable object,
+	 * it will be auto-proxied as a {@code WorkerObject} that can be called using
+	 * {@link #call(Object...)}.
+	 * </p>
+	 * <p>
+	 * This is a blocking operation that waits for the remote operation to complete.
+	 * Uses {@link ScriptSyntax#getAttribute(String, String)} to generate the attribute
+	 * access script.
+	 * </p>
+	 * <p>
+	 * Example:
+	 * </p>
+	 * <pre>
+	 * WorkerObject obj = ...;
+	 *
+	 * // Field access - returns value directly
+	 * String label = (String) obj.getAttribute("label");
+	 *
+	 * // Method reference - returns WorkerObject that can be invoked
+	 * WorkerObject methodRef = (WorkerObject) obj.getAttribute("compute");
+	 * Object result = methodRef.invoke(arg1, arg2);
+	 * </pre>
+	 *
+	 * @param attributeName The name of the attribute to retrieve.
+	 * @return The attribute value (field) or a WorkerObject (method reference).
+	 * @throws InterruptedException If the calling thread is interrupted while waiting.
+	 * @throws TaskException If the attribute access fails in the worker process.
+	 */
+	public Object getAttribute(String attributeName) throws InterruptedException, TaskException {
+		org.apposed.appose.syntax.Syntaxes.validate(service);
+		String script = service.syntax().getAttribute(varName, attributeName);
+
+		Service.Task task = service.task(script, queue);
 		task.waitFor();
 		if (task.status != Service.TaskStatus.COMPLETE) {
 			throw new TaskException("Task failed: " + task.error, task);
