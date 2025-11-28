@@ -72,6 +72,10 @@ public class GroovyWorker {
 	private boolean running = true;
 
 	public GroovyWorker() {
+		// Flag that we're in worker mode for auto-proxy serialization.
+		Messages.workerMode = true;
+		Messages.workerExports = exports;
+
 		new Thread(this::processInput, "Appose-Receiver").start();
 		new Thread(this::cleanupThreads, "Appose-Janitor").start();
 	}

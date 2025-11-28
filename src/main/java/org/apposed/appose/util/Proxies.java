@@ -171,4 +171,55 @@ public final class Proxies {
 			}
 		});
 	}
+
+	/**
+	 * Recursively converts worker_object references in task outputs to {@link org.apposed.appose.WorkerObject} instances.
+	 * <p>
+	 * This is called on task outputs after JSON deserialization to convert any
+	 * worker_object references (from auto-exported non-serializable objects) into
+	 * actual {@code WorkerObject} instances.
+	 * </p>
+	 * <p>
+	 * When a worker process encounters a non-serializable object (e.g., a datetime
+	 * instance), it automatically exports it with a generated variable name and
+	 * returns a worker_object reference. This method converts those references
+	 * into {@code WorkerObject} instances that can be used to interact with the remote object.
+	 * </p>
+	 *
+	 * @param data The data structure (potentially) containing worker_object references.
+	 * @param service The Service instance to use for creating WorkerObjects.
+	 * @return The data with worker_object references replaced by WorkerObject instances.
+	 */
+	@SuppressWarnings("unchecked")
+	public static Object proxifyWorkerObjects(Object data, Service service) {
+		if (data instanceof Map) {
+			Map<String, Object> map = (Map<String, Object>) data;
+			if ("worker_object".equals(map.get("appose_type"))) {
+				// Convert this worker_object reference to a WorkerObject.
+				String varName = (String) map.get("var_name");
+				return new org.apposed.appose.WorkerObject(service, varName);
+			}
+			else {
+				// Recursively process map values.
+				Map<String, Object> result = new HashMap<>();
+				for (Map.Entry<String, Object> entry : map.entrySet()) {
+					result.put(entry.getKey(), proxifyWorkerObjects(entry.getValue(), service));
+				}
+				return result;
+			}
+		}
+		else if (data instanceof List) {
+			// Recursively process list elements.
+			List<Object> list = (List<Object>) data;
+			List<Object> result = new ArrayList<>();
+			for (Object item : list) {
+				result.add(proxifyWorkerObjects(item, service));
+			}
+			return result;
+		}
+		else {
+			// Primitive value, return as-is.
+			return data;
+		}
+	}
 }

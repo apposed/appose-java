@@ -790,7 +790,13 @@ public class Service implements AutoCloseable {
 					status = TaskStatus.COMPLETE;
 					@SuppressWarnings({ "rawtypes", "unchecked" })
 					Map<String, Object> outputs = (Map) response.get("outputs");
-					if (outputs != null) mOutputs.putAll(outputs);
+					if (outputs != null) {
+						// Convert any worker_object references to proxies before storing outputs.
+						for (Map.Entry<String, Object> entry : outputs.entrySet()) {
+							Object value = Proxies.proxifyWorkerObjects(entry.getValue(), Service.this);
+							mOutputs.put(entry.getKey(), value);
+						}
+					}
 					break;
 				case CANCELATION:
 					tasks.remove(uuid);

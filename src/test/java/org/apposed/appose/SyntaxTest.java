@@ -289,4 +289,92 @@ public class SyntaxTest extends TestBase {
 			assertEquals("Swam down 100.0 deep", fish.dive(100));
 		}
 	}
+
+	/** Tests automatic proxying of non-serializable task outputs. */
+	@Test
+	public void testAutoProxyGroovy() throws Exception {
+		Environment env = Appose.system();
+		try (Service service = env.groovy()) {
+			maybeDebug(service);
+
+			// Return a non-serializable object from a task - should auto-proxy.
+			// Custom Groovy classes are not JSON-serializable.
+			Task simpleTask = service.task(
+				"class SimpleClass {\n" +
+				"  int getValue() { return 42 }\n" +
+				"  String getText() { return 'hello' }\n" +
+				"}\n" +
+				"new SimpleClass()"
+			).waitFor();
+			assertComplete(simpleTask);
+			Object simpleObj = simpleTask.result();
+			assertInstanceOf(WorkerObject.class, simpleObj);
+
+			// The result should be a WorkerObject that we can call methods on.
+			WorkerObject simpleWorker = (WorkerObject) simpleObj;
+			Number simpleValue = (Number) simpleWorker.call("getValue");
+			assertEquals(42, simpleValue.intValue());
+			String simpleText = (String) simpleWorker.call("getText");
+			assertEquals("hello", simpleText);
+
+			// Test with a custom class
+			Task customTask = service.task(
+				"class CustomClass {\n" +
+				"  int value = 42\n" +
+				"  String name = 'test'\n" +
+				"  int getValue() { return value }\n" +
+				"  String getName() { return name }\n" +
+				"  int getDouble() { return value * 2 }\n" +
+				"}\n" +
+				"new CustomClass()"
+			).waitFor();
+			assertComplete(customTask);
+			Object customObj = customTask.result();
+			assertInstanceOf(WorkerObject.class, customObj);
+
+			// Access methods on the custom object via the WorkerObject.
+			WorkerObject customWorker = (WorkerObject) customObj;
+			Number value = (Number) customWorker.call("getValue");
+			assertEquals(42, value.intValue());
+			String name = (String) customWorker.call("getName");
+			assertEquals("test", name);
+			Number doubleValue = (Number) customWorker.call("getDouble");
+			assertEquals(84, doubleValue.intValue());
+
+			// Test nested object access
+			Task nestedTask = service.task(
+				"class Inner {\n" +
+				"  String data = 'inner_data'\n" +
+				"  String getData() { return data }\n" +
+				"  String process(String x) { return \"processed: $x\" }\n" +
+				"}\n" +
+				"class Outer {\n" +
+				"  Inner inner = new Inner()\n" +
+				"  String label = 'outer'\n" +
+				"  Inner getInner() { return inner }\n" +
+				"  String getLabel() { return label }\n" +
+				"}\n" +
+				"new Outer()"
+			).waitFor();
+			assertComplete(nestedTask);
+			Object outerObj = nestedTask.result();
+			assertInstanceOf(WorkerObject.class, outerObj);
+
+			// Access the label field via getter
+			WorkerObject outerWorker = (WorkerObject) outerObj;
+			String label = (String) outerWorker.call("getLabel");
+			assertEquals("outer", label);
+
+			// Access the nested inner object - this should also return a WorkerObject
+			Object innerObj = outerWorker.call("getInner");
+			assertInstanceOf(WorkerObject.class, innerObj);
+
+			// Call a method on the nested object
+			WorkerObject innerWorker = (WorkerObject) innerObj;
+			String innerData = (String) innerWorker.call("getData");
+			assertEquals("inner_data", innerData);
+			String processed = (String) innerWorker.call("process", "test");
+			assertEquals("processed: test", processed);
+		}
+	}
 }

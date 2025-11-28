@@ -56,6 +56,15 @@ public final class Messages {
 		// Prevent instantiation of utility class.
 	}
 
+	// Flag indicating whether we're in worker mode (set by GroovyWorker).
+	public static boolean workerMode = false;
+
+	// Reference to the worker exports map for auto-exporting.
+	public static Map<String, Object> workerExports = null;
+
+	// Counter for auto-generated proxy variable names.
+	private static int proxyCounter = 0;
+
 	/**
 	 * Converts a Map into a JSON string.
 	 * @param data
@@ -122,6 +131,34 @@ public final class Messages {
 	*/
 
 	/**
+	 * Checks if a type is natively JSON-serializable by Groovy's built-in JSON encoder.
+	 * <p>
+	 * These are the basic JSON types that don't need special handling:
+	 * Map, List, String (and other CharSequences), Number, Boolean, and primitives.
+	 * </p>
+	 * <p>
+	 * Other types either have custom Appose converters (SharedMemory, NDArray) or
+	 * will be auto-proxied as worker_object references when in worker mode.
+	 * </p>
+	 * <p>
+	 * Note: This list should remain stable. When adding new Appose-specific converters
+	 * (e.g., for custom types), add them to the GENERATOR converter chain before the
+	 * catch-all converter - you do NOT need to modify this method.
+	 * </p>
+	 *
+	 * @param type The class to check
+	 * @return true if this is a basic JSON type that Groovy can serialize natively
+	 */
+	private static boolean isNativelyJsonSerializable(Class<?> type) {
+		return Map.class.isAssignableFrom(type)
+			|| List.class.isAssignableFrom(type)
+			|| CharSequence.class.isAssignableFrom(type)
+			|| Number.class.isAssignableFrom(type)
+			|| Boolean.class.isAssignableFrom(type)
+			|| type.isPrimitive();
+	}
+
+	/**
 	 * Helper to create a {@link JsonGenerator.Converter}.
 	 * <p>
 	 * The converter encodes objects of a specified class {@code clz} into a
@@ -164,7 +201,34 @@ public final class Messages {
 				map.put("dtype", ndArray.dType().label());
 				map.put("shape", ndArray.shape().toIntArray(C_ORDER));
 				map.put("shm", ndArray.shm());
-			})).build();
+			})).addConverter(new JsonGenerator.Converter() {
+				// Catch-all converter for non-serializable objects in worker mode.
+				// This should be the LAST converter in the chain, so it only handles
+				// objects that no other converter claimed.
+				@Override
+				public boolean handles(Class<?> type) {
+					// Only active in worker mode.
+					if (!workerMode) return false;
+
+					// Don't auto-proxy types that Groovy's JSON encoder handles natively.
+					// Custom converters (SharedMemory, NDArray, etc.) are earlier in the
+					// chain and will have already claimed their types.
+					return !isNativelyJsonSerializable(type);
+				}
+
+				@Override
+				public Object convert(Object value, String key) {
+					// Auto-export the object and return a worker_object reference.
+					String varName = "_appose_auto_" + (proxyCounter++);
+					if (workerExports != null) {
+						workerExports.put(varName, value);
+					}
+					Map<String, Object> map = new LinkedHashMap<>();
+					map.put("appose_type", "worker_object");
+					map.put("var_name", varName);
+					return map;
+				}
+			}).build();
 
 
 	// -- Deserialization --
@@ -196,6 +260,10 @@ public final class Messages {
 						NDArray.Shape shape = toShape((List<Integer>) map.get("shape"));
 						SharedMemory shm = (SharedMemory) map.get("shm");
 						return new NDArray(dType, shape, shm);
+					case "worker_object":
+						// Return map as-is; will be converted to WorkerObject
+						// by Proxies.proxifyWorkerObjects() in Service.Task.handle().
+						return map;
 					default:
 						System.err.println("unknown appose_type \"" + appose_type + "\"");
 				}
