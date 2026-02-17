@@ -193,7 +193,40 @@ public final class Downloads {
 		else if (filename.endsWith(".tar.bz2")) unTarBz2(inputFile, outputDir);
 		else if (filename.endsWith(".tar.gz")) unTarGz(inputFile, outputDir);
 		else if (filename.endsWith(".zip")) unZip(inputFile, outputDir);
-		else throw new IllegalArgumentException("Unsupported archive type for file: " + inputFile.getName());
+		else unpackByMagicBytes(inputFile, outputDir);
+	}
+
+	/**
+	 * Detects archive format from magic bytes and unpacks accordingly.
+	 * Used when the file extension is missing or unrecognized (e.g. when the
+	 * server serves the file directly without a redirect to a named URL).
+	 *
+	 * @param inputFile the archive file to detect and unpack
+	 * @param outputDir the output directory
+	 * @throws IOException if an I/O error occurs or the format is unrecognized
+	 * @throws InterruptedException if the thread is interrupted
+	 */
+	private static void unpackByMagicBytes(final File inputFile, final File outputDir) throws IOException, InterruptedException {
+		byte[] magic = new byte[6];
+		try (InputStream is = new BufferedInputStream(new FileInputStream(inputFile))) {
+			int read = is.read(magic);
+			if (read < 2) throw new IOException("File too small to detect archive type: " + inputFile.getName());
+		}
+		// GZip magic: 1F 8B
+		if (magic[0] == (byte)0x1F && magic[1] == (byte)0x8B) {
+			unTarGz(inputFile, outputDir);
+		}
+		// BZip2 magic: 42 5A 68 ("BZh")
+		else if (magic[0] == (byte)0x42 && magic[1] == (byte)0x5A && magic[2] == (byte)0x68) {
+			unTarBz2(inputFile, outputDir);
+		}
+		// ZIP magic: 50 4B 03 04 ("PK\x03\x04")
+		else if (magic[0] == (byte)0x50 && magic[1] == (byte)0x4B && magic[2] == (byte)0x03 && magic[3] == (byte)0x04) {
+			unZip(inputFile, outputDir);
+		}
+		else {
+			throw new IllegalArgumentException("Unsupported archive type for file: " + inputFile.getName());
+		}
 	}
 
 	/**
