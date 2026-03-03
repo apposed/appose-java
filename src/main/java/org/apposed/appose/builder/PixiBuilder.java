@@ -97,6 +97,15 @@ public final class PixiBuilder extends BaseBuilder<PixiBuilder> {
 			throw new BuildException(this, "Cannot use PixiBuilder: environment already managed by uv/venv at " + envDir);
 		}
 
+		// Validate content/scheme BEFORE installing any tools.
+		if (content != null) {
+			if (scheme == null) scheme = Schemes.fromContent(content);
+			if (!"pixi.toml".equals(scheme.name()) && !"pyproject.toml".equals(scheme.name()) && !"environment.yml".equals(scheme.name())) {
+				throw new IllegalArgumentException(
+					"PixiBuilder only supports pixi.toml, pyproject.toml, and environment.yml schemes, got: " + scheme);
+			}
+		}
+
 		Pixi pixi = new Pixi();
 
 		// Set up progress/output consumers.
@@ -129,9 +138,6 @@ public final class PixiBuilder extends BaseBuilder<PixiBuilder> {
 					// Already initialized, just use it.
 					return createEnvironment(pixi, envDir);
 				}
-
-				// Infer scheme if not explicitly set.
-				if (scheme == null) scheme = Schemes.fromContent(content);
 
 				if (!envDir.exists() && !envDir.mkdirs()) {
 					throw new BuildException(this, "Failed to create environment directory: " + envDir);

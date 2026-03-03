@@ -119,6 +119,15 @@ public final class UvBuilder extends BaseBuilder<UvBuilder> {
 				"'--index-url' or '--extra-index-url' directives.");
 		}
 
+		// Validate content/scheme BEFORE installing any tools.
+		if (content != null) {
+			if (scheme == null) scheme = Schemes.fromContent(content);
+			if (!"requirements.txt".equals(scheme.name()) && !"pyproject.toml".equals(scheme.name())) {
+				throw new IllegalArgumentException(
+					"UvBuilder only supports requirements.txt and pyproject.toml schemes, got: " + scheme);
+			}
+		}
+
 		try {
 			uv.install();
 
@@ -132,12 +141,6 @@ public final class UvBuilder extends BaseBuilder<UvBuilder> {
 
 			// Handle source-based build (file or content).
 			if (content != null) {
-				// Infer scheme if not explicitly set.
-				if (scheme == null) scheme = Schemes.fromContent(content);
-
-				if (!"requirements.txt".equals(scheme.name()) && !"pyproject.toml".equals(scheme.name())) {
-					throw new IllegalArgumentException("UvBuilder only supports requirements.txt and pyproject.toml schemes, got: " + scheme);
-				}
 
 				if ("pyproject.toml".equals(scheme.name())) {
 					// Handle pyproject.toml - uses uv sync.

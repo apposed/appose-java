@@ -52,6 +52,7 @@ public class PixiBuilderFactory implements BuilderFactory {
 	public boolean supportsScheme(String scheme) {
 		switch (scheme) {
 			case "pixi.toml":
+			case "pyproject.toml":
 			case "environment.yml":
 			case "conda":
 			case "pypi":
