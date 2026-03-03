@@ -127,7 +127,7 @@ public class PixiBuilderTest extends TestBase {
 	@Test
 	public void testContentAPI() throws Exception {
 		String pixiToml =
-			"[project]\n" +
+			"[workspace]\n" +
 			"name = \"content-test\"\n" +
 			"channels = [\"conda-forge\"]\n" +
 			"platforms = [\"linux-64\", \"osx-64\", \"osx-arm64\", \"win-64\"]\n" +
@@ -175,7 +175,7 @@ public class PixiBuilderTest extends TestBase {
 	@Test
 	public void testContentPixiToml() throws Exception {
 		String pixiToml =
-			"[project]\n" +
+			"[workspace]\n" +
 			"name = \"content-pixi-toml\"\n" +
 			"channels = [\"conda-forge\"]\n" +
 			"platforms = [\"linux-64\", \"osx-64\", \"osx-arm64\", \"win-64\"]\n" +

@@ -64,7 +64,7 @@ public class BuilderContentTest extends TestBase {
 	// scheme detection, but deliberately incompatible with the builder under test.
 
 	private static final String PIXI_TOML_STUB =
-		"[project]\n" +
+		"[workspace]\n" +
 		"name = \"stub\"\n" +
 		"channels = [\"conda-forge\"]\n" +
 		"platforms = [\"linux-64\"]\n" +
