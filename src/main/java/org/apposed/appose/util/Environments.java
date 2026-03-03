@@ -93,7 +93,7 @@ public final class Environments {
 	public static String apposeEnvsDir() {
 		String envsDir = System.getProperty("appose.envs-dir");
 		if (envsDir != null) return envsDir;
-		envsDir = System.getenv("APPOSE_ENVSDIR");
+		envsDir = System.getenv("APPOSE_ENVS_DIR");
 		if (envsDir != null) return envsDir;
 		String userHome = System.getProperty("user.home");
 		return Paths.get(userHome, ".local", "share", "appose").toString();
