@@ -240,6 +240,10 @@ public abstract class Tool {
 	}
 
 	protected File download() throws IOException, InterruptedException {
+		if (url == null) {
+			throw new IOException(name + " is not available for this platform (" +
+				Platforms.PLATFORM + "). Please install it manually.");
+		}
 		try {
 			return Downloads.download(name, url, this::updateDownloadProgress);
 		}
