@@ -34,8 +34,10 @@ import org.apposed.appose.Nullable;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Comparator;
+import java.util.HashSet;
 import java.util.List;
 import java.util.ServiceLoader;
+import java.util.Set;
 import java.util.function.Function;
 import java.util.function.Predicate;
 
@@ -61,9 +63,13 @@ public final class Plugins {
 	 * @return List of discovered instances.
 	 */
 	public static <T> List<T> discover(Class<T> iface, Comparator<T> comparator) {
-		ServiceLoader<T> loader = ServiceLoader.load(iface);
 		List<T> singletons = new ArrayList<>();
-		loader.forEach(singletons::add);
+		Set<String> seen = new HashSet<>();
+		for (ClassLoader cl : classLoaders(iface)) {
+			for (T plugin : ServiceLoader.load(iface, cl)) {
+				if (seen.add(plugin.getClass().getName())) singletons.add(plugin);
+			}
+		}
 		if (comparator != null) singletons.sort(comparator);
 		return singletons;
 	}
@@ -75,11 +81,30 @@ public final class Plugins {
 	}
 
 	public static <T, U> @Nullable U create(Class<T> iface, Function<T, U> creator) {
-		ServiceLoader<T> loader = ServiceLoader.load(iface);
-		for (T factory : loader) {
-			U result = creator.apply(factory);
-			if (result != null) return result;
+		Set<String> seen = new HashSet<>();
+		for (ClassLoader cl : classLoaders(iface)) {
+			for (T factory : ServiceLoader.load(iface, cl)) {
+				if (!seen.add(factory.getClass().getName())) continue;
+				U result = creator.apply(factory);
+				if (result != null) return result;
+			}
 		}
 		return null;
+	}
+
+	/**
+	 * Returns the class loaders to consult when discovering plugins.
+	 * The thread context class loader is tried first so that external
+	 * implementations (e.g. in a separate JAR) can override built-ins.
+	 * The interface's own class loader is appended if different, ensuring
+	 * built-in implementations are always found even when the TCCL has no
+	 * visibility into appose's JAR (e.g. in OSGi containers).
+	 */
+	private static <T> List<ClassLoader> classLoaders(Class<T> iface) {
+		List<ClassLoader> loaders = new ArrayList<>();
+		ClassLoader tccl = Thread.currentThread().getContextClassLoader();
+		if (tccl != null) loaders.add(tccl);
+		if (iface.getClassLoader() != tccl) loaders.add(iface.getClassLoader());
+		return loaders;
 	}
 }
