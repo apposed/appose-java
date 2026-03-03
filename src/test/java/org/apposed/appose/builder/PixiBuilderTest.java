@@ -38,9 +38,12 @@ import org.junit.jupiter.api.Test;
 import java.io.File;
 import java.io.IOException;
 import java.net.URL;
+import java.util.List;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /** End-to-end tests for {@link PixiBuilder}. */
 public class PixiBuilderTest extends TestBase {
@@ -191,6 +194,27 @@ public class PixiBuilderTest extends TestBase {
 
 		assertInstanceOf(PixiBuilder.class, env.builder());
 		cowsayAndAssert(env, "toml!");
+	}
+
+	/** Tests that {@code .environment()} selects a non-default pixi environment. */
+	@Test
+	public void testPixiEnvironmentSelection() throws Exception {
+		Environment env = Appose
+			.pixi("src/test/resources/envs/cowsay-multi-env.toml")
+			.base("target/envs/pixi-multi-env")
+			.environment("alt")
+			.logDebug()
+			.build();
+		assertInstanceOf(PixiBuilder.class, env.builder());
+		// Verify launch args include --environment alt.
+		List<String> launchArgs = env.launchArgs();
+		int idx = launchArgs.indexOf("--environment");
+		assertTrue(idx >= 0, "launchArgs should contain --environment");
+		assertEquals("alt", launchArgs.get(idx + 1));
+		// Verify bin path resolves to the alt environment directory.
+		assertTrue(env.binPaths().get(0).contains(File.separator + "alt" + File.separator),
+			"binPaths should reference the alt environment");
+		cowsayAndAssert(env, "multi-env");
 	}
 
 	/** Tests building from a file:// URL to exercise URL support. */

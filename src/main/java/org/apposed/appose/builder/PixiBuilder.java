@@ -53,8 +53,23 @@ public final class PixiBuilder extends BaseBuilder<PixiBuilder> {
 
 	private final List<String> condaPackages = new ArrayList<>();
 	private final List<String> pypiPackages = new ArrayList<>();
+	private String pixiEnvironment;
 
 	// -- PixiBuilder methods --
+
+	/**
+	 * Selects which pixi environment to activate within the manifest.
+	 * Pixi supports multiple named environments in a single {@code pixi.toml};
+	 * use this method to target one other than {@code "default"}.
+	 * Maps to {@code pixi run --environment <name>}.
+	 *
+	 * @param name The pixi environment name (e.g. {@code "cuda"}, {@code "cpu"}).
+	 * @return This builder instance, for fluent-style programming.
+	 */
+	public PixiBuilder environment(String name) {
+		this.pixiEnvironment = name;
+		return this;
+	}
 
 	/**
 	 * Adds conda packages to the environment.
@@ -256,16 +271,21 @@ public final class PixiBuilder extends BaseBuilder<PixiBuilder> {
 
 	private Environment createEnvironment(Pixi pixi, File envDir) {
 		String base = envDir.getAbsolutePath();
+		String envName = pixiEnvironment != null ? pixiEnvironment : "default";
 		// Check which manifest file exists (pyproject.toml takes precedence).
 		File manifestFile = new File(envDir, "pyproject.toml");
 		if (!manifestFile.exists()) manifestFile = new File(envDir, "pixi.toml");
-		List<String> launchArgs = Arrays.asList(
+		List<String> launchArgs = new ArrayList<>(Arrays.asList(
 				pixi.command, "run", "--manifest-path",
 				manifestFile.getAbsolutePath()
-		);
+		));
+		if (pixiEnvironment != null) {
+			launchArgs.add("--environment");
+			launchArgs.add(pixiEnvironment);
+		}
 		List<String> binPaths = Collections.singletonList(
-			envDir.toPath().resolve(".pixi").resolve("envs").resolve("default").resolve("bin").toString()
-        );
+			envDir.toPath().resolve(".pixi").resolve("envs").resolve(envName).resolve("bin").toString()
+		);
 		return createEnv(base, binPaths, launchArgs);
 	}
 }
