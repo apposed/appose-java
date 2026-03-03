@@ -269,12 +269,23 @@ public final class PixiBuilder extends BaseBuilder<PixiBuilder> {
 
 	// -- Helper methods --
 
-	private Environment createEnvironment(Pixi pixi, File envDir) {
-		String base = envDir.getAbsolutePath();
-		String envName = pixiEnvironment != null ? pixiEnvironment : "default";
+	private Environment createEnvironment(Pixi pixi, File envDir) throws IOException, InterruptedException {
 		// Check which manifest file exists (pyproject.toml takes precedence).
 		File manifestFile = new File(envDir, "pyproject.toml");
 		if (!manifestFile.exists()) manifestFile = new File(envDir, "pixi.toml");
+
+		// Ensure the pixi environment is fully installed.
+		List<String> installCmd = new ArrayList<>(Arrays.asList(
+				"install", "--manifest-path", manifestFile.getAbsolutePath()
+		));
+		if (pixiEnvironment != null) {
+			installCmd.add("--environment");
+			installCmd.add(pixiEnvironment);
+		}
+		pixi.exec(installCmd.toArray(new String[0]));
+
+		String base = envDir.getAbsolutePath();
+		String envName = pixiEnvironment != null ? pixiEnvironment : "default";
 		List<String> launchArgs = new ArrayList<>(Arrays.asList(
 				pixi.command, "run", "--manifest-path",
 				manifestFile.getAbsolutePath()

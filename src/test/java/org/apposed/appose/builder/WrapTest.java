@@ -35,7 +35,10 @@ import org.apposed.appose.Environment;
 import org.apposed.appose.TestBase;
 import org.junit.jupiter.api.Test;
 
+import org.apposed.appose.util.FilePaths;
+
 import java.io.File;
+import java.io.FileWriter;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -53,7 +56,12 @@ public class WrapTest extends TestBase {
 		File pixiDir = new File("target/test-wrap-pixi");
 		pixiDir.mkdirs();
 		File pixiToml = new File(pixiDir, "pixi.toml");
-		pixiToml.createNewFile();
+		try (FileWriter w = new FileWriter(pixiToml)) {
+			w.write("[workspace]\n");
+			w.write("name = \"test-wrap-pixi\"\n");
+			w.write("channels = [\"conda-forge\"]\n");
+			w.write("platforms = [\"linux-64\", \"osx-64\", \"osx-arm64\", \"win-64\"]\n");
+		}
 
 		try {
 			Environment pixiEnv = Appose.wrap(pixiDir);
@@ -65,8 +73,7 @@ public class WrapTest extends TestBase {
 			assertTrue(pixiEnv.launchArgs().get(0).contains("pixi"),
 				"Pixi environment should use pixi launcher");
 		} finally {
-			pixiToml.delete();
-			pixiDir.delete();
+			FilePaths.deleteRecursively(pixiDir);
 		}
 	}
 

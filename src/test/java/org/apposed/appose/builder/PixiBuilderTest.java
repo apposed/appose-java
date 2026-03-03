@@ -217,6 +217,27 @@ public class PixiBuilderTest extends TestBase {
 		cowsayAndAssert(env, "multi-env");
 	}
 
+	/**
+	 * Tests that {@link PixiBuilder#build()} fully installs the pixi environment,
+	 * i.e. that {@code .pixi/envs/default} exists after {@code build()} returns,
+	 * not only after the first {@code pixi run} invocation.
+	 */
+	@Test
+	public void testBuildInstallsEnv() throws Exception {
+		Environment env = Appose
+			.pixi("src/test/resources/envs/cowsay-pixi.toml")
+			.base("target/envs/pixi-build-installs-env")
+			.logDebug()
+			.rebuild();
+		// The default pixi environment directory must exist right after build(),
+		// before any service is launched. This was the bug: build() used to only
+		// write pixi.toml, leaving installation to the first pixi run invocation.
+		File envDir = new File(env.base(), ".pixi/envs/default");
+		assertTrue(envDir.isDirectory(),
+			".pixi/envs/default should exist after build(), but was missing: " + envDir);
+		cowsayAndAssert(env, "installed");
+	}
+
 	/** Tests building from a file:// URL to exercise URL support. */
 	@Test
 	public void testURLSupport() throws Exception {
