@@ -78,7 +78,7 @@ public final class Downloads {
 		return download(name, urlPath, null);
 	}
 
-	public static File download(String name, String urlPath, @Nullable BiConsumer<Long, Long> progressConsumer)
+	public static File download(String name, String urlPath, @Nullable BiConsumer<Long, Long> progressSubscriber)
 		throws IOException, InterruptedException, URISyntaxException
 	{
 		// Resolve redirects and get final URL
@@ -134,8 +134,8 @@ public final class Downloads {
 		dwnldThread.start();
 		while (dwnldThread.isAlive()) {
 			Thread.sleep(20); // 50 FPS update rate
-			if (progressConsumer != null)
-				progressConsumer.accept(tempFile.length(), size);
+			if (progressSubscriber != null)
+				progressSubscriber.accept(tempFile.length(), size);
 		}
 		if (ioe[0] != null) throw ioe[0];
 		if (ie[0] != null) throw ie[0];
