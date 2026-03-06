@@ -40,7 +40,8 @@ import java.util.Arrays;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.function.BiConsumer;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.function.Function;
 
 import static org.apposed.appose.NDArray.Shape.Order.C_ORDER;
 
@@ -64,6 +65,80 @@ public final class Messages {
 
 	// Counter for auto-generated proxy variable names.
 	private static int proxyCounter = 0;
+
+	// Registry of class -> (appose_type, encoder) for encoding custom types.
+	private static final Map<Class<?>, String> ENCODER_TYPES = new ConcurrentHashMap<>();
+	private static final Map<Class<?>, Function<Object, Object>> ENCODER_FNS = new ConcurrentHashMap<>();
+
+	// Registry of appose_type -> factory for decoding custom types.
+	private static final Map<String, Function<Map<String, Object>, Object>> DECODERS =
+		new ConcurrentHashMap<>();
+
+	/**
+	 * Registers encoder and decoder functions for a custom Appose type.
+	 * <p>
+	 * When encoding, if an object is an instance of {@code objType}, {@code encoder}
+	 * is called and its return value is wrapped as
+	 * {@code {"appose_type": apposeType, "data": <encoded>}}.
+	 * </p>
+	 * <p>
+	 * When decoding, if a JSON object has the given {@code apposeType}, {@code decoder}
+	 * is called with the {@code "data"} field value and should return the
+	 * reconstructed object.
+	 * </p>
+	 *
+	 * @param <T>        The type being registered.
+	 * @param objType    The class of objects to encode.
+	 * @param apposeType The {@code appose_type} string used on the wire.
+	 * @param encoder    Function from object to JSON-compatible value (without appose_type).
+	 * @param decoder    Function from decoded data map to reconstructed object.
+	 */
+	@SuppressWarnings("unchecked")
+	public static <T> void register(
+		Class<T> objType,
+		String apposeType,
+		Function<T, Object> encoder,
+		Function<Map<String, Object>, Object> decoder
+	) {
+		ENCODER_TYPES.put(objType, apposeType);
+		ENCODER_FNS.put(objType, (Function<Object, Object>) (Function<?, ?>) encoder);
+		DECODERS.put(apposeType, decoder);
+	}
+
+	static {
+		// NB: Built-in type registrations live here rather than in their respective
+		// classes (SharedMemory, NDArray) because Java static initializers only run
+		// when a class is first loaded. If Messages.decode() were called before
+		// SharedMemory or NDArray had been referenced, their decoders would not yet
+		// be registered. Keeping registrations here ensures they are always in place
+		// as soon as the Messages class itself is loaded.
+		register(SharedMemory.class, "shm",
+			shm -> {
+				Map<String, Object> payload = new LinkedHashMap<>();
+				payload.put("name", shm.name());
+				payload.put("rsize", shm.rsize());
+				return payload;
+			},
+			map -> SharedMemory.attach(
+				(String) map.get("name"),
+				((Number) map.get("rsize")).longValue()
+			)
+		);
+		register(NDArray.class, "ndarray",
+			nda -> {
+				Map<String, Object> payload = new LinkedHashMap<>();
+				payload.put("dtype", nda.dType().label());
+				payload.put("shape", nda.shape().toIntArray(C_ORDER));
+				payload.put("shm", nda.shm());
+				return payload;
+			},
+			map -> new NDArray(
+				toDType((String) map.get("dtype")),
+				toShape((List<Integer>) map.get("shape")),
+				(SharedMemory) map.get("shm")
+			)
+		);
+	}
 
 	/**
 	 * Converts a Map into a JSON string.
@@ -137,13 +212,12 @@ public final class Messages {
 	 * Map, List, String (and other CharSequences), Number, Boolean, and primitives.
 	 * </p>
 	 * <p>
-	 * Other types either have custom Appose converters (SharedMemory, NDArray) or
-	 * will be auto-proxied as worker_object references when in worker mode.
+	 * Other types either implement {@link ForJson} (and are handled by the ForJson
+	 * converter) or will be auto-proxied as worker_object references when in worker mode.
 	 * </p>
 	 * <p>
-	 * Note: This list should remain stable. When adding new Appose-specific converters
-	 * (e.g., for custom types), add them to the GENERATOR converter chain before the
-	 * catch-all converter - you do NOT need to modify this method.
+	 * Note: This list should remain stable. Types implementing {@link ForJson} are
+	 * handled before the catch-all and do not require changes here.
 	 * </p>
 	 *
 	 * @param type The class to check
@@ -158,50 +232,28 @@ public final class Messages {
 			|| type.isPrimitive();
 	}
 
-	/**
-	 * Helper to create a {@link JsonGenerator.Converter}.
-	 * <p>
-	 * The converter encodes objects of a specified class {@code clz} into a
-	 * {@code Map<String, Object>}. The given {@code appose_type} string is put
-	 * into the map with key {@code "appose_type"}. The map and value to be
-	 * converted are passed to the given {@code BiConsumer} which should
-	 * serialize the value into the map somehow.
-	 * </p>
-	 *
-	 * @param clz the converter will handle objects of this class (or sub-classes)
-	 * @param appose_type the value for key "appose_type" in the returned Map
-	 * @param converter accepts a map and a value, and serializes the value into the map somehow.
-	 * @return a new converter
-	 * @param <T> object type handled by this converter
-	 */
-	private static <T> JsonGenerator.Converter convert(Class<T> clz, String appose_type, BiConsumer<Map<String, Object>, T> converter) {
-		return new JsonGenerator.Converter() {
-
-			@Override
-			public boolean handles(Class<?> type) {
-				return clz.isAssignableFrom(type);
-			}
-
-			@SuppressWarnings("unchecked")
-			@Override
-			public Object convert(Object value, String key) {
-				Map<String, Object> map = new LinkedHashMap<>();
-				map.put("appose_type", appose_type);
-				converter.accept(map, (T) value);
-				return map;
-			}
-		};
-	}
-
 	static final JsonGenerator GENERATOR = new JsonGenerator.Options() //
-			.addConverter(convert(SharedMemory.class, "shm", (map, shm) -> {
-				map.put("name", shm.name());
-				map.put("rsize", shm.rsize());
-			})).addConverter(convert(NDArray.class, "ndarray", (map, ndArray) -> {
-				map.put("dtype", ndArray.dType().label());
-				map.put("shape", ndArray.shape().toIntArray(C_ORDER));
-				map.put("shm", ndArray.shm());
-			})).addConverter(new JsonGenerator.Converter() {
+			.addConverter(new JsonGenerator.Converter() {
+				@Override
+				public boolean handles(Class<?> type) {
+					return ENCODER_TYPES.keySet().stream().anyMatch(c -> c.isAssignableFrom(type));
+				}
+
+				@Override
+				public Object convert(Object value, String key) {
+					for (Map.Entry<Class<?>, Function<Object, Object>> entry : ENCODER_FNS.entrySet()) {
+						if (entry.getKey().isAssignableFrom(value.getClass())) {
+							Map<String, Object> map = new LinkedHashMap<>();
+							map.put("appose_type", ENCODER_TYPES.get(entry.getKey()));
+							@SuppressWarnings("unchecked")
+							Map<String, Object> payload = (Map<String, Object>) entry.getValue().apply(value);
+							map.putAll(payload);
+							return map;
+						}
+					}
+					throw new IllegalStateException("No encoder for " + value.getClass());
+				}
+			}).addConverter(new JsonGenerator.Converter() {
 				// Catch-all converter for non-serializable objects in worker mode.
 				// This should be the LAST converter in the chain, so it only handles
 				// objects that no other converter claimed.
@@ -211,8 +263,7 @@ public final class Messages {
 					if (!workerMode) return false;
 
 					// Don't auto-proxy types that Groovy's JSON encoder handles natively.
-					// Custom converters (SharedMemory, NDArray, etc.) are earlier in the
-					// chain and will have already claimed their types.
+					// Registered types are earlier in the chain and will have already claimed theirs.
 					return !isNativelyJsonSerializable(type);
 				}
 
@@ -250,23 +301,14 @@ public final class Messages {
 			Object v = map.get("appose_type");
 			if (v instanceof String) {
 				String appose_type = (String) v;
-				switch (appose_type) {
-					case "shm":
-						String name = (String) map.get("name");
-						long rsize = ((Number) map.get("rsize")).longValue();
-						return SharedMemory.attach(name, rsize);
-					case "ndarray":
-						NDArray.DType dType = toDType((String) map.get("dtype"));
-						NDArray.Shape shape = toShape((List<Integer>) map.get("shape"));
-						SharedMemory shm = (SharedMemory) map.get("shm");
-						return new NDArray(dType, shape, shm);
-					case "worker_object":
-						// Return map as-is; will be converted to WorkerObject
-						// by Proxies.proxifyWorkerObjects() in Service.Task.handle().
-						return map;
-					default:
-						System.err.println("unknown appose_type \"" + appose_type + "\"");
+				if ("worker_object".equals(appose_type)) {
+					// Return map as-is; will be converted to WorkerObject
+					// by Proxies.proxifyWorkerObjects() in Service.Task.handle().
+					return map;
 				}
+				Function<Map<String, Object>, Object> factory = DECODERS.get(appose_type);
+				if (factory != null) return factory.apply(map);
+				System.err.println("unknown appose_type \"" + appose_type + "\"");
 			}
 			return map;
 		} else {
