@@ -114,10 +114,36 @@ public interface Environment {
 	 * @see #groovy To create a service for Groovy script execution.
 	 */
 	default Service python() {
+		// NB: This method may appear redundant with python(String[])
+		// below, but it is included for two reasons:
+		//
+		// 1. So that it can have a distinct javadoc; and
+		// 2. For backwards compatibility with existing bytecode tied
+		//    to this method signature (avoids NoSuchMethodError).
+		return python(new String[0]);
+	}
+
+	/**
+	 * Launches a Python process with the given arguments.
+	 * <p>
+	 * This is a <b>lower level</b> function for launching Python with any
+	 * arguments of your choice. This can be useful to perform actions such
+	 * as installing a wheel (`python -m pip install /path/to/wheel-file`),
+	 * without the usual bother of platform-specific special casing.
+	 * </p>
+	 *
+	 * @param args Optional alternate args to pass to the python process. If
+	 *             empty, a normal Appose {@code python_worker} will be started.
+	 * @return The newly created process within a {@link Service} object.
+	 *         Useful for calling {@link Service#waitFor()} to await completion.
+	 */
+	default Service python(String... args) {
 		List<String> pythonExes = Arrays.asList("python", "python3", "python.exe");
-		return service(pythonExes, "-c",
-			"import appose.python_worker; appose.python_worker.main()")
-			.syntax("python");
+		String[] pythonArgs = args.length > 0 ? args : new String[] {
+			"-c",
+			"import appose.python_worker; appose.python_worker.main()"
+		};
+		return service(pythonExes, pythonArgs).syntax("python");
 	}
 
 	/**
