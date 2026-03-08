@@ -269,10 +269,31 @@ public final class PixiBuilder extends BaseBuilder<PixiBuilder> {
 
 	// -- Helper methods --
 
+	/** Returns a new list with an additional flag appended. */
+	private static List<String> withFlag(List<String> flags, String flag) {
+		List<String> result = new ArrayList<>(flags);
+		result.add(flag);
+		return result;
+	}
+
 	private Environment createEnvironment(Pixi pixi, File envDir) throws IOException, InterruptedException {
 		// Check which manifest file exists (pyproject.toml takes precedence).
 		File manifestFile = new File(envDir, "pyproject.toml");
 		if (!manifestFile.exists()) manifestFile = new File(envDir, "pixi.toml");
+
+		// Set up install progress monitoring when subscribers are registered.
+		PixiInstallMonitor monitor = null;
+		if (!progressSubscribers.isEmpty()) {
+			// Inject -vv if not already present, so stderr emits phase signals.
+			if (!flags.contains("-v") && !flags.contains("-vv") && !flags.contains("-vvv")) {
+				pixi.setFlags(withFlag(flags, "-vv"));
+			}
+
+			String envName = pixiEnvironment != null ? pixiEnvironment : "default";
+			monitor = new PixiInstallMonitor(envDir, envName, progressSubscribers,
+				msg -> errorSubscribers.forEach(sub -> sub.accept(msg)));
+			pixi.setErrorConsumer(monitor::intercept);
+		}
 
 		// Ensure the pixi environment is fully installed.
 		List<String> installCmd = new ArrayList<>(Arrays.asList(
@@ -282,7 +303,18 @@ public final class PixiBuilder extends BaseBuilder<PixiBuilder> {
 			installCmd.add("--environment");
 			installCmd.add(pixiEnvironment);
 		}
-		pixi.exec(installCmd.toArray(new String[0]));
+		try {
+			pixi.exec(installCmd.toArray(new String[0]));
+		}
+		finally {
+			if (monitor != null) {
+				monitor.shutdown();
+				// Restore the original error consumer.
+				pixi.setErrorConsumer(msg -> errorSubscribers.forEach(sub -> sub.accept(msg)));
+				// Restore the original flags.
+				pixi.setFlags(flags);
+			}
+		}
 
 		String base = envDir.getAbsolutePath();
 		String envName = pixiEnvironment != null ? pixiEnvironment : "default";
