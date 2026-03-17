@@ -322,15 +322,7 @@ public abstract class Tool {
 		capturedOutput.setLength(0);
 		capturedError.setLength(0);
 
-		// On Windows, cmd.exe /c is needed for shell scripts and PATH resolution,
-		// but absolute paths to native executables must be invoked directly:
-		// cmd.exe treats parentheses and other characters as shell metacharacters,
-		// so a path like C:\Users\foo\Fiji(1)\bin\pixi.exe would be misinterpreted.
-		final List<String> cmd = new ArrayList<>();
-		if (Platforms.isWindows() && !new File(command).isAbsolute()) {
-			cmd.addAll(Arrays.asList("cmd.exe", "/c"));
-		}
-		cmd.add(command);
+		final List<String> cmd = Platforms.command(command);
 		if (includeFlags) cmd.addAll(flags);
 		cmd.addAll(Arrays.asList(args));
 

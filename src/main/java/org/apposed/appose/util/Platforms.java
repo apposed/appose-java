@@ -92,14 +92,26 @@ public final class Platforms {
 	}
 
 	/**
-	 * Gets the arguments to prefix to execute a command in a separate process.
+	 * Gets the command list needed to invoke the given executable.
+	 * <p>
+	 * On Windows, absolute paths to native executables are invoked directly
+	 * via {@link ProcessBuilder}, bypassing {@code cmd.exe} entirely.
+	 * This is necessary because {@code cmd.exe} treats parentheses and other
+	 * characters as shell metacharacters, which would break paths like
+	 * {@code C:\Users\foo\Fiji(1)\bin\pixi.exe}.
+	 * Relative names (which need shell PATH resolution) still get
+	 * {@code ["cmd.exe", "/c"]} prepended.
+	 * </p>
 	 *
-	 * @return <code>{"cmd.exe", "/c"}</code> for Windows and an empty list otherwise.
+	 * @param exe The executable path or name to invoke.
+	 * @return A mutable list starting with the executable, preceded by
+	 *         {@code cmd.exe /c} when needed.
 	 */
-	public static List< String > baseCommand() {
-		final List< String > cmd = new ArrayList<>();
-		if (Platforms.isWindows())
+	public static List<String> command(String exe) {
+		final List<String> cmd = new ArrayList<>();
+		if (isWindows() && !new File(exe).isAbsolute())
 			cmd.addAll(Arrays.asList("cmd.exe", "/c"));
+		cmd.add(exe);
 		return cmd;
 	}
 }
