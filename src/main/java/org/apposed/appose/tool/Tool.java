@@ -216,7 +216,16 @@ public abstract class Tool {
 	 * @throws IllegalStateException If the tool has not been installed.
 	 */
 	protected void exec(File cwd, String... args) throws IOException, InterruptedException {
-		if (!isInstalled()) throw new IllegalStateException(name + " is not installed");
+		if (!isInstalled()) {
+			File commandFile = new File(command);
+			if (commandFile.isFile()) {
+				throw new IllegalStateException(name + " is installed at \"" + command +
+					"\" but could not be run -- the path may contain characters" +
+					" that are special to the shell (e.g. parentheses on Windows)");
+			}
+			throw new IllegalStateException(name + " is not installed" +
+				" (expected executable at \"" + command + "\")");
+		}
 		doExec(cwd, false, true, args); // silent=false, includeFlags=true
 	}
 
@@ -313,7 +322,14 @@ public abstract class Tool {
 		capturedOutput.setLength(0);
 		capturedError.setLength(0);
 
-		final List<String> cmd = Platforms.baseCommand();
+		// On Windows, cmd.exe /c is needed for shell scripts and PATH resolution,
+		// but absolute paths to native executables must be invoked directly:
+		// cmd.exe treats parentheses and other characters as shell metacharacters,
+		// so a path like C:\Users\foo\Fiji(1)\bin\pixi.exe would be misinterpreted.
+		final List<String> cmd = new ArrayList<>();
+		if (Platforms.isWindows() && !new File(command).isAbsolute()) {
+			cmd.addAll(Arrays.asList("cmd.exe", "/c"));
+		}
 		cmd.add(command);
 		if (includeFlags) cmd.addAll(flags);
 		cmd.addAll(Arrays.asList(args));
