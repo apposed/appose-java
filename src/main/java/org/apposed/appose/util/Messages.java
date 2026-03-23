@@ -30,7 +30,6 @@
 package org.apposed.appose.util;
 
 import groovy.json.JsonGenerator;
-import groovy.json.JsonSlurper;
 import org.apposed.appose.NDArray;
 import org.apposed.appose.SharedMemory;
 
@@ -68,9 +67,9 @@ public final class Messages {
 
 	// Registry of class -> (appose_type, encoder) for encoding custom types.
 	private static final Map<Class<?>, String> ENCODER_TYPES = new ConcurrentHashMap<>();
-	private static final Map<Class<?>, Function<Object, Object>> ENCODER_FNS = new ConcurrentHashMap<>();
+	private static final Map<Class<?>, Function<Object, Object>> ENCODERS = new ConcurrentHashMap<>();
 
-	// Registry of appose_type -> factory for decoding custom types.
+	// Registry of appose_type -> decoder for decoding custom types.
 	private static final Map<String, Function<Map<String, Object>, Object>> DECODERS =
 		new ConcurrentHashMap<>();
 
@@ -83,7 +82,7 @@ public final class Messages {
 	 * </p>
 	 * <p>
 	 * When decoding, if a JSON object has the given {@code apposeType}, {@code decoder}
-	 * is called with the {@code "data"} field value and should return the
+	 * is called on the  and should return the
 	 * reconstructed object.
 	 * </p>
 	 *
@@ -101,7 +100,7 @@ public final class Messages {
 		Function<Map<String, Object>, Object> decoder
 	) {
 		ENCODER_TYPES.put(objType, apposeType);
-		ENCODER_FNS.put(objType, (Function<Object, Object>) (Function<?, ?>) encoder);
+		ENCODERS.put(objType, (Function<Object, Object>) (Function<?, ?>) encoder);
 		DECODERS.put(apposeType, decoder);
 	}
 
@@ -158,7 +157,7 @@ public final class Messages {
 	 */
 	@SuppressWarnings("unchecked")
 	public static Map<String, Object> decode(String json) {
-		return postProcess(new JsonSlurper().parseText(json));
+		return postProcess(Json.parseJson(json));
 	}
 
 	/**
@@ -173,7 +172,6 @@ public final class Messages {
 		t.printStackTrace(new PrintWriter(sw));
 		return sw.toString();
 	}
-
 
 	// -- Serialization --
 
@@ -206,22 +204,22 @@ public final class Messages {
 	*/
 
 	/**
-	 * Checks if a type is natively JSON-serializable by Groovy's built-in JSON encoder.
+	 * Checks if a type is natively JSON-serializable by the built-in
+	 * JSON encoder.
 	 * <p>
 	 * These are the basic JSON types that don't need special handling:
-	 * Map, List, String (and other CharSequences), Number, Boolean, and primitives.
+	 * Map, List, String (and other CharSequences), Number, Boolean, and
+	 * primitives.
 	 * </p>
 	 * <p>
-	 * Other types either implement {@link ForJson} (and are handled by the ForJson
-	 * converter) or will be auto-proxied as worker_object references when in worker mode.
-	 * </p>
-	 * <p>
-	 * Note: This list should remain stable. Types implementing {@link ForJson} are
-	 * handled before the catch-all and do not require changes here.
+	 * Other types are handled by a registered encoder if available
+	 * (see {@link #register(Class, String, Function, Function)}),
+	 * or else will be auto-proxied as {@code worker_object} references
+	 * when in worker mode.
 	 * </p>
 	 *
 	 * @param type The class to check
-	 * @return true if this is a basic JSON type that Groovy can serialize natively
+	 * @return true if this is a basic JSON type that can be serialized natively
 	 */
 	private static boolean isNativelyJsonSerializable(Class<?> type) {
 		return Map.class.isAssignableFrom(type)
@@ -241,7 +239,7 @@ public final class Messages {
 
 				@Override
 				public Object convert(Object value, String key) {
-					for (Map.Entry<Class<?>, Function<Object, Object>> entry : ENCODER_FNS.entrySet()) {
+					for (Map.Entry<Class<?>, Function<Object, Object>> entry : ENCODERS.entrySet()) {
 						if (entry.getKey().isAssignableFrom(value.getClass())) {
 							Map<String, Object> map = new LinkedHashMap<>();
 							map.put("appose_type", ENCODER_TYPES.get(entry.getKey()));
@@ -262,7 +260,7 @@ public final class Messages {
 					// Only active in worker mode.
 					if (!workerMode) return false;
 
-					// Don't auto-proxy types that Groovy's JSON encoder handles natively.
+					// Don't auto-proxy types that the JSON encoder handles natively.
 					// Registered types are earlier in the chain and will have already claimed theirs.
 					return !isNativelyJsonSerializable(type);
 				}
@@ -306,8 +304,8 @@ public final class Messages {
 					// by Proxies.proxifyWorkerObjects() in Service.Task.handle().
 					return map;
 				}
-				Function<Map<String, Object>, Object> factory = DECODERS.get(appose_type);
-				if (factory != null) return factory.apply(map);
+				Function<Map<String, Object>, Object> decoder = DECODERS.get(appose_type);
+				if (decoder != null) return decoder.apply(map);
 				System.err.println("unknown appose_type \"" + appose_type + "\"");
 			}
 			return map;
