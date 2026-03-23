@@ -43,6 +43,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 
 /**
  * Type-safe builder for Pixi-based environments.
@@ -101,6 +102,14 @@ public final class PixiBuilder extends BaseBuilder<PixiBuilder> {
 	}
 
 	@Override
+	protected void addStateFields(Map<String, Object> state) {
+		super.addStateFields(state);
+		state.put("condaPackages", condaPackages);
+		state.put("pypiPackages", pypiPackages);
+		state.put("pixiEnvironment", pixiEnvironment);
+	}
+
+	@Override
 	public Environment build() throws BuildException {
 		File envDir = resolveEnvDir();
 
@@ -135,25 +144,17 @@ public final class PixiBuilder extends BaseBuilder<PixiBuilder> {
 		pixi.setFlags(flags);
 
 		try {
+			// Always ensure the pixi tool itself is available.
 			pixi.install();
 
-			// Check if this is already a pixi project.
-			boolean isPixiDir = new File(envDir, "pixi.toml").isFile() ||
-			                    new File(envDir, "pyproject.toml").isFile() ||
-			                    new File(envDir, ".pixi").isDirectory();
-
-			if (isPixiDir && content == null && condaPackages.isEmpty() && pypiPackages.isEmpty()) {
-				// Environment already exists, just use it.
-				return createEnvironment(pixi, envDir);
+			// If the env state matches our current configuration,
+			// skip all package management and return immediately.
+			if (isUpToDate(envDir)) {
+				return buildPixiEnvironment(pixi, envDir);
 			}
 
-			// Handle source-based build (file or content).
+			// Build (or rebuild) the environment.
 			if (content != null) {
-				if (isPixiDir) {
-					// Already initialized, just use it.
-					return createEnvironment(pixi, envDir);
-				}
-
 				if (!envDir.exists() && !envDir.mkdirs()) {
 					throw new BuildException(this, "Failed to create environment directory: " + envDir);
 				}
@@ -181,12 +182,10 @@ public final class PixiBuilder extends BaseBuilder<PixiBuilder> {
 				}
 			} else {
 				// Programmatic package building.
-				if (isPixiDir) {
-					// Already initialized, just use it.
-					return createEnvironment(pixi, envDir);
-				}
-
-				if (!envDir.exists() && !envDir.mkdirs()) {
+				// Wipe any existing env before reinitializing, to avoid conflicts
+				// with pixi init and to ensure no stale packages remain.
+				if (envDir.exists()) FilePaths.deleteRecursively(envDir);
+				if (!envDir.mkdirs()) {
 					throw new BuildException(this, "Failed to create environment directory: " + envDir);
 				}
 
@@ -230,7 +229,9 @@ public final class PixiBuilder extends BaseBuilder<PixiBuilder> {
 				}
 			}
 
-			return createEnvironment(pixi, envDir);
+			runPixiInstall(pixi, envDir);
+			writeApposeStateFile(envDir);
+			return buildPixiEnvironment(pixi, envDir);
 		}
 		catch (IOException | InterruptedException e) {
 			throw new BuildException(this, e);
@@ -276,8 +277,7 @@ public final class PixiBuilder extends BaseBuilder<PixiBuilder> {
 		return result;
 	}
 
-	private Environment createEnvironment(Pixi pixi, File envDir) throws IOException, InterruptedException {
-		// Check which manifest file exists (pyproject.toml takes precedence).
+	private void runPixiInstall(Pixi pixi, File envDir) throws IOException, InterruptedException {
 		File manifestFile = new File(envDir, "pyproject.toml");
 		if (!manifestFile.exists()) manifestFile = new File(envDir, "pixi.toml");
 
@@ -315,6 +315,11 @@ public final class PixiBuilder extends BaseBuilder<PixiBuilder> {
 				pixi.setFlags(flags);
 			}
 		}
+	}
+
+	private Environment buildPixiEnvironment(Pixi pixi, File envDir) {
+		File manifestFile = new File(envDir, "pyproject.toml");
+		if (!manifestFile.exists()) manifestFile = new File(envDir, "pixi.toml");
 
 		String base = envDir.getAbsolutePath();
 		String envName = pixiEnvironment != null ? pixiEnvironment : "default";

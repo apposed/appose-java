@@ -69,27 +69,22 @@ public final class MambaBuilder extends BaseBuilder<MambaBuilder> {
 			throw new BuildException(this, "Cannot use MambaBuilder: environment already managed by uv/venv at " + envDir);
 		}
 
-		// Create Mamba tool instance early so it's available for wrapping.
-		Mamba mamba = new Mamba();
+		// Infer scheme from content if available.
+		if (content != null && scheme == null) scheme = Schemes.fromContent(content);
 
-		// Is this envDir an already-existing conda directory?
-		boolean isCondaDir = new File(envDir, "conda-meta").isDirectory();
-		if (isCondaDir) {
-			// Environment already exists, just wrap it.
-			return createEnvironment(mamba, envDir);
-		}
-
-		// Building a new environment - config content is required.
-		if (content == null) {
-			throw new IllegalStateException("No source specified for MambaBuilder. Use .file() or .content()");
-		}
-
-		// Infer scheme if not explicitly set.
-		if (scheme == null) scheme = Schemes.fromContent(content);
-
-		if (!"environment.yml".equals(scheme.name())) {
+		// Validate content and scheme when content is provided.
+		if (content != null && !"environment.yml".equals(scheme.name())) {
 			throw new IllegalArgumentException("MambaBuilder only supports environment.yml scheme, got: " + scheme);
 		}
+
+		// Check for unsupported features.
+		if (!channels.isEmpty()) {
+			throw new UnsupportedOperationException(
+				"MambaBuilder does not yet support programmatic channel configuration. " +
+				"Please specify channels in your environment.yml file.");
+		}
+
+		Mamba mamba = new Mamba();
 
 		// Set up progress/output consumers.
 		mamba.setOutputConsumer(msg -> outputSubscribers.forEach(sub -> sub.accept(msg)));
@@ -102,15 +97,26 @@ public final class MambaBuilder extends BaseBuilder<MambaBuilder> {
 		mamba.setEnvVars(envVars);
 		mamba.setFlags(flags);
 
-		// Check for unsupported features.
-		if (!channels.isEmpty()) {
-			throw new UnsupportedOperationException(
-				"MambaBuilder does not yet support programmatic channel configuration. " +
-				"Please specify channels in your environment.yml file.");
-		}
-
 		try {
+			// If the env state matches our current configuration,
+			// skip all package management and return immediately.
+			if (isUpToDate(envDir)) {
+				return createEnvironment(mamba, envDir);
+			}
+
+			// If no content was provided but this is an existing externally-managed
+			// conda env (no appose.json), wrap it as-is without rebuilding.
+			if (content == null) {
+				if (new File(envDir, "conda-meta").isDirectory()) {
+					return createEnvironment(mamba, envDir);
+				}
+				throw new IllegalStateException("No source specified for MambaBuilder. Use .file() or .content()");
+			}
+
 			mamba.install();
+
+			// Wipe any existing env to avoid conflicts with mamba create.
+			if (envDir.exists()) FilePaths.deleteRecursively(envDir);
 
 			// Two-step build: create empty env, write config, then update.
 			// Step 1: Create empty environment.
@@ -123,6 +129,7 @@ public final class MambaBuilder extends BaseBuilder<MambaBuilder> {
 			// Step 3: Update environment from yml.
 			mamba.update(envDir, envYaml);
 
+			writeApposeStateFile(envDir);
 			return createEnvironment(mamba, envDir);
 		}
 		catch (IOException | InterruptedException e) {

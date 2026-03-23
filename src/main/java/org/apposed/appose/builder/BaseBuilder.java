@@ -35,15 +35,20 @@ import org.apposed.appose.Environment;
 import org.apposed.appose.Scheme;
 import org.apposed.appose.util.Environments;
 import org.apposed.appose.util.FilePaths;
+import org.apposed.appose.util.Json;
 import org.apposed.appose.scheme.Schemes;
 
 import java.io.File;
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.TreeMap;
 import java.util.function.Consumer;
 
 /**
@@ -164,6 +169,49 @@ public abstract class BaseBuilder<T extends BaseBuilder<T>> implements Builder<T
 		return (T) this;
 	}
 
+	/**
+	 * Populates the given map with this builder's state fields for
+	 * {@code appose.json} comparison. Subclasses should override this method,
+	 * calling {@code super.addStateFields(state)} first, then adding their own fields.
+	 *
+	 * @param state The map to populate with state fields.
+	 */
+	protected void addStateFields(Map<String, Object> state) {
+		state.put("content", content);
+		state.put("scheme", scheme != null ? scheme.name() : null);
+		state.put("channels", channels);
+		state.put("flags", flags);
+		state.put("envVars", new TreeMap<>(envVars));
+	}
+
+	/**
+	 * Returns true if {@code appose.json} in the given directory matches
+	 * the current builder's state, meaning no rebuild is needed.
+	 *
+	 * @param envDir The environment directory to check.
+	 * @return True if up to date, false if a rebuild is needed.
+	 * @throws IOException If reading {@code appose.json} fails.
+	 */
+	protected boolean isUpToDate(File envDir) throws IOException {
+		File apposeJson = new File(envDir, "appose.json");
+		if (!apposeJson.isFile()) return false;
+		String existing = new String(Files.readAllBytes(apposeJson.toPath()), StandardCharsets.UTF_8);
+		return existing.equals(buildStateString());
+	}
+
+	/**
+	 * Writes the current builder state to {@code appose.json} in the given directory.
+	 * This should be called after a successful build to record the state,
+	 * so that future calls can skip the build when the state is unchanged.
+	 *
+	 * @param envDir The environment directory.
+	 * @throws IOException If writing fails.
+	 */
+	protected void writeApposeStateFile(File envDir) throws IOException {
+		File apposeJson = new File(envDir, "appose.json");
+		Files.write(apposeJson.toPath(), buildStateString().getBytes(StandardCharsets.UTF_8));
+	}
+
 	/** Determines the environment directory path. */
 	protected File resolveEnvDir() {
 		if (envDir != null) return envDir;
@@ -192,5 +240,18 @@ public abstract class BaseBuilder<T extends BaseBuilder<T>> implements Builder<T
 			@Override public Map<String, String> envVars() { return envVars; }
 			@Override public Builder<?> builder() { return BaseBuilder.this; }
 		};
+	}
+
+	/**
+	 * Builds a JSON string representing this builder's current configuration state.
+	 * Used to determine whether an existing environment needs to be rebuilt.
+	 *
+	 * @return JSON string of builder state.
+	 */
+	private final String buildStateString() {
+		Map<String, Object> state = new LinkedHashMap<>();
+		state.put("builder", envType());
+		addStateFields(state);
+		return Json.toJson(state);
 	}
 }

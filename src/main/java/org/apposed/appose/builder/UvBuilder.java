@@ -44,6 +44,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 
 /**
  * Type-safe builder for uv-based virtual environments.
@@ -84,6 +85,13 @@ public final class UvBuilder extends BaseBuilder<UvBuilder> {
 	@Override
 	public String envType() {
 		return "uv";
+	}
+
+	@Override
+	protected void addStateFields(Map<String, Object> state) {
+		super.addStateFields(state);
+		state.put("pythonVersion", pythonVersion);
+		state.put("packages", packages);
 	}
 
 	@Override
@@ -129,15 +137,17 @@ public final class UvBuilder extends BaseBuilder<UvBuilder> {
 		}
 
 		try {
-			uv.install();
-
-			// Check if this is already a uv virtual environment.
-			boolean isUvVenv = new File(envDir, "pyvenv.cfg").isFile();
-
-			if (isUvVenv && content == null && packages.isEmpty()) {
-				// Environment already exists and no new config/packages, just use it.
+			// If the env state matches our current configuration,
+			// skip all package management and return immediately.
+			if (isUpToDate(envDir)) {
 				return createEnvironment(envDir);
 			}
+
+			uv.install();
+
+			// Determine whether the venv already exists.
+			boolean isVenvBuilt = new File(envDir, "pyvenv.cfg").isFile() ||
+			                      new File(envDir, ".venv").isDirectory();
 
 			// Handle source-based build (file or content).
 			if (content != null) {
@@ -158,7 +168,7 @@ public final class UvBuilder extends BaseBuilder<UvBuilder> {
 				} else {
 					// Handle requirements.txt - traditional venv + pip install.
 					// Create virtual environment if it doesn't exist.
-					if (!isUvVenv) {
+					if (!isVenvBuilt) {
 						uv.createVenv(envDir, pythonVersion);
 					}
 
@@ -171,7 +181,7 @@ public final class UvBuilder extends BaseBuilder<UvBuilder> {
 				}
 			} else {
 				// Programmatic package building.
-				if (!isUvVenv) {
+				if (!isVenvBuilt) {
 					// Create virtual environment.
 					uv.createVenv(envDir, pythonVersion);
 				}
@@ -187,6 +197,7 @@ public final class UvBuilder extends BaseBuilder<UvBuilder> {
 				}
 			}
 
+			writeApposeStateFile(envDir);
 			return createEnvironment(envDir);
 		}
 		catch (IOException | InterruptedException e) {
