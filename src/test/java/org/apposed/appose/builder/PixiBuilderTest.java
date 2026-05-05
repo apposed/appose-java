@@ -196,25 +196,25 @@ public class PixiBuilderTest extends TestBase {
 		cowsayAndAssert(env, "toml!");
 	}
 
-	/** Tests that {@code .environment()} selects a non-default pixi environment. */
+	/** Tests that {@code env.activate()} launches a service in a non-default pixi environment. */
 	@Test
-	public void testPixiEnvironmentSelection() throws Exception {
+	public void testPixiActivate() throws Exception {
 		Environment env = Appose
 			.pixi("src/test/resources/envs/cowsay-multi-env.toml")
 			.base("target/envs/pixi-multi-env")
-			.environment("alt")
 			.logDebug()
 			.build();
 		assertInstanceOf(PixiBuilder.class, env.builder());
+		Environment altEnv = env.activate("alt");
 		// Verify launch args include --environment alt.
-		List<String> launchArgs = env.launchArgs();
+		List<String> launchArgs = altEnv.launchArgs();
 		int idx = launchArgs.indexOf("--environment");
 		assertTrue(idx >= 0, "launchArgs should contain --environment");
 		assertEquals("alt", launchArgs.get(idx + 1));
 		// Verify bin path resolves to the alt environment directory.
-		assertTrue(env.binPaths().get(0).contains(File.separator + "alt" + File.separator),
+		assertTrue(altEnv.binPaths().get(0).contains(File.separator + "alt" + File.separator),
 			"binPaths should reference the alt environment");
-		cowsayAndAssert(env, "multi-env");
+		cowsayAndAssert(altEnv, "multi-env");
 	}
 
 	/**

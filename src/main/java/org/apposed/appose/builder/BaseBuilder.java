@@ -232,13 +232,35 @@ public abstract class BaseBuilder<T extends BaseBuilder<T>> implements Builder<T
 		throw new IllegalStateException("Cannot determine scheme: neither scheme nor content is set");
 	}
 
+	/** Functional interface for activating a named sub-environment. */
+	@FunctionalInterface
+	public interface Activator {
+		Environment activate(String name) throws BuildException;
+	}
+
 	protected Environment createEnv(String base, List<String> binPaths, List<String> launchArgs) {
+		return createEnv(base, binPaths, launchArgs, null);
+	}
+
+	protected Environment createEnv( String base, List<String> binPaths,
+		List<String> launchArgs, Activator activator)
+	{
 		return new Environment() {
 			@Override public String base() { return base; }
 			@Override public List<String> binPaths() { return binPaths; }
 			@Override public List<String> launchArgs() { return launchArgs; }
 			@Override public Map<String, String> envVars() { return envVars; }
 			@Override public Builder<?> builder() { return BaseBuilder.this; }
+
+			@Override
+			public Environment activate(String name) throws BuildException {
+				if (activator == null) {
+					throw new UnsupportedOperationException(
+						getClass().getSimpleName() + " does not support named sub-environments"
+					);
+				}
+				return activator.activate(name);
+			}
 		};
 	}
 

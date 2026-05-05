@@ -75,6 +75,26 @@ public interface Environment {
 	}
 
 	/**
+	 * Returns a new Environment targeting a named sub-environment.
+	 * <p>
+	 * For pixi projects this installs (if needed) and activates the named
+	 * pixi environment, equivalent to {@code pixi run --environment <name>}.
+	 * The returned Environment is fully ready to launch services.
+	 * </p>
+	 *
+	 * @param name The sub-environment name (e.g. {@code "gpu"}, {@code "shiny"}).
+	 * @return A new Environment configured for the named sub-environment.
+	 * @throws BuildException If something goes wrong during activation.
+	 * @throws UnsupportedOperationException If this environment type does not
+	 *   support named sub-environments.
+	 */
+	default Environment activate(String name) throws BuildException {
+		throw new UnsupportedOperationException(
+			getClass().getSimpleName() + " does not support named sub-environments"
+		);
+	}
+
+	/**
 	 * Rebuilds this environment from scratch.
 	 * This deletes the existing environment directory and rebuilds it using the
 	 * current builder configuration.

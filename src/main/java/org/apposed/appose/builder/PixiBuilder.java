@@ -54,23 +54,8 @@ public final class PixiBuilder extends BaseBuilder<PixiBuilder> {
 
 	private final List<String> condaPackages = new ArrayList<>();
 	private final List<String> pypiPackages = new ArrayList<>();
-	private String pixiEnvironment;
 
 	// -- PixiBuilder methods --
-
-	/**
-	 * Selects which pixi environment to activate within the manifest.
-	 * Pixi supports multiple named environments in a single {@code pixi.toml};
-	 * use this method to target one other than {@code "default"}.
-	 * Maps to {@code pixi run --environment <name>}.
-	 *
-	 * @param name The pixi environment name (e.g. {@code "cuda"}, {@code "cpu"}).
-	 * @return This builder instance, for fluent-style programming.
-	 */
-	public PixiBuilder environment(String name) {
-		this.pixiEnvironment = name;
-		return this;
-	}
 
 	/**
 	 * Adds conda packages to the environment.
@@ -106,7 +91,6 @@ public final class PixiBuilder extends BaseBuilder<PixiBuilder> {
 		super.addStateFields(state);
 		state.put("condaPackages", condaPackages);
 		state.put("pypiPackages", pypiPackages);
-		state.put("pixiEnvironment", pixiEnvironment);
 	}
 
 	@Override
@@ -289,22 +273,14 @@ public final class PixiBuilder extends BaseBuilder<PixiBuilder> {
 				pixi.setFlags(withFlag(flags, "-vv"));
 			}
 
-			String envName = pixiEnvironment != null ? pixiEnvironment : "default";
-			monitor = new PixiInstallMonitor(envDir, envName, progressSubscribers,
+			monitor = new PixiInstallMonitor(envDir, "default", progressSubscribers,
 				msg -> errorSubscribers.forEach(sub -> sub.accept(msg)));
 			pixi.setErrorConsumer(monitor::intercept);
 		}
 
 		// Ensure the pixi environment is fully installed.
-		List<String> installCmd = new ArrayList<>(Arrays.asList(
-				"install", "--manifest-path", manifestFile.getAbsolutePath()
-		));
-		if (pixiEnvironment != null) {
-			installCmd.add("--environment");
-			installCmd.add(pixiEnvironment);
-		}
 		try {
-			pixi.exec(installCmd.toArray(new String[0]));
+			pixi.exec("install", "--manifest-path", manifestFile.getAbsolutePath());
 		}
 		finally {
 			if (monitor != null) {
@@ -322,18 +298,31 @@ public final class PixiBuilder extends BaseBuilder<PixiBuilder> {
 		if (!manifestFile.exists()) manifestFile = new File(envDir, "pixi.toml");
 
 		String base = envDir.getAbsolutePath();
-		String envName = pixiEnvironment != null ? pixiEnvironment : "default";
 		List<String> launchArgs = new ArrayList<>(Arrays.asList(
-				pixi.command, "run", "--manifest-path",
-				manifestFile.getAbsolutePath()
+			pixi.command, "run", "--manifest-path", manifestFile.getAbsolutePath()
 		));
-		if (pixiEnvironment != null) {
-			launchArgs.add("--environment");
-			launchArgs.add(pixiEnvironment);
-		}
 		List<String> binPaths = Collections.singletonList(
-			envDir.toPath().resolve(".pixi").resolve("envs").resolve(envName).resolve("bin").toString()
+			envDir.toPath().resolve(".pixi").resolve("envs").resolve("default").resolve("bin").toString()
 		);
-		return createEnv(base, binPaths, launchArgs);
+
+		final File manifestFileFinal = manifestFile;
+		Activator activator = name -> {
+			try {
+				pixi.exec("install", "--manifest-path", manifestFileFinal.getAbsolutePath(),
+					"--environment", name);
+			}
+			catch (IOException | InterruptedException e) {
+				throw new org.apposed.appose.BuildException(this, e);
+			}
+			List<String> activatedLaunchArgs = new ArrayList<>(launchArgs);
+			activatedLaunchArgs.add("--environment");
+			activatedLaunchArgs.add(name);
+			List<String> activatedBinPaths = Collections.singletonList(
+				envDir.toPath().resolve(".pixi").resolve("envs").resolve(name).resolve("bin").toString()
+			);
+			return createEnv(base, activatedBinPaths, activatedLaunchArgs);
+		};
+
+		return createEnv(base, binPaths, launchArgs, activator);
 	}
 }
