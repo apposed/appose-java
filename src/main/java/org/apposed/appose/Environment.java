@@ -123,6 +123,29 @@ public interface Environment {
 	}
 
 	/**
+	 * Checks whether this environment's configuration is up-to-date.
+	 * Delegates to {@link Builder#isUpToDate()}.
+	 *
+	 * @return {@code true} if the environment is up-to-date.
+	 * @throws BuildException if the check cannot be performed.
+	 */
+	default boolean isUpToDate() throws BuildException {
+		return builder().isUpToDate();
+	}
+
+	/**
+	 * Checks whether this environment is up-to-date, optionally using
+	 * tool-specific verification to detect environment drift.
+	 * Delegates to {@link Builder#checkUpToDate()}.
+	 *
+	 * @return A {@link CheckResult} describing the staleness state.
+	 * @throws BuildException if the check cannot be performed.
+	 */
+	default CheckResult checkUpToDate() throws BuildException {
+		return builder().checkUpToDate();
+	}
+
+	/**
 	 * Creates a Python script service.
 	 * <p>
 	 * This is a <b>high level</b> way to create a service, enabling execution of

@@ -31,6 +31,7 @@ package org.apposed.appose.builder;
 
 import org.apposed.appose.BuildException;
 import org.apposed.appose.Builder;
+import org.apposed.appose.CheckResult;
 import org.apposed.appose.Environment;
 import org.apposed.appose.util.Environments;
 
@@ -120,6 +121,17 @@ public final class SimpleBuilder extends BaseBuilder<SimpleBuilder> {
 	@Override
 	public String envType() {
 		return "custom";
+	}
+
+	@Override
+	public boolean isUpToDate() throws BuildException {
+		return true;
+	}
+
+	@Override
+	public CheckResult checkUpToDate() throws BuildException {
+		return CheckResult.upToDate(
+			"Simple environments have no package management", false);
 	}
 
 	@Override
