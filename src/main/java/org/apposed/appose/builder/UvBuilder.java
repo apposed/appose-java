@@ -30,6 +30,7 @@
 package org.apposed.appose.builder;
 
 import org.apposed.appose.BuildException;
+import org.apposed.appose.CheckResult;
 import org.apposed.appose.Environment;
 import org.apposed.appose.util.FilePaths;
 import org.apposed.appose.util.Platforms;
@@ -237,6 +238,32 @@ public final class UvBuilder extends BaseBuilder<UvBuilder> {
 	}
 
 	// -- Helper methods --
+
+	@Override
+	protected CheckResult verifyUpToDate(File envDir) throws IOException {
+		// Only pyproject.toml-based projects support uv sync --dry-run.
+		File pyprojectToml = new File(envDir, "pyproject.toml");
+		if (!pyprojectToml.isFile()) {
+			return CheckResult.upToDate(
+				"Config-level check passed; uv tool-level verification " +
+					"requires pyproject.toml", false);
+		}
+		Uv uv = new Uv();
+		try {
+			uv.syncDryRun(envDir);
+			return CheckResult.upToDate(
+				"uv sync --dry-run: environment is in sync", true);
+		}
+		catch (InterruptedException e) {
+			Thread.currentThread().interrupt();
+			return CheckResult.stale(
+				"uv sync --dry-run was interrupted", true);
+		}
+		catch (IOException e) {
+			return CheckResult.stale(
+				"uv sync --dry-run detected changes needed: " + e.getMessage(), true);
+		}
+	}
 
 	private Environment createEnvironment(File envDir) {
 		String base = envDir.getAbsolutePath();

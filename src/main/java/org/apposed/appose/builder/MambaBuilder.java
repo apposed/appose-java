@@ -30,6 +30,7 @@
 package org.apposed.appose.builder;
 
 import org.apposed.appose.BuildException;
+import org.apposed.appose.CheckResult;
 import org.apposed.appose.Environment;
 import org.apposed.appose.util.FilePaths;
 import org.apposed.appose.scheme.Schemes;
@@ -156,6 +157,13 @@ public final class MambaBuilder extends BaseBuilder<MambaBuilder> {
 		// Set the base directory and build (which will detect existing env).
 		base(envDir);
 		return build();
+	}
+
+	@Override
+	protected CheckResult verifyUpToDate(File envDir) throws IOException {
+		// Micromamba has no dry-run for env update. Fallback to config-level.
+		return CheckResult.upToDate(
+			"Config-level check passed; mamba does not support tool-level verification", false);
 	}
 
 	private Environment createEnvironment(Mamba mamba, File envDir) {

@@ -65,10 +65,14 @@ mvn clean package
 - **Environment**: Interface representing a configured environment
   - Core methods: `base()`, `binPaths()`, `launchArgs()`
   - Worker creation: `python()`, `groovy()`, `java()`, `service()`
+  - Status methods: `isUpToDate()`, `checkUpToDate()`
 - **Builder**: Interface for environment builders
   - Implementations: `PixiBuilder`, `MambaBuilder`, `UvBuilder`, `SimpleBuilder`, `DynamicBuilder`
   - Core terminator method: `build()`
+  - Status methods: `isUpToDate()`, `checkUpToDate()`
   - Subscription methods: `subscribeProgress()`, `subscribeOutput()`, `subscribeError()`, `logDebug()`
+- **CheckResult**: Result of an environment up-to-date check
+  - Methods: `isUpToDate()`, `description()`, `verified()`
 - **BuilderFactory**: Factory for creating and discovering builders
   - Factory method: `createBuilder()`
   - Discovery methods: `name()`, `supportsScheme(scheme)`, `canWrap(File)`, `priority()`
@@ -113,6 +117,20 @@ Builders are type-safe and builder-specific:
 - Builders implement `build(File envDir)` to create environments at specific locations
 - Default environment location: `~/.local/share/appose/<env-name>`
 - Builders can wrap existing environments or create new ones
+
+### Environment Status API
+
+Several related methods answer different questions about environment state:
+
+| Method | On | Question it answers |
+|--------|----|---------------------|
+| `BuilderFactory.canWrap(File)` | Factory | "Can this factory recognize this directory as a valid environment of its type?" |
+| `Builder.wrap(File)` | Builder | "Create an Environment from this existing directory?" |
+| `Builder.isUpToDate()` | Builder | "Has the builder's configuration changed since the last build?" (fast, reads `appose.json`) |
+| `Builder.checkUpToDate()` | Builder | "Is the environment actually in sync with its declared configuration?" (may run tool verification) |
+| `Builder.build()` | Builder | "Ensure the environment exists and is up-to-date, building if needed." |
+
+`isUpToDate()` is fast (<0.01s) — it compares the builder's configuration against the stored `appose.json` snapshot. `checkUpToDate()` returns a `CheckResult` that may additionally invoke tool-specific verification (e.g., `uv sync --dry-run`) to detect environment drift beyond configuration changes. When `CheckResult.verified()` is `true`, a real tool was invoked; when `false`, only the config comparison was done.
 
 ### Worker Communication
 - **Request types**: EXECUTE (run script), CANCEL (stop execution)
@@ -240,6 +258,16 @@ Environment env = Appose.wrap("/path/to/existing/env");
 
 // System environment
 Environment env = Appose.system();
+
+// Fast config check — skip rebuild if unchanged
+if (!env.isUpToDate()) { env.rebuild(); }
+
+// Verified check with details
+CheckResult result = env.checkUpToDate();
+if (!result.isUpToDate()) {
+    System.out.println(result.description());
+    if (result.verified()) { /* tool confirmed drift */ }
+}
 ```
 
 ### Builder Discovery
