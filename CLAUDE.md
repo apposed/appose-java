@@ -180,8 +180,8 @@ The project provides type-safe builder classes for different environment types:
 
 **UvBuilder** - Fast Python virtual environments via uv
 - Created via `Appose.uv()` or `Appose.uv(source)`
-- Type-safe methods: `include(packages...)`, `python(version)`
-- Supports `requirements.txt` files
+- Type-safe methods: `include(packages...)`, `python(version)`, `group(groups...)`
+- Supports `requirements.txt` and `pyproject.toml`
 - Standard Python venv structure (no special activation needed)
 - Environment structure: `<envDir>/bin` (or `Scripts` on Windows)
 - Location: `org.apposed.appose.builder.UvBuilder`
@@ -228,6 +228,13 @@ Environment env = Appose.uv()
     .python("3.11")
     .include("numpy", "pandas", "matplotlib")
     .name("my-env")
+    .build();
+
+// uv builder with dependency groups
+Environment env = Appose.uv()
+    .content(pyprojectContent)
+    .scheme("pyproject.toml")
+    .group("appose")
     .build();
 
 // Dynamic builder (auto-detects)
