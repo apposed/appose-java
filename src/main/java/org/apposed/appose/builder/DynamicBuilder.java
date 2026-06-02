@@ -32,6 +32,7 @@ package org.apposed.appose.builder;
 import org.apposed.appose.BuildException;
 import org.apposed.appose.Builder;
 import org.apposed.appose.BuilderFactory;
+import org.apposed.appose.CheckResult;
 import org.apposed.appose.Environment;
 import org.apposed.appose.Scheme;
 
@@ -77,6 +78,20 @@ public final class DynamicBuilder extends BaseBuilder<DynamicBuilder> {
 		Builder<?> delegate = createBuilder();
 		copyConfigToDelegate(delegate);
 		return delegate.rebuild();
+	}
+
+	@Override
+	public boolean isUpToDate() throws BuildException {
+		Builder<?> delegate = createBuilder();
+		copyConfigToDelegate(delegate);
+		return delegate.isUpToDate();
+	}
+
+	@Override
+	public CheckResult checkUpToDate() throws BuildException {
+		Builder<?> delegate = createBuilder();
+		copyConfigToDelegate(delegate);
+		return delegate.checkUpToDate();
 	}
 
 	// -- Helper methods --

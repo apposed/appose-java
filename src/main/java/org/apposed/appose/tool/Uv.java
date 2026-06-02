@@ -273,4 +273,20 @@ public class Uv extends Tool {
 		// Run uv sync with working directory set to projectDir.
 		exec(projectDir, args.toArray(new String[0]));
 	}
+
+	/**
+	 * Checks whether a project's dependencies are in sync using {@code uv sync --dry-run}.
+	 * <p>
+	 * This performs a dry run that does not modify the environment. If the
+	 * environment is out of sync, throws {@link IOException} with the tool's output.
+	 * </p>
+	 *
+	 * @param projectDir The project directory containing pyproject.toml.
+	 * @throws IOException If an I/O error occurs or the environment is out of sync.
+	 * @throws InterruptedException If the current thread is interrupted.
+	 * @throws IllegalStateException if uv has not been installed
+	 */
+	public void syncDryRun(final File projectDir) throws IOException, InterruptedException {
+		exec(projectDir, "sync", "--dry-run");
+	}
 }
