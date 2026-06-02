@@ -32,9 +32,18 @@ package org.apposed.appose.builder;
 import org.apposed.appose.Appose;
 import org.apposed.appose.Environment;
 import org.apposed.appose.TestBase;
+import org.apposed.appose.util.Json;
 import org.junit.jupiter.api.Test;
 
+import java.io.File;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /** End-to-end tests for {@link UvBuilder}. */
 public class UvBuilderTest extends TestBase {
@@ -70,5 +79,58 @@ public class UvBuilderTest extends TestBase {
 			.logDebug()
 			.build();
 		cowsayAndAssert(env, "pyproject");
+	}
+
+	@Test
+	public void testUvPyprojectWithGroup() throws Exception {
+		Environment env = Appose
+			.uv("src/test/resources/envs/cowsay-pyproject-groups.toml")
+			.group("cowsay")
+			.base("target/envs/uv-cowsay-groups")
+			.logDebug()
+			.build();
+		cowsayAndAssert(env, "groups");
+	}
+
+	@Test
+	public void testUvGroupRejectsWithoutPyproject() {
+		assertThrows(IllegalArgumentException.class, () ->
+			Appose.uv()
+				.content("appose\n")
+				.group("cowsay")
+				.base("target/envs/uv-group-no-pyproject")
+				.build());
+	}
+
+	@Test
+	public void testUvStateNoGroupField() throws Exception {
+		Environment env = Appose
+			.uv("src/test/resources/envs/cowsay-pyproject.toml")
+			.base("target/envs/uv-state-no-groups")
+			.logDebug()
+			.build();
+		File apposeJson = new File(env.base(), "appose.json");
+		assertTrue(apposeJson.isFile(), "appose.json should exist");
+		String json = new String(Files.readAllBytes(apposeJson.toPath()), StandardCharsets.UTF_8);
+		@SuppressWarnings("unchecked")
+		java.util.Map<String, Object> state = (java.util.Map<String, Object>) Json.parseJson(json);
+		assertFalse(state.containsKey("groups"), "appose.json should not contain 'groups' when none specified");
+		assertNotNull(state.get("packages"), "appose.json should contain 'packages'");
+	}
+
+	@Test
+	public void testUvStateGroupFieldPresent() throws Exception {
+		Environment env = Appose
+			.uv("src/test/resources/envs/cowsay-pyproject-groups.toml")
+			.group("cowsay")
+			.base("target/envs/uv-state-with-groups")
+			.logDebug()
+			.build();
+		File apposeJson = new File(env.base(), "appose.json");
+		assertTrue(apposeJson.isFile(), "appose.json should exist");
+		String json = new String(Files.readAllBytes(apposeJson.toPath()), StandardCharsets.UTF_8);
+		@SuppressWarnings("unchecked")
+		java.util.Map<String, Object> state = (java.util.Map<String, Object>) Json.parseJson(json);
+		assertTrue(state.containsKey("groups"), "appose.json should contain 'groups' when specified");
 	}
 }
