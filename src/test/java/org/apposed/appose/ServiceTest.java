@@ -334,6 +334,67 @@ public class ServiceTest extends TestBase {
 		}
 	}
 
+	/**
+	 * Floods the worker with many concurrent tiny tasks to surface the
+	 * spurious 'thread death' race (apposed/appose#15). No task here can
+	 * legitimately die, so any 'thread death' is the bug.
+	 */
+	public void testThreadDeathStress() throws InterruptedException {
+		// NOTE: With the GroovyWorker -- unlike the python_worker -- this
+		// test passed even before the bug-fix preventing the "thread death"
+		// race condition. However, the test can be made to fail, proving
+		// that a race condition did exist, by adding a Thread.sleep(10)
+		// invocation in GroovyWorker's EXECUTE request handling between
+		// the task.thread assignment and task.thread.start():
+		//
+		//     task.thread = new Thread(task::run, "Appose-" + uuid);
+		//     try { Thread.sleep(10); } catch (Exception e) {}
+		//     task.thread.start();
+		//
+		// On my system as of this writing, I was not able to surface the
+		// bug with any sleep value less than 9, nor was I able to do so
+		// by increasing the nThreads and/or nTasks values below. But the
+		// test is here regardless, just to validate correct behavior.
+
+		Environment env = Appose.system();
+		int nThreads = 16;
+		int nTasks = 200;  // per thread
+		List<String> errors = new ArrayList<>();
+		Object errLock = new Object();
+		Object submitLock = new Object();  // serialize stdin writes only
+
+		try (Service service = env.python()) {
+			maybeDebug(service);
+
+			Runnable worker = () -> {
+				for (int i = 0; i < nTasks; i++) {
+					Task task;
+					synchronized (submitLock) {
+						task = service.task("task.outputs['result'] = 1");
+						task.start();
+					}
+					try {
+						task.waitFor();
+					}
+					catch (InterruptedException | TaskException e) {
+						synchronized (errLock) {
+							errors.add(e.toString());
+						}
+					}
+				}
+			};
+
+			Thread[] threads = new Thread[nThreads];
+			for (int i = 0; i < nThreads; i++) threads[i] = new Thread(worker);
+			for (Thread t : threads) t.start();
+			for (Thread t : threads) t.join();
+		}
+
+		assertEquals(0, errors.size(),
+			"" + errors.size() + "/" + (nThreads * nTasks) +
+			"tasks failed; sample: " + errors);
+	}
+
 	/** Tests that NumPy works on every platform, even Windows. */
 	@Test
 	public void testInitNumpy() throws Exception {

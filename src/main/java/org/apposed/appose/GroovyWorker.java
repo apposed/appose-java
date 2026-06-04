@@ -134,8 +134,15 @@ public class GroovyWorker {
 					else {
 						// Create a thread and save a reference to it,
 						// in case its script somehow kills the thread.
-						task.thread = new Thread(task::run, "Appose-" + uuid);
-						task.thread.start();
+						//
+						// Assign task.thread only AFTER start() returns. Otherwise the
+						// janitor (cleanupThreads) can observe task.thread set while
+						// the thread is not yet alive (the window between Thread()
+						// construction and start()) and spuriously fail the task with
+						// "thread death". See apposed/appose#15.
+						Thread t = new Thread(task::run, "Appose-" + uuid);
+						t.start();
+						task.thread = t;
 					}
 					break;
 
