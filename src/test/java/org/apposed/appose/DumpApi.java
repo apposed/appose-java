@@ -100,6 +100,7 @@ public class DumpApi {
 		PACKAGE_TO_MODULE.put("org.apposed.appose.BuildException", "appose/builder/__init__.api");
 		PACKAGE_TO_MODULE.put("org.apposed.appose.Builder", "appose/builder/__init__.api");
 		PACKAGE_TO_MODULE.put("org.apposed.appose.BuilderFactory", "appose/builder/__init__.api");
+		PACKAGE_TO_MODULE.put("org.apposed.appose.CheckResult", "appose/builder/__init__.api");
 		PACKAGE_TO_MODULE.put("org.apposed.appose.builder.BaseBuilder", "appose/builder/__init__.api");
 		PACKAGE_TO_MODULE.put("org.apposed.appose.builder.SimpleBuilder", "appose/builder/__init__.api");
 		PACKAGE_TO_MODULE.put("org.apposed.appose.builder.DynamicBuilder", "appose/builder/__init__.api");

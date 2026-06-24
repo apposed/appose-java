@@ -31,6 +31,7 @@ package org.apposed.appose.builder;
 
 import org.apposed.appose.BuildException;
 import org.apposed.appose.Builder;
+import org.apposed.appose.CheckResult;
 import org.apposed.appose.Environment;
 import org.apposed.appose.Scheme;
 import org.apposed.appose.util.Environments;
@@ -81,6 +82,53 @@ public abstract class BaseBuilder<T extends BaseBuilder<T>> implements Builder<T
 	public void delete() throws IOException {
 		File dir = resolveEnvDir();
 		if (dir.exists()) FilePaths.deleteRecursively(dir);
+	}
+
+	@Override
+	public boolean isUpToDate() throws BuildException {
+		File dir = resolveEnvDir();
+		if (dir == null || !dir.isDirectory()) return false;
+		try {
+			return isUpToDate(dir);
+		}
+		catch (IOException e) {
+			throw new BuildException(this, e);
+		}
+	}
+
+	@Override
+	public CheckResult checkUpToDate() throws BuildException {
+		File dir = resolveEnvDir();
+		if (dir == null || !dir.isDirectory()) {
+			return CheckResult.stale(
+				"Environment directory does not exist: " + dir, false);
+		}
+		try {
+			if (!isUpToDate(dir)) {
+				return CheckResult.stale(
+					"Configuration has changed since last build", false);
+			}
+			return verifyUpToDate(dir);
+		}
+		catch (IOException e) {
+			return CheckResult.stale("Check failed: " + e.getMessage(), false);
+		}
+	}
+
+	/**
+	 * Performs a tool-specific verification that the environment is up-to-date.
+	 * Subclasses should override this to invoke their tool's dry-run or check command.
+	 * The default implementation returns a config-level-only result.
+	 *
+	 * @param envDir The environment directory to check.
+	 * @return A CheckResult indicating whether the environment is up-to-date.
+	 * @throws IOException If the check command fails.
+	 */
+	protected CheckResult verifyUpToDate(File envDir) throws IOException {
+		return CheckResult.upToDate(
+			"Config-level check passed; " + envType() +
+				" does not support tool-level verification",
+			false);
 	}
 
 	@Override

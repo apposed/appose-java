@@ -112,6 +112,40 @@ public interface Builder<T extends Builder<T>> {
 	 */
 	void delete() throws IOException;
 
+	/**
+	 * Checks whether the environment is up-to-date based on configuration state.
+	 * <p>
+	 * This is a fast check that compares the builder's current configuration
+	 * against the previously recorded state in {@code appose.json}. No build
+	 * is triggered and no external tools are invoked.
+	 * </p>
+	 * <p>
+	 * Returns {@code false} if no environment has been built yet, or if the
+	 * builder's configuration has changed since the last build.
+	 * </p>
+	 *
+	 * @return {@code true} if the environment directory exists and its recorded
+	 *         state matches the current builder configuration.
+	 * @throws BuildException if the environment directory cannot be resolved.
+	 */
+	boolean isUpToDate() throws BuildException;
+
+	/**
+	 * Checks whether the environment is up-to-date, optionally using
+	 * tool-specific verification to detect environment drift beyond
+	 * configuration changes (e.g., manually modified packages, corrupted builds).
+	 * <p>
+	 * If the underlying tool supports a verification command (e.g.,
+	 * {@code uv sync --dry-run}), it will be invoked and
+	 * {@link CheckResult#verified()} will return {@code true}.
+	 * Otherwise, falls back to the fast config-level check.
+	 * </p>
+	 *
+	 * @return A {@link CheckResult} describing the staleness state.
+	 * @throws BuildException if the environment directory cannot be resolved.
+	 */
+	CheckResult checkUpToDate() throws BuildException;
+
     /**
 	 * Wraps an existing environment directory, detecting and using any
 	 * configuration files present for future rebuild() calls.
