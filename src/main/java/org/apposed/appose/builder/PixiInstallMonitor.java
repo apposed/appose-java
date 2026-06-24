@@ -312,7 +312,10 @@ class PixiInstallMonitor {
 						break;
 					case 4:
 						// Inside target platform — count "- conda:" lines.
-						if (indent <= 6) {
+						// List items sit at the same indent (6) as the platform
+						// key, so only a shallower indent, or a sibling key at
+						// indent 6 (e.g. another platform), ends the section.
+						if (indent < 6 || (indent == 6 && !trimmed.startsWith("-"))) {
 							// Left the platform section.
 							return count;
 						}
