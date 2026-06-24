@@ -43,6 +43,8 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Paths;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
@@ -71,6 +73,9 @@ public abstract class BaseBuilder<T extends BaseBuilder<T>> implements Builder<T
 
 	/** Configuration file content. */
 	protected String content;
+
+	/** Lock file content for reproducible builds (e.g., uv.lock, pixi.lock), or null when unset. */
+	protected String lockContent;
 
 	/** Explicit scheme (e.g., "pixi.toml", "environment.yml"). */
 	protected Scheme scheme;
@@ -133,6 +138,12 @@ public abstract class BaseBuilder<T extends BaseBuilder<T>> implements Builder<T
 	}
 
 	@Override
+	public T lockContent(String lockContent) {
+		this.lockContent = lockContent;
+		return typedThis();
+	}
+
+	@Override
 	public T scheme(String scheme) {
 		this.scheme = Schemes.fromName(scheme);
 		return typedThis();
@@ -182,6 +193,38 @@ public abstract class BaseBuilder<T extends BaseBuilder<T>> implements Builder<T
 		state.put("channels", channels);
 		state.put("flags", flags);
 		state.put("envVars", new TreeMap<>(envVars));
+		// Record a hash of the lock file content so that lock changes trigger a
+		// rebuild via the exact-match isUpToDate() comparison. Only added when a
+		// lock is supplied, so lock-less builds produce a byte-identical
+		// appose.json (backward compatibility).
+		if (lockContent != null) state.put("lockHash", computeLockHash(lockContent));
+	}
+
+	/**
+	 * Computes a SHA-256 hash (lowercase hex) of the given content, or null if
+	 * the content is null. Used to snapshot lock files into {@code appose.json}
+	 * without storing the (potentially large) lock content verbatim.
+	 *
+	 * @param content The content to hash (e.g., lock file content).
+	 * @return The SHA-256 hex hash, or null if content is null.
+	 */
+	protected static String computeLockHash(String content) {
+		if (content == null) return null;
+		try {
+			MessageDigest md = MessageDigest.getInstance("SHA-256");
+			byte[] digest = md.digest(content.getBytes(StandardCharsets.UTF_8));
+			char[] hex = new char[digest.length * 2];
+			for (int i = 0; i < digest.length; i++) {
+				int v = digest[i] & 0xff;
+				hex[i * 2] = Character.forDigit(v >>> 4, 16);
+				hex[i * 2 + 1] = Character.forDigit(v & 0x0f, 16);
+			}
+			return new String(hex);
+		}
+		catch (NoSuchAlgorithmException e) {
+			// SHA-256 is mandated by the JVM specification; this never happens.
+			throw new RuntimeException("SHA-256 algorithm not available", e);
+		}
 	}
 
 	/**

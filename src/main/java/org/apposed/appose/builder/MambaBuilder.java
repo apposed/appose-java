@@ -58,6 +58,13 @@ public final class MambaBuilder extends BaseBuilder<MambaBuilder> {
 	}
 
 	@Override
+	public MambaBuilder lockContent(String lockContent) {
+		throw new UnsupportedOperationException(
+			"MambaBuilder does not support lock files; " +
+			"conda/micromamba environments have no lockfile mechanism.");
+	}
+
+	@Override
 	public Environment build() throws BuildException {
 		File envDir = resolveEnvDir();
 

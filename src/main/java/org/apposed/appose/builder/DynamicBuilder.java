@@ -88,6 +88,9 @@ public final class DynamicBuilder extends BaseBuilder<DynamicBuilder> {
 		if (envDir != null) delegate.base(envDir);
 		if (content != null) delegate.content(content);
 		if (scheme != null) delegate.scheme(scheme.name());
+		// Forward the lock file if one was provided. Builders that do not
+		// support locks (mamba/custom) override lockContent() to throw.
+		if (lockContent != null) delegate.lockContent(lockContent);
 		delegate.channels(channels);
 		progressSubscribers.forEach(delegate::subscribeProgress);
 		outputSubscribers.forEach(delegate::subscribeOutput);

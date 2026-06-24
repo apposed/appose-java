@@ -136,6 +136,22 @@ public final class UvBuilder extends BaseBuilder<UvBuilder> {
 			}
 		}
 
+		// Validate lock-file compatibility. uv lockfiles only apply to the
+		// pyproject.toml / uv sync path: requirements.txt uses pip install (no
+		// lockfile), and programmatic builds have no manifest to lock against.
+		if (lockContent != null) {
+			if (content == null) {
+				throw new IllegalArgumentException(
+					"UvBuilder lock files require a declaration file via .file()/.content(); " +
+					"programmatic builds cannot be locked.");
+			}
+			if (!"pyproject.toml".equals(scheme.name())) {
+				throw new IllegalArgumentException(
+					"UvBuilder lock files require a pyproject.toml declaration; " +
+					"requirements.txt has no lockfile mechanism.");
+			}
+		}
+
 		try {
 			// If the env state matches our current configuration,
 			// skip all package management and return immediately.
@@ -163,8 +179,16 @@ public final class UvBuilder extends BaseBuilder<UvBuilder> {
 					File pyprojectFile = new File(envDir, "pyproject.toml");
 					Files.write(pyprojectFile.toPath(), content.getBytes(StandardCharsets.UTF_8));
 
+					// If a lock file was provided, copy it into the env dir and
+					// install strictly from it (--frozen) for reproducibility.
+					boolean frozen = lockContent != null;
+					if (frozen) {
+						File uvLockFile = new File(envDir, "uv.lock");
+						Files.write(uvLockFile.toPath(), lockContent.getBytes(StandardCharsets.UTF_8));
+					}
+
 					// Run uv sync to create .venv and install dependencies.
-					uv.sync(envDir, pythonVersion);
+					uv.sync(envDir, pythonVersion, frozen);
 				} else {
 					// Handle requirements.txt - traditional venv + pip install.
 					// Create virtual environment if it doesn't exist.
@@ -225,6 +249,12 @@ public final class UvBuilder extends BaseBuilder<UvBuilder> {
 					content = new String(Files.readAllBytes(requirementsTxt.toPath()), StandardCharsets.UTF_8);
 					scheme = Schemes.fromName("requirements.txt");
 				}
+			}
+			// If a uv.lock is present, capture it too so rebuild() reproduces
+			// the exact locked environment even after the directory is deleted.
+			File uvLock = new File(envDir, "uv.lock");
+			if (uvLock.exists() && uvLock.isFile()) {
+				lockContent = new String(Files.readAllBytes(uvLock.toPath()), StandardCharsets.UTF_8);
 			}
 		}
 		catch (IOException e) {

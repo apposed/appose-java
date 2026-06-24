@@ -177,6 +177,13 @@ public final class SimpleBuilder extends BaseBuilder<SimpleBuilder> {
 			"It uses existing executables without package management.");
 	}
 
+	@Override
+	public SimpleBuilder lockContent(String lockContent) {
+		throw new UnsupportedOperationException(
+			"SimpleBuilder does not support lock files. " +
+			"Custom environments use existing executables without package management.");
+	}
+
 	// -- Internal methods --
 
 	@Override
