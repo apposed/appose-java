@@ -293,6 +293,28 @@ public class Uv extends Tool {
 	 * @throws IllegalStateException if uv has not been installed
 	 */
 	public void sync(final File projectDir, String pythonVersion, List<String> groups) throws IOException, InterruptedException {
+		sync(projectDir, pythonVersion, groups, false);
+	}
+
+	/**
+	 * Synchronize a project's dependencies from pyproject.toml, including the
+	 * given PEP 735 dependency groups.
+	 * Creates a virtual environment at projectDir/.venv and installs dependencies.
+	 * <p>
+	 * When {@code locked} is true, runs with {@code --locked}, so uv installs
+	 * from the existing lockfile ({@code uv.lock}), failing if it is missing
+	 * or out of date relative to {@code pyproject.toml}.
+	 * </p>
+	 *
+	 * @param projectDir The project directory containing pyproject.toml.
+	 * @param pythonVersion Optional Python version (e.g., "3.11"). Can be null for default.
+	 * @param groups Optional dependency groups to include. Can be null for none.
+	 * @param locked If true, pass {@code --locked} to enforce strict lockfile adherence.
+	 * @throws IOException If an I/O error occurs.
+	 * @throws InterruptedException If the current thread is interrupted.
+	 * @throws IllegalStateException if uv has not been installed
+	 */
+	public void sync(final File projectDir, String pythonVersion, List<String> groups, boolean locked) throws IOException, InterruptedException {
 		List<String> args = new ArrayList<>();
 		args.add("sync");
 		if (pythonVersion != null && !pythonVersion.isEmpty()) {
@@ -304,6 +326,9 @@ public class Uv extends Tool {
 				args.add("--group");
 				args.add(group);
 			}
+		}
+		if (locked) {
+			args.add("--locked");
 		}
 
 		// Run uv sync with working directory set to projectDir.

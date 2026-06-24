@@ -29,15 +29,13 @@
 
 package org.apposed.appose;
 
-import java.io.ByteArrayOutputStream;
+import org.apposed.appose.util.Downloads;
+import org.apposed.appose.util.FilePaths;
+
 import java.io.File;
 import java.io.IOException;
-import java.io.InputStream;
 import java.net.MalformedURLException;
 import java.net.URL;
-import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
-import java.nio.file.Path;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
@@ -238,12 +236,7 @@ public interface Builder<T extends Builder<T>> {
 	 */
 	default T file(File file) throws BuildException {
 		try {
-			Path filePath = file.toPath();
-			String fileContent = new String(
-				Files.readAllBytes(filePath),
-				StandardCharsets.UTF_8
-			);
-			return content(fileContent);
+			return content(FilePaths.readText(file));
 		}
 		catch (IOException e) {
 			throw new BuildException(this, e);
@@ -276,14 +269,8 @@ public interface Builder<T extends Builder<T>> {
 	 * @throws BuildException If the URL cannot be read
 	 */
 	default T url(URL url) throws BuildException {
-		try (InputStream stream = url.openStream()) {
-			ByteArrayOutputStream result = new ByteArrayOutputStream();
-			byte[] buffer = new byte[8192];
-			int length;
-			while ((length = stream.read(buffer)) != -1) {
-				result.write(buffer, 0, length);
-			}
-			return content(result.toString(StandardCharsets.UTF_8.name()));
+		try {
+			return content(Downloads.readText(url));
 		}
 		catch (IOException e) {
 			throw new BuildException(this, e);
@@ -307,6 +294,88 @@ public interface Builder<T extends Builder<T>> {
 	 * @return This builder instance, for fluent-style programming.
 	 */
 	T scheme(String scheme);
+
+	/**
+	 * Specifies lock file content for reproducible builds. When provided, the
+	 * lock file is copied into the environment directory, and the environment
+	 * is installed strictly from it (via {@code --locked}), failing if the
+	 * lock is out of date with the configuration file.
+	 * <p>
+	 * Not all builders support lock files; builders that do not will throw
+	 * {@link UnsupportedOperationException}.
+	 * </p>
+	 *
+	 * @param lockContent Lock file content (e.g., uv.lock, pixi.lock)
+	 * @return This builder instance, for fluent-style programming.
+	 * @throws UnsupportedOperationException If this builder does not support lock files.
+	 */
+	default T lockContent(String lockContent) {
+		throw new UnsupportedOperationException(
+			getClass().getSimpleName() + " does not support lock files");
+	}
+
+	/**
+	 * Specifies a lock file path for reproducible builds.
+	 * Reads the file content immediately and delegates to {@link #lockContent(String)}.
+	 *
+	 * @param path Path to the lock file (e.g., "uv.lock", "pixi.lock")
+	 * @return This builder instance, for fluent-style programming.
+	 * @throws BuildException If the file cannot be read
+	 */
+	default T lockFile(String path) throws BuildException {
+		return lockFile(new File(path));
+	}
+
+	/**
+	 * Specifies a lock file for reproducible builds.
+	 * Reads the file content immediately and delegates to {@link #lockContent(String)}.
+	 *
+	 * @param file Lock file (e.g., uv.lock, pixi.lock)
+	 * @return This builder instance, for fluent-style programming.
+	 * @throws BuildException If the file cannot be read
+	 */
+	default T lockFile(File file) throws BuildException {
+		try {
+			return lockContent(FilePaths.readText(file));
+		}
+		catch (IOException e) {
+			throw new BuildException(this, e);
+		}
+	}
+
+	/**
+	 * Specifies a URL to fetch lock file content from for reproducible builds.
+	 * Reads the URL content immediately and delegates to {@link #lockContent(String)}.
+	 *
+	 * @param path URL path of the lock file
+	 * @return This builder instance, for fluent-style programming.
+	 * @throws BuildException If the URL cannot be read or is invalid
+	 */
+	default T lockUrl(String path) throws BuildException {
+		try {
+			return lockUrl(new URL(path));
+		}
+		catch (MalformedURLException e) {
+			throw new BuildException(this, e);
+		}
+	}
+
+	/**
+	 * Specifies a URL to fetch lock file content from for reproducible builds.
+	 * Reads the URL content immediately and delegates to {@link #lockContent(String)}.
+	 *
+	 * @param url URL to the lock file
+	 * @return This builder instance, for fluent-style programming.
+	 * @throws BuildException If the URL cannot be read
+	 */
+	default T lockUrl(URL url) throws BuildException {
+		try {
+			return lockContent(Downloads.readText(url));
+		}
+		catch (IOException e) {
+			throw new BuildException(this, e);
+		}
+	}
 
 	/**
 	 * Registers a callback method to be invoked when progress happens during environment building.

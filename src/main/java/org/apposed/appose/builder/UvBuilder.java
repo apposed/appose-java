@@ -33,7 +33,6 @@ import org.apposed.appose.BuildException;
 import org.apposed.appose.EnvStatus;
 import org.apposed.appose.Environment;
 import org.apposed.appose.util.FilePaths;
-import org.apposed.appose.util.Json;
 import org.apposed.appose.util.Platforms;
 import org.apposed.appose.scheme.Schemes;
 import org.apposed.appose.tool.Uv;
@@ -180,6 +179,22 @@ public final class UvBuilder extends BaseBuilder<UvBuilder> {
 				"Dependency groups are only supported with pyproject.toml scheme");
 		}
 
+		// Validate lock-file compatibility. uv lockfiles only apply to the
+		// pyproject.toml / uv sync path: requirements.txt uses pip install (no
+		// lockfile), and programmatic builds have no manifest to lock against.
+		if (lockContent != null) {
+			if (content == null) {
+				throw new IllegalArgumentException(
+					"UvBuilder lock files require a declaration file via .file()/.content(); " +
+					"programmatic builds cannot be locked.");
+			}
+			if (!"pyproject.toml".equals(scheme.name())) {
+				throw new IllegalArgumentException(
+					"UvBuilder lock files require a pyproject.toml declaration; " +
+					"requirements.txt has no lockfile mechanism.");
+			}
+		}
+
 		try {
 			// If the env state matches our current configuration,
 			// skip all package management and return immediately.
@@ -212,8 +227,16 @@ public final class UvBuilder extends BaseBuilder<UvBuilder> {
 					File pyprojectFile = new File(envDir, "pyproject.toml");
 					Files.write(pyprojectFile.toPath(), content.getBytes(StandardCharsets.UTF_8));
 
+					// If a lock file was provided, copy it into the env dir and
+					// install strictly from it (--locked) for reproducibility.
+					boolean locked = lockContent != null;
+					if (locked) {
+						File uvLockFile = new File(envDir, "uv.lock");
+						Files.write(uvLockFile.toPath(), lockContent.getBytes(StandardCharsets.UTF_8));
+					}
+
 					// Run uv sync to create .venv and install dependencies.
-					uv.sync(envDir, pythonVersion, groups);
+					uv.sync(envDir, pythonVersion, groups, locked);
 				} else {
 					// Handle requirements.txt - traditional venv + pip install.
 					// Create virtual environment if it doesn't exist.
@@ -267,23 +290,16 @@ public final class UvBuilder extends BaseBuilder<UvBuilder> {
 
 				// Restore any dependency groups, which pyproject.toml does not record.
 				// Otherwise, the environment looks stale, and gets synced without them.
-				File apposeJson = new File(envDir, "appose.json");
-				if (groups.isEmpty() && apposeJson.isFile()) {
-					String json = new String(Files.readAllBytes(apposeJson.toPath()), StandardCharsets.UTF_8);
-					Object state;
-					try {
-						state = Json.parseJson(json);
-					}
-					catch (RuntimeException e) {
-						state = null; // Unreadable state; the env will just look stale.
-					}
-					if (state instanceof Map) {
-						Object stateGroups = ((Map<?, ?>) state).get("groups");
-						if (stateGroups instanceof List) {
-							for (Object g : (List<?>) stateGroups) groups.add(g.toString());
-						}
+				Map<?, ?> state = groups.isEmpty() ? readApposeState(envDir) : null;
+				if (state != null) {
+					Object stateGroups = state.get("groups");
+					if (stateGroups instanceof List) {
+						for (Object g : (List<?>) stateGroups) groups.add(g.toString());
 					}
 				}
+
+				// Likewise, restore the lock file, if the env was built from one.
+				restoreLockContent(envDir, "uv.lock");
 			}
 			else {
 				// Fall back to requirements.txt.

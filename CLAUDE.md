@@ -169,12 +169,14 @@ The project provides type-safe builder classes for different environment types:
 - Supports `pixi.toml` and `environment.yml` files
 - Uses `pixi run --manifest-path <envDir>/pixi.toml` for activation
 - Environment structure: `<envDir>/.pixi/envs/default`
+- Lock files: `.lockFile()/.lockContent()/.lockUrl()` for reproducible builds (copies `pixi.lock` into envDir, installs with `pixi install --locked`)
 - Location: `org.apposed.appose.builder.PixiBuilder`
 
 **MambaBuilder** - Traditional conda environments via micromamba
 - Created via `Appose.mamba()` or `Appose.mamba(source)`
 - Supports `environment.yml` files
 - Uses `mamba run -p <envDir>` for activation
+- Does not yet support lock files
 - Location: `org.apposed.appose.builder.MambaBuilder`
 
 **UvBuilder** - Fast Python virtual environments via uv
@@ -183,6 +185,7 @@ The project provides type-safe builder classes for different environment types:
 - Supports `requirements.txt` and `pyproject.toml`
 - Standard Python venv structure (no special activation needed)
 - Environment structure: `<envDir>/bin` (or `Scripts` on Windows)
+- Lock files: `.lockFile()/.lockContent()/.lockUrl()` for reproducible builds (copies `uv.lock` into envDir, installs with `uv sync --locked`; requires a `pyproject.toml` declaration)
 - Location: `org.apposed.appose.builder.UvBuilder`
 
 **DynamicBuilder** - Auto-detects appropriate builder based on configuration content
@@ -196,6 +199,7 @@ The project provides type-safe builder classes for different environment types:
 - Created via `Appose.custom()` or implicitly via `Appose.system()`
 - No package installation; uses whatever executables are on the system
 - Methods: `binPaths(paths...)`, `appendSystemPath()`, `inheritRunningJava()`
+- Does not support lock files (no package management)
 - Location: `org.apposed.appose.builder.SimpleBuilder`
 
 ### API Examples
@@ -241,6 +245,16 @@ Environment env = Appose.file("path/to/environment.yml")
     .logDebug()
     .build();
 
+// Reproducible build pinned by a lock file (uv: uv.lock -> uv sync --locked)
+Environment env = Appose.uv("path/to/pyproject.toml")
+    .lockFile("path/to/uv.lock")
+    .build();
+
+// Reproducible build pinned by a lock file (pixi: pixi.lock -> pixi install --locked)
+Environment env = Appose.pixi("path/to/pixi.toml")
+    .lockFile("path/to/pixi.lock")
+    .build();
+
 // Wrap existing environment
 Environment env = Appose.wrap("/path/to/existing/env");
 
@@ -269,6 +283,28 @@ All builders support subscription methods for monitoring:
 - `subscribeOutput(consumer)` - Standard output from build process
 - `subscribeError(consumer)` - Error output from build process
 - `logDebug()` - Convenience method that logs output and errors to stderr
+
+### Lock Files & Reproducible Builds
+
+`PixiBuilder` and `UvBuilder` support reproducible, lock-file-pinned builds via the
+`lockContent(String)`, `lockFile(String|File)`, and `lockUrl(String|URL)` methods (mirroring the
+`content`/`file`/`url` declaration API). When a lock is supplied:
+
+- The lock is copied into the environment directory (`uv.lock` / `pixi.lock`) before install.
+- The install runs with `--locked` (`uv sync` / `pixi install`), so the environment matches the lock
+  exactly, and the build fails if the lock is out of date with the manifest.
+- uv requires a `pyproject.toml` declaration; pixi requires `pixi.toml` or `pyproject.toml`, and
+  rejects programmatic `channels()` (which would rewrite the lock).
+- The `appose.json` state snapshot records a `lockHash` (SHA-256 of the lock content), so a change to
+  the lock forces a rebuild via the normal `isUpToDate()` check.
+- `DynamicBuilder` (`Appose.file/url/content`) forwards the lock to the detected pixi/uv builder.
+- `wrap()` restores the lock only if `appose.json` has a `lockHash`, since pixi and uv write a lock
+  file even for lock-less builds.
+- `MambaBuilder` and `SimpleBuilder` do **not** support lock files and throw
+  `UnsupportedOperationException`.
+
+When no lock is supplied, behavior is unchanged: no strict flag is passed and `appose.json` omits
+`lockHash`, so the snapshot is byte-identical to pre-lock-file builds (no spurious rebuilds).
 
 ## Related Projects
 

@@ -35,6 +35,7 @@ import java.io.File;
 import java.io.IOException;
 import java.net.URISyntaxException;
 import java.net.URL;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.DirectoryStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -241,6 +242,17 @@ public final class FilePaths {
 
 		// Use Files.delete() instead of File.delete() to properly handle symlinks.
 		Files.delete(path);
+	}
+
+	/**
+	 * Reads the given file's content as a UTF-8 string.
+	 *
+	 * @param file The file to read.
+	 * @return The file's content.
+	 * @throws IOException If the file cannot be read.
+	 */
+	public static String readText(File file) throws IOException {
+		return new String(Files.readAllBytes(file.toPath()), StandardCharsets.UTF_8);
 	}
 
 	/**

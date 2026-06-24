@@ -44,6 +44,8 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Paths;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
@@ -72,6 +74,9 @@ public abstract class BaseBuilder<T extends BaseBuilder<T>> implements Builder<T
 
 	/** Configuration file content. */
 	protected String content;
+
+	/** Lock file content for reproducible builds (e.g., uv.lock, pixi.lock), or null when unset. */
+	protected String lockContent;
 
 	/** Explicit scheme (e.g., "pixi.toml", "environment.yml"). */
 	protected Scheme scheme;
@@ -156,6 +161,12 @@ public abstract class BaseBuilder<T extends BaseBuilder<T>> implements Builder<T
 	}
 
 	@Override
+	public T lockContent(String lockContent) {
+		this.lockContent = lockContent;
+		return typedThis();
+	}
+
+	@Override
 	public T scheme(String scheme) {
 		this.scheme = Schemes.fromName(scheme);
 		return typedThis();
@@ -208,6 +219,38 @@ public abstract class BaseBuilder<T extends BaseBuilder<T>> implements Builder<T
 		state.put("channels", channels);
 		state.put("flags", flags);
 		state.put("envVars", new TreeMap<>(envVars));
+		// Record a hash of the lock file content so that lock changes trigger a
+		// rebuild via the exact-match isUpToDate() comparison. Only added when a
+		// lock is supplied, so lock-less builds produce a byte-identical
+		// appose.json (backward compatibility).
+		if (lockContent != null) state.put("lockHash", computeLockHash(lockContent));
+	}
+
+	/**
+	 * Computes a SHA-256 hash (lowercase hex) of the given content, or null if
+	 * the content is null. Used to snapshot lock files into {@code appose.json}
+	 * without storing the (potentially large) lock content verbatim.
+	 *
+	 * @param content The content to hash (e.g., lock file content).
+	 * @return The SHA-256 hex hash, or null if content is null.
+	 */
+	protected static String computeLockHash(String content) {
+		if (content == null) return null;
+		try {
+			MessageDigest md = MessageDigest.getInstance("SHA-256");
+			byte[] digest = md.digest(content.getBytes(StandardCharsets.UTF_8));
+			char[] hex = new char[digest.length * 2];
+			for (int i = 0; i < digest.length; i++) {
+				int v = digest[i] & 0xff;
+				hex[i * 2] = Character.forDigit(v >>> 4, 16);
+				hex[i * 2 + 1] = Character.forDigit(v & 0x0f, 16);
+			}
+			return new String(hex);
+		}
+		catch (NoSuchAlgorithmException e) {
+			// SHA-256 is mandated by the JVM specification; this never happens.
+			throw new RuntimeException("SHA-256 algorithm not available", e);
+		}
 	}
 
 	/**
@@ -237,6 +280,48 @@ public abstract class BaseBuilder<T extends BaseBuilder<T>> implements Builder<T
 	protected void writeApposeStateFile(File envDir) throws IOException {
 		File apposeJson = new File(envDir, "appose.json");
 		Files.write(apposeJson.toPath(), buildStateString().getBytes(StandardCharsets.UTF_8));
+	}
+
+	/**
+	 * Reads the builder state recorded in {@code appose.json} in the given directory.
+	 *
+	 * @param envDir The environment directory.
+	 * @return The recorded state, or null if absent or unreadable.
+	 * @throws IOException If reading {@code appose.json} fails.
+	 */
+	protected static Map<?, ?> readApposeState(File envDir) throws IOException {
+		File apposeJson = new File(envDir, "appose.json");
+		if (!apposeJson.isFile()) return null;
+		Object state;
+		try {
+			state = Json.parseJson(FilePaths.readText(apposeJson));
+		}
+		catch (RuntimeException e) {
+			return null; // Unreadable state; the env will just look stale.
+		}
+		return state instanceof Map ? (Map<?, ?>) state : null;
+	}
+
+	/**
+	 * Restores the lock file content of a wrapped environment, so that
+	 * {@link #rebuild()} reproduces it even after the directory is deleted.
+	 * <p>
+	 * Note: package managers write a lock file even for lock-less builds, so
+	 * the lock is only restored if {@code appose.json} records that the
+	 * environment was built from one.
+	 * </p>
+	 *
+	 * @param envDir The environment directory.
+	 * @param lockFileName Name of the lock file (e.g., "uv.lock", "pixi.lock").
+	 * @throws IOException If reading the state or lock file fails.
+	 */
+	protected void restoreLockContent(File envDir, String lockFileName) throws IOException {
+		if (lockContent != null) return;
+		Map<?, ?> state = readApposeState(envDir);
+		if (state == null || !state.containsKey("lockHash")) return;
+		File lockFile = new File(envDir, lockFileName);
+		if (!lockFile.isFile()) return;
+		lockContent = FilePaths.readText(lockFile);
 	}
 
 	/**

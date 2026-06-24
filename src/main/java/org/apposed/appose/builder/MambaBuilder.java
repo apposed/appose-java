@@ -59,6 +59,12 @@ public final class MambaBuilder extends BaseBuilder<MambaBuilder> {
 	}
 
 	@Override
+	public MambaBuilder lockContent(String lockContent) {
+		throw new UnsupportedOperationException(
+			"MambaBuilder does not yet support lock files");
+	}
+
+	@Override
 	protected boolean hasEnvironment(File envDir) {
 		return new File(envDir, "conda-meta").isDirectory();
 	}
