@@ -114,6 +114,22 @@ public final class PixiBuilder extends BaseBuilder<PixiBuilder> {
 			}
 		}
 
+		// Validate lock-file compatibility. pixi lockfiles apply to manifest-
+		// based builds (pixi.toml / pyproject.toml); programmatic builds and
+		// imported environment.yml have no user manifest to lock against.
+		if (lockContent != null) {
+			if (content == null) {
+				throw new IllegalArgumentException(
+					"PixiBuilder lock files require a declaration file via .file()/.content(); " +
+					"programmatic builds cannot be locked.");
+			}
+			if (!"pixi.toml".equals(scheme.name()) && !"pyproject.toml".equals(scheme.name())) {
+				throw new IllegalArgumentException(
+					"PixiBuilder lock files require a pixi.toml or pyproject.toml declaration; " +
+					"environment.yml imports have no lockfile mechanism.");
+			}
+		}
+
 		Pixi pixi = new Pixi();
 
 		// Set up progress/output consumers.
@@ -158,6 +174,13 @@ public final class PixiBuilder extends BaseBuilder<PixiBuilder> {
 					File environmentYamlFile = new File(envDir, "environment.yml");
 					Files.write(environmentYamlFile.toPath(), content.getBytes(StandardCharsets.UTF_8));
 					pixi.exec("init", "--import", environmentYamlFile.getAbsolutePath(), envDir.getAbsolutePath());
+				}
+
+				// If a lock file was provided, copy it into the env dir so the
+				// subsequent install runs strictly from it (--frozen).
+				if (lockContent != null) {
+					File pixiLockFile = new File(envDir, "pixi.lock");
+					Files.write(pixiLockFile.toPath(), lockContent.getBytes(StandardCharsets.UTF_8));
 				}
 
 				// Add any programmatic channels to augment source file.
@@ -213,7 +236,7 @@ public final class PixiBuilder extends BaseBuilder<PixiBuilder> {
 				}
 			}
 
-			runPixiInstall(pixi, envDir);
+			runPixiInstall(pixi, envDir, lockContent != null);
 			writeApposeStateFile(envDir);
 			return buildPixiEnvironment(pixi, envDir);
 		}
@@ -242,6 +265,12 @@ public final class PixiBuilder extends BaseBuilder<PixiBuilder> {
 					scheme = Schemes.fromName("pyproject.toml");
 				}
 			}
+			// If a pixi.lock is present, capture it too so rebuild() reproduces
+			// the exact locked environment even after the directory is deleted.
+			File pixiLock = new File(envDir, "pixi.lock");
+			if (pixiLock.exists() && pixiLock.isFile()) {
+				lockContent = new String(Files.readAllBytes(pixiLock.toPath()), StandardCharsets.UTF_8);
+			}
 		}
 		catch (IOException e) {
 			throw new BuildException(this, e);
@@ -261,7 +290,7 @@ public final class PixiBuilder extends BaseBuilder<PixiBuilder> {
 		return result;
 	}
 
-	private void runPixiInstall(Pixi pixi, File envDir) throws IOException, InterruptedException {
+	private void runPixiInstall(Pixi pixi, File envDir, boolean frozen) throws IOException, InterruptedException {
 		File manifestFile = new File(envDir, "pyproject.toml");
 		if (!manifestFile.exists()) manifestFile = new File(envDir, "pixi.toml");
 
@@ -278,9 +307,20 @@ public final class PixiBuilder extends BaseBuilder<PixiBuilder> {
 			pixi.setErrorConsumer(monitor::intercept);
 		}
 
-		// Ensure the pixi environment is fully installed.
+		// Ensure the pixi environment is fully installed. When a lock was
+		// provided, pass --frozen so pixi installs the environment exactly as
+		// defined in pixi.lock, without re-resolving or updating it. This makes
+		// the build reproducible: the installed environment always matches the
+		// committed lock, byte for byte. (Note: pixi's --frozen, unlike uv's,
+		// uses the lock as-is even when the manifest has drifted -- the lock is
+		// authoritative, which is the reproducibility contract.)
 		try {
-			pixi.exec("install", "--manifest-path", manifestFile.getAbsolutePath());
+			if (frozen) {
+				pixi.exec("install", "--manifest-path", manifestFile.getAbsolutePath(), "--frozen");
+			}
+			else {
+				pixi.exec("install", "--manifest-path", manifestFile.getAbsolutePath());
+			}
 		}
 		finally {
 			if (monitor != null) {

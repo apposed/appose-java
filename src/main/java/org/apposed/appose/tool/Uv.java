@@ -263,11 +263,36 @@ public class Uv extends Tool {
 	 * @throws IllegalStateException if uv has not been installed
 	 */
 	public void sync(final File projectDir, String pythonVersion) throws IOException, InterruptedException {
+		sync(projectDir, pythonVersion, false);
+	}
+
+	/**
+	 * Synchronize a project's dependencies from pyproject.toml.
+	 * Creates a virtual environment at projectDir/.venv and installs dependencies.
+	 * <p>
+	 * When {@code frozen} is true, runs with {@code --frozen} so uv installs
+	 * exactly from the lockfile ({@code uv.lock}) without re-resolving or
+	 * updating it. uv will fail if the lockfile is missing or out of date
+	 * relative to {@code pyproject.toml}, which is what makes the build
+	 * reproducible.
+	 * </p>
+	 *
+	 * @param projectDir The project directory containing pyproject.toml.
+	 * @param pythonVersion Optional Python version (e.g., "3.11"). Can be null for default.
+	 * @param frozen If true, pass {@code --frozen} to enforce strict lockfile adherence.
+	 * @throws IOException If an I/O error occurs.
+	 * @throws InterruptedException If the current thread is interrupted.
+	 * @throws IllegalStateException if uv has not been installed
+	 */
+	public void sync(final File projectDir, String pythonVersion, boolean frozen) throws IOException, InterruptedException {
 		List<String> args = new ArrayList<>();
 		args.add("sync");
 		if (pythonVersion != null && !pythonVersion.isEmpty()) {
 			args.add("--python");
 			args.add(pythonVersion);
+		}
+		if (frozen) {
+			args.add("--frozen");
 		}
 
 		// Run uv sync with working directory set to projectDir.

@@ -38,10 +38,15 @@ import org.junit.jupiter.api.Test;
 import java.io.File;
 import java.io.IOException;
 import java.net.URL;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -253,5 +258,173 @@ public class PixiBuilderTest extends TestBase {
 
 		assertInstanceOf(PixiBuilder.class, env.builder());
 		cowsayAndAssert(env, "url!");
+	}
+
+	// -- Lock-file reproducible builds --
+
+	/**
+	 * A user-supplied lock is copied into the env dir and the install runs with
+	 * --frozen, yielding a reproducible, working environment. Exercises both the
+	 * {@code .lockFile(File)} and {@code .lockUrl(URL)} entry points.
+	 */
+	@Test
+	public void testPixiLockFrozen() throws Exception {
+		// Build without a lock first to generate a valid pixi.lock.
+		String baseA = "target/envs/pixi-lock-src";
+		FilePaths.deleteRecursively(new File(baseA));
+		Appose.pixi("src/test/resources/envs/cowsay-pixi.toml")
+			.base(baseA).logDebug().build();
+		File lockFileA = new File(baseA, "pixi.lock");
+		assertTrue(lockFileA.isFile(), "first build should generate a pixi.lock");
+		String lockContent = new String(Files.readAllBytes(lockFileA.toPath()), StandardCharsets.UTF_8);
+
+		// .lockFile(File): lock copied in, install runs --frozen.
+		String baseB = "target/envs/pixi-lock-file";
+		FilePaths.deleteRecursively(new File(baseB));
+		Environment envB = Appose.pixi("src/test/resources/envs/cowsay-pixi.toml")
+			.base(baseB).lockFile(lockFileA).logDebug().build();
+		assertTrue(new File(baseB, "pixi.lock").isFile(), "lock should be copied into the env dir");
+		assertTrue(apposeJsonMap(new File(baseB)).containsKey("lockHash"),
+			"appose.json should record lockHash when a lock is supplied");
+		cowsayAndAssert(envB, "frozen");
+
+		// .lockUrl(URL): same outcome via a file:// URL.
+		String baseC = "target/envs/pixi-lock-url";
+		FilePaths.deleteRecursively(new File(baseC));
+		Environment envC = Appose.pixi("src/test/resources/envs/cowsay-pixi.toml")
+			.base(baseC).lockUrl(lockFileA.toURI().toURL()).logDebug().build();
+		assertTrue(apposeJsonMap(new File(baseC)).containsKey("lockHash"));
+		cowsayAndAssert(envC, "url-lock");
+	}
+
+	/**
+	 * With --frozen, pixi installs the environment exactly as defined in
+	 * pixi.lock and does NOT re-resolve or update it. Building a manifest that
+	 * drifted from the lock (it additionally requires `requests`) must therefore
+	 * leave the lock unchanged (no `requests` resolved in). Without --frozen,
+	 * pixi would update the lock to include `requests` -- so an unchanged lock
+	 * proves the --frozen flag is wired in and the build is reproducible.
+	 */
+	@Test
+	public void testPixiLockFrozenUsesLockAsIs() throws Exception {
+		// A valid lock for the cowsay manifest (contains no `requests`).
+		String baseA = "target/envs/pixi-frozen-src";
+		FilePaths.deleteRecursively(new File(baseA));
+		Appose.pixi("src/test/resources/envs/cowsay-pixi.toml")
+			.base(baseA).logDebug().build();
+		String cowsayLock = new String(Files.readAllBytes(
+			new File(baseA, "pixi.lock").toPath()), StandardCharsets.UTF_8);
+		assertFalse(cowsayLock.contains("requests"), "baseline lock should not contain requests");
+
+		// A manifest that additionally requires `requests`, built with the cowsay lock.
+		String pixiExtra =
+			"[workspace]\n" +
+			"name = \"cowsay-extra\"\n" +
+			"channels = [\"conda-forge\"]\n" +
+			"platforms = [\"linux-64\", \"osx-64\", \"osx-arm64\", \"win-64\"]\n" +
+			"\n" +
+			"[dependencies]\n" +
+			"python = \">=3.8\"\n" +
+			"pip = \"*\"\n" +
+			"\n" +
+			"[pypi-dependencies]\n" +
+			"cowsay = \"==6.1\"\n" +
+			"appose = \"*\"\n" +
+			"requests = \"*\"\n";
+		String base = "target/envs/pixi-frozen";
+		FilePaths.deleteRecursively(new File(base));
+		Appose.pixi().content(pixiExtra).base(base).lockContent(cowsayLock).logDebug().build();
+
+		// --frozen must use the lock AS-IS: `requests` must NOT have been resolved in.
+		String lockAfter = new String(Files.readAllBytes(
+			new File(base, "pixi.lock").toPath()), StandardCharsets.UTF_8);
+		assertFalse(lockAfter.contains("requests"),
+			"--frozen must use the lock as-is, not re-resolve `requests` into it");
+	}
+
+	/**
+	 * Programmatic builds (no manifest) cannot be locked.
+	 */
+	@Test
+	public void testPixiLockProgrammaticUnsupported() {
+		assertThrows(IllegalArgumentException.class, () ->
+			Appose.pixi()
+				.conda("python>=3.8")
+				.pypi("cowsay==6.1")
+				.base("target/envs/pixi-lock-prog")
+				.lockContent("bogus")
+				.build());
+	}
+
+	/**
+	 * When no lock is supplied, appose.json must NOT contain a lockHash key, so
+	 * the snapshot stays byte-identical to pre-lock-file builds (backward
+	 * compatibility) and existing environments are never spuriously rebuilt.
+	 */
+	@Test
+	public void testPixiNoLockBackwardCompat() throws Exception {
+		String base = "target/envs/pixi-no-lock";
+		FilePaths.deleteRecursively(new File(base));
+		Environment env = Appose.pixi("src/test/resources/envs/cowsay-pixi.toml")
+			.base(base).logDebug().build();
+		assertFalse(apposeJsonMap(new File(base)).containsKey("lockHash"),
+			"appose.json must NOT contain lockHash when no lock is supplied");
+		cowsayAndAssert(env, "nolock");
+	}
+
+	/**
+	 * Changing the lock content must change the lockHash in appose.json and thus
+	 * force a rebuild. The lock is edited with a trailing comment, which doesn't
+	 * change the resolved package set, so --frozen still succeeds.
+	 */
+	@Test
+	public void testPixiLockChangeTriggersRebuild() throws Exception {
+		String baseA = "target/envs/pixi-lock-change-src";
+		FilePaths.deleteRecursively(new File(baseA));
+		Appose.pixi("src/test/resources/envs/cowsay-pixi.toml").base(baseA).logDebug().build();
+		String lock = new String(Files.readAllBytes(new File(baseA, "pixi.lock").toPath()), StandardCharsets.UTF_8);
+
+		String base = "target/envs/pixi-lock-change";
+		FilePaths.deleteRecursively(new File(base));
+		Appose.pixi("src/test/resources/envs/cowsay-pixi.toml")
+			.base(base).lockContent(lock).logDebug().build();
+		String hashBefore = (String) apposeJsonMap(new File(base)).get("lockHash");
+
+		Appose.pixi("src/test/resources/envs/cowsay-pixi.toml")
+			.base(base).lockContent(lock + "# trailing comment\n").logDebug().build();
+		String hashAfter = (String) apposeJsonMap(new File(base)).get("lockHash");
+
+		assertNotNull(hashBefore, "lockHash should be present after a locked build");
+		assertNotNull(hashAfter, "lockHash should be present after rebuild");
+		assertNotEquals(hashBefore, hashAfter,
+			"a lock change must produce a different lockHash and force a rebuild");
+	}
+
+	/**
+	 * wrap() captures the lock file into builder state, so rebuild() reproduces
+	 * the locked environment even after its directory has been deleted.
+	 */
+	@Test
+	public void testPixiWrapLockSurvivesRebuild() throws Exception {
+		// Build a locked environment (generate a valid lock first).
+		String srcBase = "target/envs/pixi-wrap-src";
+		FilePaths.deleteRecursively(new File(srcBase));
+		Appose.pixi("src/test/resources/envs/cowsay-pixi.toml").base(srcBase).logDebug().build();
+		String lock = new String(Files.readAllBytes(new File(srcBase, "pixi.lock").toPath()), StandardCharsets.UTF_8);
+
+		String baseA = "target/envs/pixi-wrap-locked";
+		FilePaths.deleteRecursively(new File(baseA));
+		Appose.pixi("src/test/resources/envs/cowsay-pixi.toml")
+			.base(baseA).lockContent(lock).logDebug().build();
+		assertTrue(apposeJsonMap(new File(baseA)).containsKey("lockHash"));
+
+		// Wrap the locked env via the typed builder (captures pixi.toml + pixi.lock),
+		// then wipe + rebuild.
+		Environment env = Appose.pixi().wrap(new File(baseA));
+		Environment rebuilt = env.rebuild();
+
+		assertTrue(apposeJsonMap(new File(baseA)).containsKey("lockHash"),
+			"rebuild after wrap must reproduce lockHash from the captured lock");
+		cowsayAndAssert(rebuilt, "rewrapped");
 	}
 }

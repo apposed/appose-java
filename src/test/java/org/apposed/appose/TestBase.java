@@ -32,9 +32,15 @@ package org.apposed.appose;
 import org.apposed.appose.Service.ResponseType;
 import org.apposed.appose.Service.Task;
 import org.apposed.appose.Service.TaskStatus;
+import org.apposed.appose.util.Json;
 
+import java.io.File;
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -184,5 +190,23 @@ public abstract class TestBase {
 			errorMessage = "TASK ERROR in method " + caller + ":\n" + task.error;
 		}
 		assertEquals(TaskStatus.COMPLETE, task.status, errorMessage);
+	}
+
+	/**
+	 * Reads and parses the {@code appose.json} state file from the given
+	 * environment directory. Used by tests to assert the presence/absence of
+	 * state keys such as {@code lockHash}.
+	 *
+	 * @param envDir The environment directory containing {@code appose.json}.
+	 * @return The parsed state as a {@link Map}.
+	 * @throws IOException If the file cannot be read.
+	 */
+	public Map<?, ?> apposeJsonMap(File envDir) throws IOException {
+		File apposeJson = new File(envDir, "appose.json");
+		String json = new String(Files.readAllBytes(apposeJson.toPath()), StandardCharsets.UTF_8);
+		Object parsed = Json.parseJson(json);
+		@SuppressWarnings("unchecked")
+		Map<?, ?> map = (Map<?, ?>) parsed;
+		return map;
 	}
 }

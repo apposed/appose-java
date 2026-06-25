@@ -295,6 +295,101 @@ public interface Builder<T extends Builder<T>> {
 	T scheme(String scheme);
 
 	/**
+	 * Specifies lock file content for reproducible builds. When provided, the
+	 * lock file is copied into the environment directory and the install runs in
+	 * strict lock mode so the environment matches the lock (uv: {@code --frozen};
+	 * pixi: {@code --frozen}); the committed lock anchors the build for
+	 * reproducibility. Exact stale-lock handling is tool-specific — see the
+	 * implementing builders.
+	 * <p>
+	 * Not all builders support lock files; builders that do not will throw
+	 * {@link UnsupportedOperationException}. The default implementation throws,
+	 * so only builders that explicitly support locks override this method.
+	 * </p>
+	 *
+	 * @param lockContent Lock file content (e.g., uv.lock, pixi.lock)
+	 * @return This builder instance, for fluent-style programming.
+	 */
+	default T lockContent(String lockContent) {
+		throw new UnsupportedOperationException(
+			getClass().getSimpleName() + " does not support lock files");
+	}
+
+	/**
+	 * Specifies a lock file path for reproducible builds.
+	 * Reads the file content immediately and delegates to {@link #lockContent(String)}.
+	 *
+	 * @param path Path to the lock file (e.g., "uv.lock", "pixi.lock")
+	 * @return This builder instance, for fluent-style programming.
+	 * @throws BuildException If the file cannot be read
+	 */
+	default T lockFile(String path) throws BuildException {
+		return lockFile(new File(path));
+	}
+
+	/**
+	 * Specifies a lock file for reproducible builds.
+	 * Reads the file content immediately and delegates to {@link #lockContent(String)}.
+	 *
+	 * @param file Lock file (e.g., uv.lock, pixi.lock)
+	 * @return This builder instance, for fluent-style programming.
+	 * @throws BuildException If the file cannot be read
+	 */
+	default T lockFile(File file) throws BuildException {
+		try {
+			Path filePath = file.toPath();
+			String fileContent = new String(
+				Files.readAllBytes(filePath),
+				StandardCharsets.UTF_8
+			);
+			return lockContent(fileContent);
+		}
+		catch (IOException e) {
+			throw new BuildException(this, e);
+		}
+	}
+
+	/**
+	 * Specifies a URL to fetch lock file content from for reproducible builds.
+	 * Reads the URL content immediately and delegates to {@link #lockContent(String)}.
+	 *
+	 * @param path URL path of the lock file
+	 * @return This builder instance, for fluent-style programming.
+	 * @throws BuildException If the URL cannot be read or is invalid
+	 */
+	default T lockUrl(String path) throws BuildException {
+		try {
+			return lockUrl(new URL(path));
+		}
+		catch (MalformedURLException e) {
+			throw new BuildException(this, e);
+		}
+	}
+
+	/**
+	 * Specifies a URL to fetch lock file content from for reproducible builds.
+	 * Reads the URL content immediately and delegates to {@link #lockContent(String)}.
+	 *
+	 * @param url URL to the lock file
+	 * @return This builder instance, for fluent-style programming.
+	 * @throws BuildException If the URL cannot be read
+	 */
+	default T lockUrl(URL url) throws BuildException {
+		try (InputStream stream = url.openStream()) {
+			ByteArrayOutputStream result = new ByteArrayOutputStream();
+			byte[] buffer = new byte[8192];
+			int length;
+			while ((length = stream.read(buffer)) != -1) {
+				result.write(buffer, 0, length);
+			}
+			return lockContent(result.toString(StandardCharsets.UTF_8.name()));
+		}
+		catch (IOException e) {
+			throw new BuildException(this, e);
+		}
+	}
+
+	/**
 	 * Registers a callback method to be invoked when progress happens during environment building.
 	 *
 	 * @param subscriber Party to inform when build progress happens.

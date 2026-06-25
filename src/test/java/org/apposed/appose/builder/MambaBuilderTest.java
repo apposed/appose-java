@@ -37,6 +37,7 @@ import org.junit.jupiter.api.Test;
 import java.io.File;
 
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /** End-to-end tests for {@link MambaBuilder}. */
@@ -61,5 +62,25 @@ public class MambaBuilderTest extends TestBase {
 			"Environment should have conda-meta directory when using mamba builder");
 
 		cowsayAndAssert(env, "yay");
+	}
+
+	/**
+	 * Forwarding a lock to a mamba delegate via a dynamic builder must fail
+	 * clearly, since conda/micromamba has no lockfile mechanism.
+	 */
+	@Test
+	public void testDynamicLockMambaFails() {
+		String envYml =
+			"name: lock-mamba-fail\n" +
+			"channels:\n" +
+			"  - conda-forge\n" +
+			"dependencies:\n" +
+			"  - python>=3.8\n";
+		assertThrows(UnsupportedOperationException.class, () ->
+			Appose.content(envYml)
+				.builder("mamba")
+				.lockContent("bogus")
+				.base("target/envs/mamba-lock-fail")
+				.build());
 	}
 }
