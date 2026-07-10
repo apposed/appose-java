@@ -262,12 +262,18 @@ public class Uv extends Tool {
 	 * @throws InterruptedException If the current thread is interrupted.
 	 * @throws IllegalStateException if uv has not been installed
 	 */
-	public void sync(final File projectDir, String pythonVersion) throws IOException, InterruptedException {
+	public void sync(final File projectDir, String pythonVersion, List<String> groups) throws IOException, InterruptedException {
 		List<String> args = new ArrayList<>();
 		args.add("sync");
 		if (pythonVersion != null && !pythonVersion.isEmpty()) {
 			args.add("--python");
 			args.add(pythonVersion);
+		}
+		if (groups != null) {
+			for (String group : groups) {
+				args.add("--group");
+				args.add(group);
+			}
 		}
 
 		// Run uv sync with working directory set to projectDir.
