@@ -140,6 +140,19 @@ public class Service implements AutoCloseable {
 	}
 
 	/**
+	 * Adds environment variables to pass to the worker process.
+	 *
+	 * @param vars Key/value pairs to add to the worker's environment.
+	 * @return This service object, for chaining method calls.
+	 * @throws IllegalStateException If the service has already started.
+	 */
+	public synchronized Service env(Map<String, String> vars) {
+		if (process != null) throw new IllegalStateException("Service already started");
+		if (vars != null) envVars.putAll(vars);
+		return this;
+	}
+
+	/**
 	 * Launches the worker process associated with this service.
 	 *
 	 * @return This service object, for chaining method calls (typically with {@link #task}).
