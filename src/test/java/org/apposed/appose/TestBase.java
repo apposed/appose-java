@@ -113,7 +113,7 @@ public abstract class TestBase {
 		String spec = apposePythonSpec();
 		System.err.println("[TestBase] Building " + name + " with " + spec);
 		return Appose.uv()
-			.python("3.10")
+			.python("3.9")
 			.include(spec)
 			.include(packages)
 			.base("target/envs/" + name)
