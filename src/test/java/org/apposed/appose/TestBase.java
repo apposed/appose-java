@@ -33,6 +33,7 @@ import org.apposed.appose.Service.ResponseType;
 import org.apposed.appose.Service.Task;
 import org.apposed.appose.Service.TaskStatus;
 
+import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -81,6 +82,69 @@ public abstract class TestBase {
 	public static final String THREAD_CHECK_PYTHON =
 		"import threading\n" +
 		"task.outputs[\"thread\"] = threading.current_thread().name\n";
+
+	/** System property specifying which appose-python to test against. */
+	public static final String APPOSE_PYTHON_PROPERTY = "appose.test.appose-python";
+
+	private static Environment pythonEnv;
+
+	/**
+	 * Gets the Python environment used for testing Python workers, building it
+	 * the first time. It contains only appose-python, installed via uv.
+	 *
+	 * @see #apposePythonSpec()
+	 */
+	public static synchronized Environment pythonEnv() throws BuildException {
+		if (pythonEnv == null) pythonEnv = pythonEnv("test-python");
+		return pythonEnv;
+	}
+
+	/**
+	 * Builds a Python environment for testing Python workers, containing
+	 * appose-python plus the given packages, installed via uv.
+	 *
+	 * @param name The name of the environment, beneath {@code target/envs}.
+	 * @param packages Additional PyPI packages to install.
+	 * @see #apposePythonSpec()
+	 */
+	public static Environment pythonEnv(String name, String... packages)
+		throws BuildException
+	{
+		String spec = apposePythonSpec();
+		System.err.println("[TestBase] Building " + name + " with " + spec);
+		return Appose.uv()
+			.python("3.10")
+			.include(spec)
+			.include(packages)
+			.base("target/envs/" + name)
+			.build();
+	}
+
+	/**
+	 * Gets the pip requirement specifying which appose-python to test against:
+	 * <ol>
+	 *   <li>The {@value #APPOSE_PYTHON_PROPERTY} system property, if set. Its
+	 *     value is either a local directory, or a pip requirement such as
+	 *     {@code appose==0.12.0}.</li>
+	 *   <li>Otherwise, a sibling {@code ../appose-python} checkout, if any.</li>
+	 *   <li>Otherwise, the main branch of appose-python on GitHub.</li>
+	 * </ol>
+	 */
+	public static String apposePythonSpec() {
+		String value = System.getProperty(APPOSE_PYTHON_PROPERTY);
+		if (value != null && !value.trim().isEmpty()) {
+			File dir = new File(value.trim());
+			return dir.isDirectory() ? localSpec(dir) : value.trim();
+		}
+		File sibling = new File("../appose-python");
+		if (new File(sibling, "pyproject.toml").isFile()) return localSpec(sibling);
+		return "appose @ git+https://github.com/apposed/appose-python";
+	}
+
+	private static String localSpec(File dir) {
+		// Note: uv reinstalls local directories every time, so edits are picked up.
+		return "appose @ " + dir.toPath().toAbsolutePath().normalize().toUri();
+	}
 
 	public void executeAndAssert(Service service, String script)
 		throws InterruptedException, TaskException

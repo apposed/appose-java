@@ -29,7 +29,7 @@
 
 package org.apposed.appose;
 
-import org.apposed.appose.util.Platforms;
+import org.apposed.appose.util.FilePaths;
 import org.junit.jupiter.api.Test;
 
 import java.io.BufferedReader;
@@ -40,6 +40,7 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.OutputStreamWriter;
 import java.nio.ByteBuffer;
+import java.util.Arrays;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -139,8 +140,11 @@ public class SharedMemoryTest {
 		}
 	}
 
-	private static String pythonCommand() {
-		return Platforms.isWindows() ? "python.exe" : "python";
+	private static String pythonCommand() throws BuildException {
+		File python = FilePaths.findExe(TestBase.pythonEnv().binPaths(),
+			Arrays.asList("python", "python3", "python.exe"));
+		assertNotNull(python, "No Python executable in test environment");
+		return python.getAbsolutePath();
 	}
 
 	/**
@@ -158,7 +162,7 @@ public class SharedMemoryTest {
 	 * but keeps the process alive for later coordination via stdin.
 	 * The returned PythonProcess must be closed (signals Python to exit via stdin).
 	 */
-	private static PythonProcess startPythonAndWait(String script) throws IOException {
+	private static PythonProcess startPythonAndWait(String script) throws IOException, BuildException {
 		// Write script to a temp file so stdin is available for coordination
 		File tempScript = File.createTempFile("appose-test-", ".py");
 		tempScript.deleteOnExit();

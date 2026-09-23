@@ -46,7 +46,7 @@ public class TaskExceptionTest extends TestBase {
 	 */
 	@Test
 	public void testTaskExceptionOnFailure() throws Exception {
-		Environment env = Appose.system();
+		Environment env = pythonEnv();
 		try (Service service = env.python()) {
 			maybeDebug(service);
 
@@ -77,7 +77,7 @@ public class TaskExceptionTest extends TestBase {
 	 */
 	@Test
 	public void testNoExceptionOnSuccess() throws Exception {
-		Environment env = Appose.system();
+		Environment env = pythonEnv();
 		try (Service service = env.python()) {
 			maybeDebug(service);
 

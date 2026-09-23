@@ -43,7 +43,7 @@ public class SyntaxTest extends TestBase {
 	/** Tests getting a variable from worker's global scope using {@link Service#getVar}. */
 	@Test
 	public void testGetVarPython() throws Exception {
-		Environment env = Appose.system();
+		Environment env = pythonEnv();
 		try (Service service = env.python()) {
 			maybeDebug(service);
 
@@ -79,7 +79,7 @@ public class SyntaxTest extends TestBase {
 	 */
 	@Test
 	public void testGetVarFailure() throws Exception {
-		Environment env = Appose.system();
+		Environment env = pythonEnv();
 		try (Service service = env.python()) {
 			maybeDebug(service);
 
@@ -96,7 +96,7 @@ public class SyntaxTest extends TestBase {
 	/** Tests setting a variable in worker's global scope using {@link Service#putVar}. */
 	@Test
 	public void testPutVarPython() throws Exception {
-		Environment env = Appose.system();
+		Environment env = pythonEnv();
 		try (Service service = env.python()) {
 			maybeDebug(service);
 
@@ -132,7 +132,7 @@ public class SyntaxTest extends TestBase {
 	/** Tests that {@link Service#putVar} with a list works correctly. */
 	@Test
 	public void testPutVarList() throws Exception {
-		Environment env = Appose.system();
+		Environment env = pythonEnv();
 		try (Service service = env.python()) {
 			maybeDebug(service);
 
@@ -151,7 +151,7 @@ public class SyntaxTest extends TestBase {
 	/** Tests calling a built-in function using {@link Service#call}. */
 	@Test
 	public void testCallBuiltinPython() throws Exception {
-		Environment env = Appose.system();
+		Environment env = pythonEnv();
 		try (Service service = env.python()) {
 			maybeDebug(service);
 
@@ -179,7 +179,7 @@ public class SyntaxTest extends TestBase {
 	/** Tests calling a custom function using {@link Service#call}. */
 	@Test
 	public void testCallCustomFunctionPython() throws Exception {
-		Environment env = Appose.system();
+		Environment env = pythonEnv();
 		try (Service service = env.python()) {
 			maybeDebug(service);
 
@@ -220,7 +220,7 @@ public class SyntaxTest extends TestBase {
 	 */
 	@Test
 	public void testCallNonexistentFunction() throws Exception {
-		Environment env = Appose.system();
+		Environment env = pythonEnv();
 		try (Service service = env.python()) {
 			maybeDebug(service);
 

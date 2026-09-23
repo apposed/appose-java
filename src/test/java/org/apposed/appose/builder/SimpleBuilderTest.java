@@ -56,6 +56,7 @@ public class SimpleBuilderTest extends TestBase {
 		Environment env = Appose.custom()
 			.env("CUSTOM_VAR", "test_value")  // Base Builder method
 			.inheritRunningJava()             // SimpleBuilder method
+			.binPaths(pythonEnv().binPaths()) // SimpleBuilder method; Python with appose.
 			.appendSystemPath()               // SimpleBuilder method
 			.build();
 

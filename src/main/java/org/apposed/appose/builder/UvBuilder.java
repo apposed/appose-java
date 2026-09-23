@@ -190,7 +190,7 @@ public final class UvBuilder extends BaseBuilder<UvBuilder> {
 				if (!packages.isEmpty()) {
 					List<String> allPackages = new ArrayList<>(packages);
 					// Always include appose if we're installing packages.
-					if (!allPackages.contains("appose")) {
+					if (allPackages.stream().noneMatch(pkg -> pkg.matches("^appose\\b.*"))) {
 						allPackages.add("appose");
 					}
 					uv.pipInstall(envDir, allPackages.toArray(new String[0]));

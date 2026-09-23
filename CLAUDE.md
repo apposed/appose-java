@@ -124,8 +124,7 @@ Builders are type-safe and builder-specific:
 
 Tests require:
 - Java 8+ (project targets Java 8 compatibility)
-- Python 3.10+ with `appose` package installed (`pip install appose`)
-- System Python accessible on PATH
+- System Python 3.10+ accessible on PATH
 
 Some tests (like `testConda`) build conda environments and may take time on first run. Environments are cached in `~/.local/share/appose`.
 

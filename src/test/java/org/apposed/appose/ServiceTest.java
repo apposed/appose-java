@@ -58,7 +58,7 @@ public class ServiceTest extends TestBase {
 
 	@Test
 	public void testPython() throws Exception {
-		Environment env = Appose.system();
+		Environment env = pythonEnv();
 		try (Service service = env.python()) {
 			maybeDebug(service);
 			executeAndAssert(service, COLLATZ_PYTHON);
@@ -120,7 +120,7 @@ public class ServiceTest extends TestBase {
 
 	@Test
 	public void testTaskFailurePython() throws Exception {
-		Environment env = Appose.system();
+		Environment env = pythonEnv();
 		try (Service service = env.python()) {
 			maybeDebug(service);
 			String script = "whee\n";
@@ -137,7 +137,7 @@ public class ServiceTest extends TestBase {
 
 	@Test
 	public void testStartupCrash() throws Exception {
-		Environment env = Appose.system();
+		Environment env = pythonEnv();
 		List<String> pythonExes = Arrays.asList("python", "python3", "python.exe");
 		@SuppressWarnings("resource")
 		Service service = env.service(pythonExes, "-c", "import nonexistentpackage").start();
@@ -157,7 +157,7 @@ public class ServiceTest extends TestBase {
 
 	@Test
 	public void testPythonSysExit() throws Exception {
-		Environment env = Appose.system();
+		Environment env = pythonEnv();
 		try (Service service = env.python()) {
 			maybeDebug(service);
 
@@ -182,7 +182,7 @@ public class ServiceTest extends TestBase {
 
 	@Test
 	public void testCrashWithActiveTask() throws Exception {
-		Environment env = Appose.system();
+		Environment env = pythonEnv();
 		try (Service service = env.python()) {
 			maybeDebug(service);
 			// Create a "long-running" task.
@@ -269,7 +269,7 @@ public class ServiceTest extends TestBase {
 
 	@Test
 	public void testMainThreadQueuePython() throws Exception {
-		Environment env = Appose.system();
+		Environment env = pythonEnv();
 		try (Service service = env.python()) {
 			Task task = service.task(THREAD_CHECK_PYTHON, "main").waitFor();
 			String thread = (String) task.outputs.get("thread");
@@ -301,7 +301,7 @@ public class ServiceTest extends TestBase {
 	/** Tests {@link Task#result()} convenience method. */
 	@Test
 	public void testTaskResult() throws Exception {
-		Environment env = Appose.system();
+		Environment env = pythonEnv();
 		try (Service service = env.python()) {
 			maybeDebug(service);
 
@@ -339,7 +339,7 @@ public class ServiceTest extends TestBase {
 	 * spurious 'thread death' race (apposed/appose#15). No task here can
 	 * legitimately die, so any 'thread death' is the bug.
 	 */
-	public void testThreadDeathStress() throws InterruptedException {
+	public void testThreadDeathStress() throws Exception {
 		// NOTE: With the GroovyWorker -- unlike the python_worker -- this
 		// test passed even before the bug-fix preventing the "thread death"
 		// race condition. However, the test can be made to fail, proving
@@ -356,7 +356,7 @@ public class ServiceTest extends TestBase {
 		// by increasing the nThreads and/or nTasks values below. But the
 		// test is here regardless, just to validate correct behavior.
 
-		Environment env = Appose.system();
+		Environment env = pythonEnv();
 		int nThreads = 16;
 		int nTasks = 200;  // per thread
 		List<String> errors = new ArrayList<>();

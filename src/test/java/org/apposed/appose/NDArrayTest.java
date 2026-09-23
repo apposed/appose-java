@@ -56,10 +56,7 @@ public class NDArrayTest extends TestBase {
 
 	@BeforeAll
 	public static void setUp() throws Exception {
-		python = Appose.uv()
-			.include("numpy")
-			.base("target/envs/ndarray-check-python")
-			.build()
+		python = pythonEnv("ndarray-check-python", "numpy")
 			.python()
 			.init("import numpy");
 	}
