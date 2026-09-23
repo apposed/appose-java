@@ -76,6 +76,11 @@ abstract class ShmBase<HANDLE> implements SharedMemory {
 
 	@Override
 	public ByteBuffer buf(long fromIndex, long toIndex) {
+		// Note: Below, JNA returns the ByteBuffer already in native order,
+		// so there is no need to coerce it further. One gotcha, though:
+		// ByteBuffer.duplicate() and slice() reset the order to BIG_ENDIAN,
+		// so when those methods are used, .order(ByteOrder.nativeOrder())
+		// should be called afterward to ensure endianness remains consistent.
 		return info.pointer.getByteBuffer(fromIndex, toIndex);
 	}
 
