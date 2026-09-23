@@ -128,30 +128,40 @@ public class NDArray implements AutoCloseable {
 
 	/**
 	 * Enumerates possible data type of {@link NDArray} elements.
+	 * <p>
+	 * Each data type has a standard label (e.g. {@code uint16}), which is used
+	 * for serialization, plus NumPy-style short forms (e.g. {@code u2}) that are
+	 * also accepted by {@link #fromLabel(String)}. Array data is always in the
+	 * machine's native byte order.
+	 * </p>
 	 */
 	@SuppressWarnings("unused")
 	public enum DType {
-		INT8("int8", Byte.BYTES), //
-		INT16("int16", Short.BYTES), //
-		INT32("int32", Integer.BYTES), //
-		INT64("int64", Long.BYTES), //
-		UINT8("uint8", Byte.BYTES), //
-		UINT16("uint16", Short.BYTES), //
-		UINT32("uint32", Integer.BYTES), //
-		UINT64("uint64", Long.BYTES), //
-		FLOAT32("float32", Float.BYTES), //
-		FLOAT64("float64", Double.BYTES), //
-		COMPLEX64("complex64", Float.BYTES * 2), //
-		COMPLEX128("complex128", Double.BYTES * 2), //
-		BOOL("bool", 1);
+		INT8("int8", Byte.BYTES, "i1"),
+		INT16("int16", Short.BYTES, "i2"),
+		INT32("int32", Integer.BYTES, "i4"),
+		INT64("int64", Long.BYTES, "i8"),
+		UINT8("uint8", Byte.BYTES, "u1"),
+		UINT16("uint16", Short.BYTES, "u2"),
+		UINT32("uint32", Integer.BYTES, "u4"),
+		UINT64("uint64", Long.BYTES, "u8"),
+		FLOAT16("float16", 2, "f2"),
+		FLOAT32("float32", Float.BYTES, "f4"),
+		FLOAT64("float64", Double.BYTES, "f8"),
+		COMPLEX64("complex64", Float.BYTES * 2, "c8"),
+		COMPLEX128("complex128", Double.BYTES * 2, "c16"),
+		BOOL("bool", 1, "b1", "?");
 
 		private final String label;
 
 		private final int bytesPerElement;
 
-		DType(final String label, final int bytesPerElement) {
+		private final String[] aliases;
+
+		DType(final String label, final int bytesPerElement, final String... aliases) {
 			this.label = label;
 			this.bytesPerElement = bytesPerElement;
+			this.aliases = aliases;
 		}
 
 		/**
@@ -177,6 +187,14 @@ public class NDArray implements AutoCloseable {
 
 		/**
 		 * Returns the {@code DType} corresponding to the given {@code label}.
+		 * <p>
+		 * Accepts standard labels (e.g. {@code uint16}, {@code float32}) as well
+		 * as NumPy-style short forms (e.g. {@code u2}, {@code f4}). A short form
+		 * may be prefixed with {@code =} (native byte order) or {@code |} (byte
+		 * order not applicable), which is ignored. Explicit byte orders
+		 * ({@code <} or {@code >}) are rejected, so that parsing behaves the same
+		 * on every machine; array data is always in native byte order.
+		 * </p>
 		 *
 		 * @param label a label.
 		 * @return {@code DType} corresponding to {@code label}.
@@ -184,7 +202,21 @@ public class NDArray implements AutoCloseable {
 		 */
 		public static DType fromLabel(final String label) throws IllegalArgumentException
 		{
-			return valueOf( label.toUpperCase() );
+			for (final DType dType : values()) {
+				if (dType.label.equals(label)) return dType;
+			}
+			if (label.startsWith("<") || label.startsWith(">")) {
+				throw new IllegalArgumentException("Unsupported dtype: " + label +
+					" (Appose arrays are always native byte order; omit the < or > prefix)");
+			}
+			final String shortLabel = label.startsWith("=") || label.startsWith("|") ?
+				label.substring(1) : label;
+			for (final DType dType : values()) {
+				for (final String alias : dType.aliases) {
+					if (alias.equals(shortLabel)) return dType;
+				}
+			}
+			throw new IllegalArgumentException("Unsupported dtype: " + label);
 		}
 	}
 
