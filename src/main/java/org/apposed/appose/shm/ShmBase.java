@@ -52,7 +52,7 @@ abstract class ShmBase<HANDLE> implements SharedMemory {
 	/** Whether the memory block has been unlinked. */
 	private boolean unlinked;
 
-	protected ShmBase(final ShmInfo<HANDLE> info) {
+	protected ShmBase(ShmInfo<HANDLE> info) {
 		this.info = info;
 	}
 
