@@ -81,7 +81,11 @@ abstract class ShmBase<HANDLE> implements SharedMemory {
 		// ByteBuffer.duplicate() and slice() reset the order to BIG_ENDIAN,
 		// so when those methods are used, .order(ByteOrder.nativeOrder())
 		// should be called afterward to ensure endianness remains consistent.
-		return info.pointer.getByteBuffer(fromIndex, toIndex);
+		long size = size();
+		checkBound("fromIndex", fromIndex, 0, size);
+		checkBound("toIndex", toIndex, fromIndex, size);
+		long length = toIndex - fromIndex;
+		return info.pointer.getByteBuffer(fromIndex, length);
 	}
 
 	@Override
@@ -116,6 +120,13 @@ abstract class ShmBase<HANDLE> implements SharedMemory {
 		sb.append(", unlinked=").append(unlinked);
 		sb.append("}");
 		return sb.toString();
+	}
+
+	private void checkBound(String name, long value, long min, long max) {
+		if (value < min) throw new IllegalArgumentException(
+			"Invalid " + name + ": " + value + " < " + min);
+		if (value > max) throw new IllegalArgumentException(
+			"Invalid " + name + ": " + value + " > " + max);
 	}
 
 	/** Struct containing details about this shared memory block. */
