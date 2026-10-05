@@ -65,7 +65,7 @@ public class Pixi extends Tool {
 	public static final String BASE_PATH = Environments.apposeEnvsDir();
 
 	/** Pixi version to download. */
-	private static final String PIXI_VERSION = "v0.58.0";
+	private static final String PIXI_VERSION = "v0.81.0";
 
 	/** Minimum acceptable Pixi version; older installations get upgraded to it. */
 	public static final String MIN_VERSION = PIXI_VERSION;
