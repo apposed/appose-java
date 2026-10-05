@@ -167,6 +167,26 @@ public class MessagesTest {
 		}
 	}
 
+	/** Tests that appose_type values nested within lists are decoded. */
+	@Test
+	public void testDecodeWithinList() {
+		try (SharedMemory shm = SharedMemory.create(SHM_RSIZE)) {
+			String json = "{\"items\":[1,{" +
+				"\"appose_type\":\"shm\"," +
+				"\"name\":\"" + shm.name() + "\"," +
+				"\"rsize\":" + SHM_RSIZE +
+			"}]}";
+			Map<String, Object> data = Messages.decode(json);
+			List<?> items = (List<?>) data.get("items");
+			assertEquals(2, items.size());
+			assertEquals(1, items.get(0));
+			try (SharedMemory decoded = (SharedMemory) items.get(1)) {
+				assertEquals(shm.name(), decoded.name());
+				assertEquals(SHM_RSIZE, decoded.rsize());
+			}
+		}
+	}
+
 	private BigDecimal bd(Object posDouble) {
 		if (posDouble instanceof BigDecimal) return ((BigDecimal) posDouble);
 		throw new IllegalArgumentException("Not a BigDecimal: " + posDouble.getClass().getName());

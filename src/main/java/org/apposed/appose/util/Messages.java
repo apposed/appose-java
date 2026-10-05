@@ -309,6 +309,10 @@ public final class Messages {
 				System.err.println("unknown appose_type \"" + appose_type + "\"");
 			}
 			return map;
+		} else if (value instanceof List) {
+			List<Object> list = (List<Object>) value;
+			list.replaceAll(Messages::processValue);
+			return list;
 		} else {
 			return value;
 		}
