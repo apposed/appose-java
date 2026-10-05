@@ -35,11 +35,16 @@ import org.apposed.appose.util.Platforms;
 
 import java.io.File;
 import java.io.IOException;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.nio.file.attribute.FileTime;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.concurrent.TimeUnit;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 /**
  * Pixi-based environment manager.
@@ -61,6 +66,15 @@ public class Pixi extends Tool {
 
 	/** Pixi version to download. */
 	private static final String PIXI_VERSION = "v0.58.0";
+
+	/** Minimum acceptable Pixi version; older installations get upgraded to it. */
+	public static final String MIN_VERSION = PIXI_VERSION;
+
+	/** Minimum number of milliseconds between checks for a newer Pixi release. */
+	public static final long UPDATE_INTERVAL = TimeUnit.DAYS.toMillis(1);
+
+	/** Environment variable which, when set to false, disables checking for newer releases. */
+	public static final String AUTO_UPDATE_VAR = "APPOSE_PIXI_AUTO_UPDATE";
 
 	/** The filename to download for the current platform. */
 	private static final String PIXI_BINARY = pixiBinary();
@@ -144,6 +158,102 @@ public class Pixi extends Tool {
 				throw new IOException("Cannot set file as executable due to missing permissions, "
 					+ "please do it manually: " + command);
 		}
+	}
+
+	/**
+	 * Upgrade the installed Pixi, if warranted.
+	 * <p>
+	 * Pixi is upgraded to the latest release, at most once per
+	 * {@link #UPDATE_INTERVAL}, unless the {@code APPOSE_PIXI_AUTO_UPDATE}
+	 * environment variable is set to false. Regardless, Pixi is upgraded to at
+	 * least {@link #MIN_VERSION}, so that it understands manifests, lock files
+	 * and caches written by newer Pixi installations elsewhere on the system.
+	 * </p>
+	 * <p>
+	 * Failures (e.g. due to no network connection) are reported to the error
+	 * consumer, but not thrown, so that builds can proceed with the existing Pixi.
+	 * </p>
+	 *
+	 * @throws IOException If Pixi is not installed.
+	 * @throws InterruptedException If the current thread is interrupted.
+	 */
+	public void update() throws IOException, InterruptedException {
+		if (autoUpdateEnabled() && updateCheckDue()) selfUpdate();
+
+		if (compareVersions(version(), MIN_VERSION) < 0) {
+			selfUpdate("--version", MIN_VERSION.replaceFirst("^v", ""));
+		}
+	}
+
+	private static boolean autoUpdateEnabled() {
+		String value = System.getenv(AUTO_UPDATE_VAR);
+		if (value == null) return true;
+		switch (value.trim().toLowerCase()) {
+			case "0": case "false": case "no": case "off": return false;
+			default: return true;
+		}
+	}
+
+	/**
+	 * Checks whether {@link #UPDATE_INTERVAL} has elapsed since the last update
+	 * check, recording the current time as the latest check if so.
+	 */
+	private boolean updateCheckDue() {
+		Path stamp = Paths.get(command).resolveSibling("last-update-check");
+		long now = System.currentTimeMillis();
+		try {
+			long elapsed = now - Files.getLastModifiedTime(stamp).toMillis();
+			if (elapsed >= 0 && elapsed < UPDATE_INTERVAL) return false;
+		}
+		catch (IOException e) {
+			// No previous check recorded.
+		}
+		try {
+			// Note: Record the check even if it fails, so that
+			// being offline does not cause a failed check every time.
+			if (!Files.exists(stamp)) Files.createFile(stamp);
+			Files.setLastModifiedTime(stamp, FileTime.fromMillis(now));
+		}
+		catch (IOException e) {
+			// Cannot record the check; proceed anyway.
+		}
+		return true;
+	}
+
+	/**
+	 * Runs {@code pixi self-update} with the given arguments,
+	 * reporting failure to the error consumer rather than throwing.
+	 */
+	protected void selfUpdate(String... args) throws InterruptedException {
+		List<String> cmd = new ArrayList<>();
+		cmd.add("self-update");
+		cmd.add("--no-release-note");
+		cmd.addAll(Arrays.asList(args));
+		try {
+			doExec(null, false, false, cmd.toArray(new String[0]));
+		}
+		catch (IOException e) {
+			// Note: Pixi's own error output has already gone to the error consumer.
+			error("Warning: could not update pixi; continuing with the installed version." +
+				System.lineSeparator());
+		}
+	}
+
+	/** Compares version strings like {@code v0.81.0} numerically. */
+	static int compareVersions(String v1, String v2) {
+		int[] a = versionNumbers(v1), b = versionNumbers(v2);
+		for (int i = 0; i < Math.max(a.length, b.length); i++) {
+			int x = i < a.length ? a[i] : 0, y = i < b.length ? b[i] : 0;
+			if (x != y) return Integer.compare(x, y);
+		}
+		return 0;
+	}
+
+	private static int[] versionNumbers(String version) {
+		List<Integer> numbers = new ArrayList<>();
+		Matcher m = Pattern.compile("\\d+").matcher(version);
+		while (m.find() && numbers.size() < 3) numbers.add(Integer.parseInt(m.group()));
+		return numbers.stream().mapToInt(Integer::intValue).toArray();
 	}
 
 	/**

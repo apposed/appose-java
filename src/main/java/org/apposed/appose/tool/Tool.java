@@ -317,7 +317,7 @@ public abstract class Tool {
 	 * @throws IOException If an I/O error occurs.
 	 * @throws InterruptedException If the current thread is interrupted.
 	 */
-	private void doExec(File cwd, boolean silent, boolean includeFlags, String... args) throws IOException, InterruptedException {
+	protected void doExec(File cwd, boolean silent, boolean includeFlags, String... args) throws IOException, InterruptedException {
 		// Clear captured output from previous command.
 		capturedOutput.setLength(0);
 		capturedError.setLength(0);
