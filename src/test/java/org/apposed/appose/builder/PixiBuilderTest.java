@@ -38,6 +38,7 @@ import org.junit.jupiter.api.Test;
 import java.io.File;
 import java.io.IOException;
 import java.net.URL;
+import java.util.Arrays;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -68,6 +69,25 @@ public class PixiBuilderTest extends TestBase {
 			.logDebug()
 			.build();
 		assertInstanceOf(PixiBuilder.class, env.builder());
+		cowsayAndAssert(env, "baa");
+	}
+
+	/**
+	 * Tests that a pixi environment launches correctly when the calling process
+	 * is itself running inside an activated pixi environment of another project.
+	 */
+	@Test
+	public void testPixiInheritedShellEnv() throws Exception {
+		Environment env = Appose
+			.pixi("src/test/resources/envs/cowsay-pixi.toml")
+			.base("target/envs/pixi-cowsay-shell")
+			.env("PIXI_IN_SHELL", "1")
+			.env("PIXI_ENVIRONMENT_NAME", "nonexistent")
+			.logDebug()
+			.build();
+		List<String> launchArgs = env.launchArgs();
+		assertEquals(Arrays.asList("--environment", "default"),
+			launchArgs.subList(launchArgs.size() - 2, launchArgs.size()));
 		cowsayAndAssert(env, "baa");
 	}
 

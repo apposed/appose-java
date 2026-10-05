@@ -298,9 +298,16 @@ public final class PixiBuilder extends BaseBuilder<PixiBuilder> {
 		if (!manifestFile.exists()) manifestFile = new File(envDir, "pixi.toml");
 
 		String base = envDir.getAbsolutePath();
-		List<String> launchArgs = new ArrayList<>(Arrays.asList(
+		List<String> runArgs = Arrays.asList(
 			pixi.command, "run", "--manifest-path", manifestFile.getAbsolutePath()
-		));
+		);
+		// Note: Always name the environment explicitly. Otherwise, when the
+		// calling process is itself inside an activated pixi environment,
+		// pixi selects the environment named by the inherited
+		// PIXI_ENVIRONMENT_NAME, even though it belongs to another project.
+		List<String> launchArgs = new ArrayList<>(runArgs);
+		launchArgs.add("--environment");
+		launchArgs.add("default");
 		List<String> binPaths = Collections.singletonList(
 			envDir.toPath().resolve(".pixi").resolve("envs").resolve("default").resolve("bin").toString()
 		);
@@ -314,7 +321,7 @@ public final class PixiBuilder extends BaseBuilder<PixiBuilder> {
 			catch (IOException | InterruptedException e) {
 				throw new org.apposed.appose.BuildException(this, e);
 			}
-			List<String> activatedLaunchArgs = new ArrayList<>(launchArgs);
+			List<String> activatedLaunchArgs = new ArrayList<>(runArgs);
 			activatedLaunchArgs.add("--environment");
 			activatedLaunchArgs.add(name);
 			List<String> activatedBinPaths = Collections.singletonList(
