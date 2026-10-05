@@ -115,8 +115,8 @@ Builders are type-safe and builder-specific:
 - Builders can wrap existing environments or create new ones
 
 ### Worker Communication
-- **Request types**: EXECUTE (run script), CANCEL (stop execution)
-- **Response types**: LAUNCH, UPDATE, COMPLETION, CANCELATION, FAILURE, CRASH
+- **Request types**: EXECUTE (run script), REPLY (answer a worker CALL), CANCEL (stop execution)
+- **Response types**: LAUNCH, UPDATE, CALL (worker calls into a service object), COMPLETION, CANCELATION, FAILURE, CRASH
 - Each task has a UUID for tracking across processes
 - Service monitors three streams: stdin (requests), stdout (responses), stderr (errors)
 

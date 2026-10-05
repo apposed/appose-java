@@ -29,10 +29,17 @@
 
 package org.apposed.appose;
 
+import groovy.lang.Closure;
+import groovy.lang.MetaClass;
+import groovy.lang.MetaMethod;
+import groovy.lang.MetaProperty;
+import groovy.lang.MissingPropertyException;
 import org.apposed.appose.syntax.Syntaxes;
 import org.apposed.appose.util.Messages;
 import org.apposed.appose.util.Processes;
 import org.apposed.appose.util.Proxies;
+import org.codehaus.groovy.runtime.InvokerHelper;
+import org.codehaus.groovy.runtime.MethodClosure;
 
 import java.io.BufferedReader;
 import java.io.File;
@@ -40,6 +47,8 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.PrintWriter;
 import java.io.UncheckedIOException;
+import java.lang.reflect.Method;
+import java.lang.reflect.Modifier;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.util.ArrayList;
@@ -47,10 +56,14 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
+import java.util.TreeSet;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Consumer;
 
 /**
@@ -82,6 +95,13 @@ public class Service implements AutoCloseable {
 	 * of an error message to any still pending tasks when reporting the crash.
 	 */
 	private final List<String> errorLines = new ArrayList<>();
+
+	/**
+	 * Non-JSON-serializable objects passed to the worker, which the worker
+	 * can access remotely via service object proxies.
+	 */
+	private final Map<String, Object> exports = new ConcurrentHashMap<>();
+	private final AtomicInteger exportCount = new AtomicInteger();
 
 	private Process process;
 	private PrintWriter stdin;
@@ -518,6 +538,25 @@ public class Service implements AutoCloseable {
 		return Collections.unmodifiableList(errorLines);
 	}
 
+	/**
+	 * Gets an object that this service exported to its worker process.
+	 * <p>
+	 * When a task input is not JSON-serializable, the service exports it, and
+	 * the worker receives a proxy that calls back into the original object.
+	 * </p>
+	 *
+	 * @param varName The name under which the object was exported.
+	 * @return The exported object.
+	 * @throws IllegalArgumentException If no object was exported with that name.
+	 */
+	public Object exported(String varName) {
+		Object obj = exports.get(varName);
+		if (obj == null) {
+			throw new IllegalArgumentException("No such service object: " + varName);
+		}
+		return obj;
+	}
+
 	/** Input loop processing lines from the worker stdout stream. */
 	private void stdoutLoop() {
 		BufferedReader stdout = new BufferedReader(new InputStreamReader(process.getInputStream()));
@@ -539,6 +578,16 @@ public class Service implements AutoCloseable {
 			try {
 				Map<String, Object> response = Messages.decode(line);
 				debugService(line); // Echo the line to the debug listener.
+				if (ResponseType.CALL.toString().equals(response.get("responseType"))) {
+					// The worker is calling back into a service object.
+					// Handle it on its own thread, so that this loop stays
+					// free to process other responses in the meantime.
+					Thread t = new Thread(() -> handleCall(response),
+						"Appose-Service-" + serviceID + "-Call");
+					t.setDaemon(true);
+					t.start();
+					continue;
+				}
 				Object uuid = response.get("task");
 				if (uuid == null) {
 					debugService("Invalid service message:" + line);
@@ -618,6 +667,142 @@ public class Service implements AutoCloseable {
 		tasks.clear();
 	}
 
+	/**
+	 * Exports a non-JSON-serializable object, so that the worker
+	 * can access it remotely via a service object proxy.
+	 *
+	 * @return A service_object reference to the exported object.
+	 */
+	private Map<String, Object> export(Object obj) {
+		String varName = "_appose_service_" + exportCount.getAndIncrement();
+		exports.put(varName, obj);
+		Map<String, Object> ref = new LinkedHashMap<>();
+		ref.put("appose_type", "service_object");
+		ref.put("var_name", varName);
+		return ref;
+	}
+
+	/** Sends a request to the worker process. */
+	private void send(Map<String, Object> request) {
+		String encoded = Messages.encode(request, this::export);
+		// NB: Requests may be sent from multiple threads, and must not interleave.
+		synchronized (stdin) {
+			stdin.println(encoded);
+			// NB: Flush is necessary to ensure worker receives the data!
+			stdin.flush();
+		}
+		debugService(encoded);
+	}
+
+	/**
+	 * Performs an operation requested by the worker on an exported service
+	 * object, then sends the outcome back to the worker as a REPLY.
+	 */
+	private void handleCall(Map<String, Object> request) {
+		Map<String, Object> reply = new HashMap<>();
+		reply.put("requestType", RequestType.REPLY.toString());
+		reply.put("call", request.get("call"));
+		try {
+			Object obj = exported((String) request.get("var"));
+			Object op = request.get("op");
+			Object result;
+			if ("get".equals(op)) {
+				result = getAttribute(obj, (String) request.get("name"));
+			}
+			else if ("call".equals(op)) {
+				Object args = Proxies.proxifyWorkerObjects(request.get("args"), this);
+				result = invoke(obj, args == null ? new Object[0] : ((List<?>) args).toArray());
+			}
+			else if ("dir".equals(op)) {
+				result = dir(obj);
+			}
+			else throw new IllegalArgumentException("Invalid call operation: " + op);
+			reply.put("result", result);
+			send(reply);
+		}
+		catch (Throwable t) {
+			reply.remove("result");
+			reply.put("error", Messages.stackTrace(t));
+			try {
+				send(reply);
+			}
+			catch (Throwable t2) {
+				// The worker is unreachable; nothing more to do.
+				debugService(Messages.stackTrace(t2));
+			}
+		}
+	}
+
+	/**
+	 * Gets the named property of the given object, or else
+	 * a callable reference to its method of that name.
+	 */
+	private static Object getAttribute(Object obj, String name) {
+		try {
+			return InvokerHelper.getProperty(obj, name);
+		}
+		catch (MissingPropertyException exc) {
+			if (InvokerHelper.getMetaClass(obj).respondsTo(obj, name).isEmpty()) throw exc;
+			return new MethodClosure(obj, name);
+		}
+	}
+
+	/**
+	 * Calls the given object as a function: a closure, an instance of a
+	 * functional interface, or an object with a {@code call} method.
+	 */
+	private static Object invoke(Object obj, Object[] args) {
+		if (obj instanceof Closure) return ((Closure<?>) obj).call(args);
+		String methodName = functionalMethodName(obj.getClass());
+		return InvokerHelper.invokeMethod(obj, methodName == null ? "call" : methodName, args);
+	}
+
+	/**
+	 * Gets the name of the single abstract method of a functional interface
+	 * implemented by the given class, or null if there is no such interface.
+	 */
+	private static String functionalMethodName(Class<?> c) {
+		for (Class<?> type = c; type != null; type = type.getSuperclass()) {
+			for (Class<?> iface : type.getInterfaces()) {
+				String name = abstractMethodName(iface);
+				if (name != null) return name;
+				name = functionalMethodName(iface);
+				if (name != null) return name;
+			}
+		}
+		return null;
+	}
+
+	private static String abstractMethodName(Class<?> iface) {
+		String name = null;
+		for (Method m : iface.getMethods()) {
+			if (!Modifier.isAbstract(m.getModifiers())) continue;
+			if (isObjectMethod(m)) continue;
+			if (name != null && !name.equals(m.getName())) return null;
+			name = m.getName();
+		}
+		return name;
+	}
+
+	private static boolean isObjectMethod(Method m) {
+		try {
+			Object.class.getMethod(m.getName(), m.getParameterTypes());
+			return true;
+		}
+		catch (NoSuchMethodException exc) {
+			return false;
+		}
+	}
+
+	/** Lists the names of the given object's properties and methods. */
+	private static List<String> dir(Object obj) {
+		MetaClass metaClass = InvokerHelper.getMetaClass(obj);
+		Set<String> names = new TreeSet<>();
+		for (MetaProperty p : metaClass.getProperties()) names.add(p.getName());
+		for (MetaMethod m : metaClass.getMethods()) names.add(m.getName());
+		return new ArrayList<>(names);
+	}
+
 	private void debugService(String message) { debug("SERVICE", message); }
 	private void debugWorker(String message) { debug("WORKER", message); }
 
@@ -649,11 +834,11 @@ public class Service implements AutoCloseable {
 	}
 
 	public enum RequestType {
-		EXECUTE, CANCEL
+		EXECUTE, REPLY, CANCEL
 	}
 
 	public enum ResponseType {
-		LAUNCH, UPDATE, COMPLETION, CANCELATION, FAILURE, CRASH;
+		LAUNCH, UPDATE, CALL, COMPLETION, CANCELATION, FAILURE, CRASH;
 
 		/** True iff response type is COMPLETION, CANCELATION, FAILURE, or CRASH. */
 		public boolean isTerminal() {
@@ -775,12 +960,7 @@ public class Service implements AutoCloseable {
 			request.put("task", uuid);
 			request.put("requestType", requestType.toString());
 			if (args != null) request.putAll(args);
-			String encoded = Messages.encode(request);
-
-			stdin.println(encoded);
-			// NB: Flush is necessary to ensure worker receives the data!
-			stdin.flush();
-			debugService(encoded);
+			send(request);
 		}
 
 		private void handle(Map<String, Object> response) {

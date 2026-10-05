@@ -173,11 +173,12 @@ public final class Proxies {
 	}
 
 	/**
-	 * Recursively converts worker_object references in task outputs to {@link org.apposed.appose.WorkerObject} instances.
+	 * Recursively converts worker_object references to {@link org.apposed.appose.WorkerObject} instances,
+	 * and service_object references back to the service objects they reference.
 	 * <p>
-	 * This is called on task outputs after JSON deserialization to convert any
-	 * worker_object references (from auto-exported non-serializable objects) into
-	 * actual {@code WorkerObject} instances.
+	 * This is called on task outputs and on worker calls after JSON deserialization
+	 * to convert any worker_object references (from auto-exported non-serializable
+	 * objects) into actual {@code WorkerObject} instances.
 	 * </p>
 	 * <p>
 	 * When a worker process encounters a non-serializable object (e.g., a datetime
@@ -186,9 +187,11 @@ public final class Proxies {
 	 * into {@code WorkerObject} instances that can be used to interact with the remote object.
 	 * </p>
 	 *
-	 * @param data The data structure (potentially) containing worker_object references.
+	 * @param data The data structure (potentially) containing worker_object
+	 *          and/or service_object references.
 	 * @param service The Service instance to use for creating WorkerObjects.
-	 * @return The data with worker_object references replaced by WorkerObject instances.
+	 * @return The data with worker_object references replaced by WorkerObject instances,
+	 *         and service_object references replaced by the original service objects.
 	 */
 	@SuppressWarnings("unchecked")
 	public static Object proxifyWorkerObjects(Object data, Service service) {
@@ -198,6 +201,10 @@ public final class Proxies {
 				// Convert this worker_object reference to a WorkerObject.
 				String varName = (String) map.get("var_name");
 				return new org.apposed.appose.WorkerObject(service, varName);
+			}
+			else if ("service_object".equals(map.get("appose_type"))) {
+				// Resolve this service_object reference to the object it references.
+				return service.exported((String) map.get("var_name"));
 			}
 			else {
 				// Recursively process map values.

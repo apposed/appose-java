@@ -30,13 +30,16 @@
 package org.apposed.appose.util;
 
 import groovy.json.JsonGenerator;
+import org.apposed.appose.GroovyWorker;
 import org.apposed.appose.NDArray;
+import org.apposed.appose.ServiceProxy;
 import org.apposed.appose.SharedMemory;
 
 import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -63,8 +66,15 @@ public final class Messages {
 	// Reference to the worker exports map for auto-exporting.
 	public static Map<String, Object> workerExports = null;
 
+	// Reference to the worker instance, for creating service object proxies.
+	public static GroovyWorker workerInstance = null;
+
 	// Counter for auto-generated proxy variable names.
 	private static int proxyCounter = 0;
+
+	// Exporter for non-JSON-serializable objects, active during an encode() call.
+	private static final ThreadLocal<Function<Object, Map<String, Object>>> EXPORTER =
+		new ThreadLocal<>();
 
 	// Registry of class -> (appose_type, encoder) for encoding custom types.
 	private static final Map<Class<?>, String> ENCODER_TYPES = new ConcurrentHashMap<>();
@@ -155,6 +165,26 @@ public final class Messages {
 	}
 
 	/**
+	 * Converts a Map into a JSON string, using the given exporter function
+	 * for objects that are not JSON-serializable.
+	 *
+	 * @param data The data to encode.
+	 * @param exporter Function to call for objects that are not
+	 *          JSON-serializable. It must return a JSON-serializable
+	 *          reference to the object (e.g. a service_object map).
+	 * @return The data encoded as a single line of JSON.
+	 */
+	public static String encode(Map<?, ?> data, Function<Object, Map<String, Object>> exporter) {
+		EXPORTER.set(exporter);
+		try {
+			return GENERATOR.toJson(data);
+		}
+		finally {
+			EXPORTER.remove();
+		}
+	}
+
+	/**
 	 * Converts a JSON string into a map.
 	 * @param json
 	 *      json string
@@ -235,6 +265,25 @@ public final class Messages {
 			|| type.isPrimitive();
 	}
 
+	/**
+	 * Checks if a type can be sent by a service as-is, without exporting it.
+	 * <p>
+	 * This is broader than {@link #isNativelyJsonSerializable(Class)}, to
+	 * preserve the established encoding of arrays, collections, characters
+	 * and enums in task inputs.
+	 * </p>
+	 *
+	 * @param type The class to check
+	 * @return true if this type can be serialized without exporting it
+	 */
+	private static boolean isServiceSerializable(Class<?> type) {
+		return isNativelyJsonSerializable(type)
+			|| Collection.class.isAssignableFrom(type)
+			|| Character.class.isAssignableFrom(type)
+			|| type.isArray()
+			|| type.isEnum();
+	}
+
 	static final JsonGenerator GENERATOR = new JsonGenerator.Options() //
 			.addConverter(new JsonGenerator.Converter() {
 				@Override
@@ -257,12 +306,19 @@ public final class Messages {
 					throw new IllegalStateException("No encoder for " + value.getClass());
 				}
 			}).addConverter(new JsonGenerator.Converter() {
-				// Catch-all converter for non-serializable objects in worker mode.
+				// Catch-all converter for non-serializable objects.
 				// This should be the LAST converter in the chain, so it only handles
 				// objects that no other converter claimed.
 				@Override
 				public boolean handles(Class<?> type) {
-					// Only active in worker mode.
+					// A proxy to a service object travels back as a reference to it,
+					// rather than being wrapped in another layer of proxying.
+					if (ServiceProxy.class.isAssignableFrom(type)) return true;
+
+					// Export non-serializable objects when an exporter is provided.
+					if (EXPORTER.get() != null) return !isServiceSerializable(type);
+
+					// Otherwise, only active in worker mode.
 					if (!workerMode) return false;
 
 					// Don't auto-proxy types that the JSON encoder handles natively.
@@ -272,6 +328,16 @@ public final class Messages {
 
 				@Override
 				public Object convert(Object value, String key) {
+					if (value instanceof ServiceProxy) {
+						Map<String, Object> map = new LinkedHashMap<>();
+						map.put("appose_type", "service_object");
+						map.put("var_name", ((ServiceProxy) value).varName());
+						return map;
+					}
+
+					Function<Object, Map<String, Object>> exporter = EXPORTER.get();
+					if (exporter != null) return exporter.apply(value);
+
 					// Auto-export the object and return a worker_object reference.
 					String varName = "_appose_auto_" + (proxyCounter++);
 					if (workerExports != null) {
@@ -307,6 +373,16 @@ public final class Messages {
 				if ("worker_object".equals(appose_type)) {
 					// Return map as-is; will be converted to WorkerObject
 					// by Proxies.proxifyWorkerObjects() in Service.Task.handle().
+					return map;
+				}
+				if ("service_object".equals(appose_type)) {
+					if (workerMode && workerInstance != null) {
+						// Worker side: wrap the reference in a proxy that forwards
+						// property accesses and calls back to the service.
+						return new ServiceProxy(workerInstance, (String) map.get("var_name"));
+					}
+					// Service side: return map as-is; will be resolved to the
+					// referenced object by Proxies.proxifyWorkerObjects().
 					return map;
 				}
 				Function<Map<String, Object>, Object> decoder = DECODERS.get(appose_type);

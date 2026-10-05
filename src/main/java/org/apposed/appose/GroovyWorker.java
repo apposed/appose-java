@@ -45,9 +45,12 @@ import java.util.ArrayDeque;
 import java.util.Collections;
 import java.util.Deque;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.CountDownLatch;
 import java.util.stream.Collectors;
 
 /**
@@ -69,12 +72,14 @@ public class GroovyWorker {
 	private final Map<String, Task> tasks = new ConcurrentHashMap<>();
 	private final Deque<Task> queue = new ArrayDeque<>();
 	private final Map<String, Object> exports = new ConcurrentHashMap<>();
-	private boolean running = true;
+	private final Map<String, PendingCall> calls = new ConcurrentHashMap<>();
+	private volatile boolean running = true;
 
 	public GroovyWorker() {
 		// Flag that we're in worker mode for auto-proxy serialization.
 		Messages.workerMode = true;
 		Messages.workerExports = exports;
+		Messages.workerInstance = this;
 
 		new Thread(this::processInput, "Appose-Receiver").start();
 		new Thread(this::cleanupThreads, "Appose-Janitor").start();
@@ -100,6 +105,58 @@ public class GroovyWorker {
 		}
 	}
 
+	/**
+	 * Performs an operation on an object living in the service process,
+	 * blocking until the service replies with the outcome.
+	 *
+	 * @param var The name of the exported service object.
+	 * @param op The operation: "get" (property), "call", or "dir".
+	 * @param name The property name, for "get" operations.
+	 * @param args The arguments, for "call" operations.
+	 * @return The result of the operation.
+	 * @throws RuntimeException If the operation fails in the service process.
+	 */
+	public Object invoke(String var, String op, String name, List<Object> args) {
+		String callID = UUID.randomUUID().toString();
+		PendingCall pending = new PendingCall();
+		calls.put(callID, pending);
+		Map<String, Object> request = new HashMap<>();
+		request.put("responseType", ResponseType.CALL.toString());
+		request.put("call", callID);
+		request.put("var", var);
+		request.put("op", op);
+		if (name != null) request.put("name", name);
+		if (args != null) request.put("args", args);
+		try {
+			if (!running) throw new IllegalStateException("Service connection closed");
+			send(request);
+			pending.latch.await();
+		}
+		catch (InterruptedException exc) {
+			calls.remove(callID);
+			throw new RuntimeException(exc);
+		}
+		catch (RuntimeException exc) {
+			calls.remove(callID);
+			throw exc;
+		}
+		Map<String, Object> reply = pending.reply;
+		Object error = reply.get("error");
+		if (error != null) throw new RuntimeException(error.toString());
+		return reply.get("result");
+	}
+
+	/** Sends a message to the service. */
+	private void send(Map<String, Object> response) {
+		String encoded = Messages.encode(response);
+		// NB: Messages may be sent from multiple threads, and must not interleave.
+		synchronized (System.out) {
+			System.out.println(encoded);
+			// NB: Flush is necessary to ensure service receives the data!
+			System.out.flush();
+		}
+	}
+
 	private void processInput() {
 		BufferedReader stdin = new BufferedReader(new InputStreamReader(System.in));
 		while (true) {
@@ -112,6 +169,13 @@ public class GroovyWorker {
 			}
 			if (line == null) {
 				running = false;
+				// Release any threads still awaiting replies from the service.
+				for (String callID : calls.keySet()) {
+					PendingCall pending = calls.remove(callID);
+					if (pending != null) {
+						pending.resolve(Collections.singletonMap("error", "Service connection closed"));
+					}
+				}
 				break;
 			}
 
@@ -144,6 +208,16 @@ public class GroovyWorker {
 						t.start();
 						task.thread = t;
 					}
+					break;
+
+				case REPLY:
+					Object callID = request.get("call");
+					PendingCall pending = callID == null ? null : calls.remove(callID.toString());
+					if (pending == null) {
+						System.err.println("No such call: " + callID);
+						continue;
+					}
+					pending.resolve(request);
 					break;
 
 				case CANCEL:
@@ -340,7 +414,7 @@ public class GroovyWorker {
 			response.put("task", uuid);
 			response.put("responseType", responseType.toString());
 			try {
-				System.out.println(Messages.encode(response));
+				send(response);
 			}
 			catch (Exception exc) {
 				if (alreadyTerminated) {
@@ -354,8 +428,17 @@ public class GroovyWorker {
 				// No matter what goes wrong, we want to tell the caller.
 				fail(Messages.stackTrace(exc));
 			}
-			// NB: Flush is necessary to ensure service receives the data!
-			System.out.flush();
+		}
+	}
+
+	/** A call from this worker into a service object, awaiting the service's reply. */
+	private static class PendingCall {
+		final CountDownLatch latch = new CountDownLatch(1);
+		volatile Map<String, Object> reply;
+
+		void resolve(Map<String, Object> reply) {
+			this.reply = reply;
+			latch.countDown();
 		}
 	}
 }
