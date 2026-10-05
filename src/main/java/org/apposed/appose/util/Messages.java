@@ -35,6 +35,7 @@ import org.apposed.appose.SharedMemory;
 
 import java.io.PrintWriter;
 import java.io.StringWriter;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -127,7 +128,11 @@ public final class Messages {
 			nda -> {
 				Map<String, Object> payload = new LinkedHashMap<>();
 				payload.put("dtype", nda.dType().label());
-				payload.put("shape", nda.shape().toIntArray(C_ORDER));
+				// NB: Use a List rather than an array, so that
+				// worker mode does not auto-proxy the shape.
+				List<Integer> shape = new ArrayList<>();
+				for (int d : nda.shape().toIntArray(C_ORDER)) shape.add(d);
+				payload.put("shape", shape);
 				payload.put("shm", nda.shm());
 				return payload;
 			},

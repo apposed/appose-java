@@ -35,6 +35,7 @@ import org.junit.jupiter.api.Test;
 
 import java.math.BigDecimal;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -164,6 +165,22 @@ public class MessagesTest {
 			assertEquals(25, ndArray.shape().get(2));
 			assertEquals(shmName, ndArray.shm().name());
 			assertEquals(SHM_RSIZE, ndArray.shm().rsize());
+		}
+	}
+
+	/** Tests that worker mode encodes NDArrays without auto-proxying their shape. */
+	@Test
+	public void testEncodeNDArrayInWorkerMode() {
+		NDArray.DType dtype = NDArray.DType.FLOAT32;
+		NDArray.Shape shape = new NDArray.Shape(NDArray.Shape.Order.C_ORDER, 2, 20, 25);
+		boolean workerMode = Messages.workerMode;
+		Messages.workerMode = true;
+		try (NDArray ndArray = new NDArray(dtype, shape)) {
+			String json = Messages.encode(Collections.singletonMap("ndArray", ndArray));
+			assertTrue(json.contains("\"shape\":[2,20,25]"), json);
+		}
+		finally {
+			Messages.workerMode = workerMode;
 		}
 	}
 
