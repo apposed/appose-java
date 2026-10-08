@@ -404,6 +404,8 @@ public class ServiceTest extends TestBase {
 			.pypi("appose==0.7.2")
 			.logDebug()
 			.build();
+		// NB: The environment's appose is an old release, predating the version check.
+		System.setProperty(SKIP_VERSION_CHECK, "true");
 		try (Service service = env.python().init("import numpy")) {
 			maybeDebug(service);
 
@@ -427,6 +429,9 @@ public class ServiceTest extends TestBase {
 				double value = ((Number) element).doubleValue();
 				assertEquals(expected[i], value, 1e-10);
 			}
+		}
+		finally {
+			System.clearProperty(SKIP_VERSION_CHECK);
 		}
 	}
 }

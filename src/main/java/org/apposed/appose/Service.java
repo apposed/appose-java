@@ -66,6 +66,8 @@ import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Consumer;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -91,6 +93,12 @@ public class Service implements AutoCloseable {
 	 * of an error message to any still pending tasks when reporting the crash.
 	 */
 	private final List<String> invalidLines = new ArrayList<>();
+
+	/** The worker's self-description, from its HELLO message. */
+	private volatile @Nullable Map<String, Object> workerInfo;
+
+	/** Why the worker is incompatible with this service, if it is. */
+	private volatile @Nullable String incompatibility;
 
 	/**
 	 * List of lines emitted to the standard error stream seen since the service
@@ -667,6 +675,10 @@ public class Service implements AutoCloseable {
 	 * collected over the lifetime of the service.
 	 * Can be useful for analyzing why a worker process has crashed.
 	 */
+	public @Nullable Map<String, Object> workerInfo() {
+		return workerInfo;
+	}
+
 	public List<String> invalidLines() {
 		return Collections.unmodifiableList(invalidLines);
 	}
@@ -700,6 +712,48 @@ public class Service implements AutoCloseable {
 	}
 
 	/** Input loop processing lines from the worker stdout stream. */
+	/**
+	 * Checks that the worker is compatible with this service: both must
+	 * implement the same major.minor version of Appose.
+	 */
+	private void handleHello(Map<String, Object> hello) {
+		workerInfo = hello;
+		String workerVersion = String.valueOf(hello.get("version"));
+		String serviceVersion = Appose.version();
+		String minor = minor(serviceVersion);
+		if (minor != null && minor.equals(minor(workerVersion))) return;
+		Object implementation = hello.getOrDefault("implementation", "worker");
+		rejectWorker(implementation + " " + workerVersion + " is incompatible with " +
+			"appose-java " + serviceVersion + ": the worker must also implement Appose " +
+			minor + ".x.");
+	}
+
+	/** Shuts down an incompatible worker, crashing its tasks with the reason. */
+	private void rejectWorker(String reason) {
+		String skip = System.getenv("APPOSE_SKIP_VERSION_CHECK");
+		if (skip == null || skip.isEmpty()) skip = System.getProperty("appose.skipVersionCheck");
+		if (skip != null && !skip.isEmpty()) {
+			debugService("<ignoring incompatible worker> " + reason);
+			return;
+		}
+		incompatibility = reason + " Set APPOSE_SKIP_VERSION_CHECK=1 " +
+			"(or -Dappose.skipVersionCheck=true) to skip this check.";
+		debugService("<incompatible worker> " + incompatibility);
+		// NB: Closing stdin also ends any descendant process actually running
+		// the worker (e.g. beneath pixi run), which kill() does not reach.
+		stdin.close();
+		kill();
+	}
+
+	/**
+	 * Extracts the major.minor part of a version string, e.g. "1.1" from
+	 * "1.1.2", "1.1.0.dev0" or "1.1.3-SNAPSHOT"; or null if unparseable.
+	 */
+	static @Nullable String minor(String version) {
+		Matcher m = Pattern.compile("^(\\d+)\\.(\\d+)").matcher(version);
+		return m.find() ? m.group(1) + "." + m.group(2) : null;
+	}
+
 	private void writeStartupScript(@Nullable String script, String prefix, String envVar)
 		throws IOException
 	{
@@ -757,6 +811,18 @@ public class Service implements AutoCloseable {
 			try {
 				Map<String, Object> response = Messages.decode(line);
 				debugService(line); // Echo the line to the debug listener.
+				if (ResponseType.HELLO.toString().equals(response.get("responseType"))) {
+					handleHello(response);
+					continue;
+				}
+				if (workerInfo == null && incompatibility == null) {
+					// NB: Workers predating the HELLO handshake begin with
+					// some other message, e.g. LAUNCH for the first task.
+					String minor = minor(Appose.version());
+					rejectWorker("Worker did not identify itself, so it probably " +
+						"predates Appose " + minor + "; this service requires Appose " + minor + ".x.");
+				}
+				if (incompatibility != null) continue;
 				if (ResponseType.CALL.toString().equals(response.get("responseType"))) {
 					// The worker is calling back into a service object.
 					// Handle it on its own thread, so that this loop stays
@@ -836,6 +902,7 @@ public class Service implements AutoCloseable {
 		// Notify remaining tasks about the process crash.
 		StringBuilder sb = new StringBuilder();
 		String nl = System.lineSeparator();
+		if (incompatibility != null) sb.append(incompatibility).append(nl).append(nl);
 		sb.append("Worker crashed with exit code ").append(exitCode).append(".").append(nl);
 		String stdout = invalidLines.isEmpty() ? "<none>" : String.join(nl, invalidLines);
 		String stderr = errorLines.isEmpty() ? "<none>" : String.join(nl, errorLines);
@@ -1017,7 +1084,7 @@ public class Service implements AutoCloseable {
 	}
 
 	public enum ResponseType {
-		LAUNCH, UPDATE, CALL, COMPLETION, CANCELATION, FAILURE, CRASH;
+		HELLO, LAUNCH, UPDATE, CALL, COMPLETION, CANCELATION, FAILURE, CRASH;
 
 		/** True iff response type is COMPLETION, CANCELATION, FAILURE, or CRASH. */
 		public boolean isTerminal() {
@@ -1060,6 +1127,11 @@ public class Service implements AutoCloseable {
 		public synchronized Task start() {
 			validateInitialState();
 			status = TaskStatus.QUEUED;
+			if (incompatibility != null) {
+				tasks.remove(uuid);
+				crash(incompatibility);
+				return this;
+			}
 
 			Map<String, Object> args = new HashMap<>();
 			args.put("script", script);

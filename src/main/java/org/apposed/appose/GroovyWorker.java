@@ -147,7 +147,7 @@ public class GroovyWorker {
 	}
 
 	/** Sends a message to the service. */
-	private void send(Map<String, Object> response) {
+	private static void send(Map<String, Object> response) {
 		String encoded = Messages.encode(response);
 		// NB: Messages may be sent from multiple threads, and must not interleave.
 		synchronized (System.out) {
@@ -179,56 +179,72 @@ public class GroovyWorker {
 				break;
 			}
 
-			Map<String, Object> request = Messages.decode(line);
-			String uuid = (String) request.get("task");
-			String requestType = (String) request.get("requestType");
-
-			switch (RequestType.valueOf(requestType)) {
-				case EXECUTE:
-					String script = (String) request.get("script");
-					@SuppressWarnings({"rawtypes", "unchecked"})
-					Map<String, Object> inputs = (Map) request.get("inputs");
-					String queue = (String) request.get("queue");
-					Task task = new Task(uuid, script, inputs);
-					tasks.put(uuid, task);
-					if ("main".equals(queue)) {
-						// Add the task to the main thread queue.
-						this.queue.add(task);
-					}
-					else {
-						// Create a thread and save a reference to it,
-						// in case its script somehow kills the thread.
-						//
-						// Assign task.thread only AFTER start() returns. Otherwise the
-						// janitor (cleanupThreads) can observe task.thread set while
-						// the thread is not yet alive (the window between Thread()
-						// construction and start()) and spuriously fail the task with
-						// "thread death". See apposed/appose#15.
-						Thread t = new Thread(task::run, "Appose-" + uuid);
-						t.start();
-						task.thread = t;
-					}
-					break;
-
-				case REPLY:
-					Object callID = request.get("call");
-					PendingCall pending = callID == null ? null : calls.remove(callID.toString());
-					if (pending == null) {
-						System.err.println("No such call: " + callID);
-						continue;
-					}
-					pending.resolve(request);
-					break;
-
-				case CANCEL:
-					Task taskToCancel = tasks.get(uuid);
-					if (taskToCancel == null) {
-						System.err.println("No such task: " + uuid);
-						continue;
-					}
-					taskToCancel.cancelRequested = true;
-					break;
+			String uuid = null;
+			try {
+				Map<String, Object> request = Messages.decode(line);
+				uuid = (String) request.get("task");
+				handleRequest(request, uuid);
 			}
+			catch (Exception exc) {
+				// NB: This thread must never die; report the problem and keep going.
+				String error = Messages.stackTrace(exc);
+				System.err.println("Invalid request: " + line + "\n" + error);
+				// NB: If the request was meant to start a task, the service is
+				// waiting for that task to finish, so we must report it failed.
+				if (uuid != null && !tasks.containsKey(uuid)) {
+					new Task(uuid, null, null).fail(error);
+				}
+			}
+		}
+	}
+
+	private void handleRequest(Map<String, Object> request, String uuid) {
+		String requestType = (String) request.get("requestType");
+		switch (RequestType.valueOf(requestType)) {
+			case EXECUTE:
+				String script = (String) request.get("script");
+				@SuppressWarnings({"rawtypes", "unchecked"})
+				Map<String, Object> inputs = (Map) request.get("inputs");
+				String queue = (String) request.get("queue");
+				Task task = new Task(uuid, script, inputs);
+				tasks.put(uuid, task);
+				if ("main".equals(queue)) {
+					// Add the task to the main thread queue.
+					this.queue.add(task);
+				}
+				else {
+					// Create a thread and save a reference to it,
+					// in case its script somehow kills the thread.
+					//
+					// Assign task.thread only AFTER start() returns. Otherwise the
+					// janitor (cleanupThreads) can observe task.thread set while
+					// the thread is not yet alive (the window between Thread()
+					// construction and start()) and spuriously fail the task with
+					// "thread death". See apposed/appose#15.
+					Thread t = new Thread(task::run, "Appose-" + uuid);
+					t.start();
+					task.thread = t;
+				}
+				break;
+
+			case REPLY:
+				Object callID = request.get("call");
+				PendingCall pending = callID == null ? null : calls.remove(callID.toString());
+				if (pending == null) {
+					System.err.println("No such call: " + callID);
+					return;
+				}
+				pending.resolve(request);
+				break;
+
+			case CANCEL:
+				Task taskToCancel = tasks.get(uuid);
+				if (taskToCancel == null) {
+					System.err.println("No such task: " + uuid);
+					return;
+				}
+				taskToCancel.cancelRequested = true;
+				break;
 		}
 	}
 
@@ -263,6 +279,14 @@ public class GroovyWorker {
 	}
 
 	public static void main(String... args) {
+		// Identify this worker to the service, which checks compatibility.
+		// NB: This must happen first, before any slow startup scripts.
+		Map<String, Object> hello = new HashMap<>();
+		hello.put("responseType", ResponseType.HELLO.toString());
+		hello.put("implementation", "appose-java");
+		hello.put("version", Appose.version());
+		send(hello);
+
 		// Register libraries, then execute init script, if provided via
 		// environment variables. This happens before the worker's I/O loop
 		// starts, which is useful for initialization that must happen before

@@ -212,6 +212,10 @@ public abstract class TestBase {
 	public void cowsayAndAssert(Environment env, String greeting)
 		throws InterruptedException, TaskException
 	{
+		// NB: These environments contain a released appose, from conda-forge or
+		// PyPI, which need not match the version of appose under test. Such
+		// tests are about environment building, not compatibility.
+		System.setProperty(SKIP_VERSION_CHECK, "true");
 		try (Service service = env.python()) {
 			maybeDebug(service);
 			Task task = service.task(
@@ -229,7 +233,13 @@ public abstract class TestBase {
 			assertTrue(actual.contains("(oo)"), "Output should contain cow eyes");
 			assertTrue(actual.contains("||----w |"), "Output should contain cow legs");
 		}
+		finally {
+			System.clearProperty(SKIP_VERSION_CHECK);
+		}
 	}
+
+	/** System property that disables the worker version check. */
+	public static final String SKIP_VERSION_CHECK = "appose.skipVersionCheck";
 
 	public void maybeDebug(Service service) {
 		String debug1 = System.getenv("DEBUG");
