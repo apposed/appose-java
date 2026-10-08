@@ -106,6 +106,20 @@ public interface Builder<T extends Builder<T>> {
 	}
 
 	/**
+	 * Reports whether the environment targeted by this builder has been built,
+	 * and whether it matches the builder's current configuration.
+	 * <p>
+	 * This is a cheap, side-effect-free query of the filesystem: it never
+	 * downloads tools, installs packages, or creates directories.
+	 * It reflects the on-disk state at the time of the call, so (for example)
+	 * it reports {@link EnvStatus#MISSING} after {@link #delete()}.
+	 * </p>
+	 *
+	 * @return The status of the target environment.
+	 */
+	EnvStatus status();
+
+	/**
 	 * Deletes the builder's linked environment directory, if any.
 	 *
 	 * @throws IOException If something goes wrong during deletion.

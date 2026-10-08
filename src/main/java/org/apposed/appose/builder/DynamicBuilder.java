@@ -32,6 +32,7 @@ package org.apposed.appose.builder;
 import org.apposed.appose.BuildException;
 import org.apposed.appose.Builder;
 import org.apposed.appose.BuilderFactory;
+import org.apposed.appose.EnvStatus;
 import org.apposed.appose.Environment;
 import org.apposed.appose.Scheme;
 
@@ -70,6 +71,13 @@ public final class DynamicBuilder extends BaseBuilder<DynamicBuilder> {
 		Builder<?> delegate = createBuilder();
 		copyConfigToDelegate(delegate);
 		return delegate.build();
+	}
+
+	@Override
+	public EnvStatus status() {
+		Builder<?> delegate = createBuilder();
+		copyConfigToDelegate(delegate);
+		return delegate.status();
 	}
 
 	@Override

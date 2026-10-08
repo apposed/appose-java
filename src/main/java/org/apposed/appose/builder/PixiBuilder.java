@@ -30,6 +30,7 @@
 package org.apposed.appose.builder;
 
 import org.apposed.appose.BuildException;
+import org.apposed.appose.EnvStatus;
 import org.apposed.appose.Environment;
 import org.apposed.appose.util.FilePaths;
 import org.apposed.appose.scheme.Schemes;
@@ -97,13 +98,7 @@ public final class PixiBuilder extends BaseBuilder<PixiBuilder> {
 	public Environment build() throws BuildException {
 		File envDir = resolveEnvDir();
 
-		// Check for incompatible existing environments.
-		if (new File(envDir, "conda-meta").exists() && !new File(envDir, ".pixi").exists()) {
-			throw new BuildException(this, "Cannot use PixiBuilder: environment already managed by Mamba/Conda at " + envDir);
-		}
-		if (new File(envDir, "pyvenv.cfg").exists()) {
-			throw new BuildException(this, "Cannot use PixiBuilder: environment already managed by uv/venv at " + envDir);
-		}
+		checkCompatibility(envDir);
 
 		// Validate content/scheme BEFORE installing any tools.
 		if (content != null) {
@@ -133,7 +128,7 @@ public final class PixiBuilder extends BaseBuilder<PixiBuilder> {
 
 			// If the env state matches our current configuration,
 			// skip all package management and return immediately.
-			if (isUpToDate(envDir)) {
+			if (status() == EnvStatus.CURRENT) {
 				return buildPixiEnvironment(pixi, envDir);
 			}
 
@@ -180,17 +175,17 @@ public final class PixiBuilder extends BaseBuilder<PixiBuilder> {
 
 				pixi.init(envDir);
 
+				// Add channels.
+				if (!channels.isEmpty()) {
+					pixi.addChannels(envDir, channels.toArray(new String[0]));
+				}
+
 				// Fail fast for vacuous environments.
 				if (condaPackages.isEmpty() && pypiPackages.isEmpty()) {
 					throw new IllegalStateException(
 						"Cannot build empty environment programmatically. " +
 						"Either provide a source file via Appose.pixi(source), or add packages via .conda() or .pypi()."
 					);
-				}
-
-				// Add channels.
-				if (!channels.isEmpty()) {
-					pixi.addChannels(envDir, channels.toArray(new String[0]));
 				}
 
 				// Add conda packages.
@@ -225,6 +220,22 @@ public final class PixiBuilder extends BaseBuilder<PixiBuilder> {
 		catch (IOException | InterruptedException e) {
 			throw new BuildException(this, e);
 		}
+	}
+
+	@Override
+	protected boolean hasEnvironment(File envDir) {
+		return new File(envDir, ".pixi/envs/default").isDirectory();
+	}
+
+	@Override
+	protected String incompatibility(File envDir) {
+		if (new File(envDir, "conda-meta").exists() && !new File(envDir, ".pixi").exists()) {
+			return "environment already managed by Mamba/Conda";
+		}
+		if (new File(envDir, "pyvenv.cfg").exists()) {
+			return "environment already managed by uv/venv";
+		}
+		return null;
 	}
 
 	@Override

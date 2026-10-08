@@ -31,6 +31,7 @@ package org.apposed.appose.builder;
 
 import org.apposed.appose.BuildException;
 import org.apposed.appose.Builder;
+import org.apposed.appose.EnvStatus;
 import org.apposed.appose.Environment;
 import org.apposed.appose.util.Environments;
 
@@ -154,6 +155,13 @@ public final class SimpleBuilder extends BaseBuilder<SimpleBuilder> {
 			@Override public Map<String, String> envVars() { return environmentVars; }
 			@Override public Builder<?> builder() { return SimpleBuilder.this; }
 		};
+	}
+
+	@Override
+	public EnvStatus status() {
+		// No package management, hence no build state to compare against.
+		File base = resolveEnvDir();
+		return base != null && base.isDirectory() ? EnvStatus.EXTERNAL : EnvStatus.MISSING;
 	}
 
 	@Override

@@ -31,6 +31,7 @@ package org.apposed.appose.builder;
 
 import org.apposed.appose.BuildException;
 import org.apposed.appose.Builder;
+import org.apposed.appose.EnvStatus;
 import org.apposed.appose.Environment;
 import org.apposed.appose.Scheme;
 import org.apposed.appose.util.Environments;
@@ -81,6 +82,28 @@ public abstract class BaseBuilder<T extends BaseBuilder<T>> implements Builder<T
 	public void delete() throws IOException {
 		File dir = resolveEnvDir();
 		if (dir.exists()) FilePaths.deleteRecursively(dir);
+	}
+
+	@Override
+	public EnvStatus status() {
+		File dir;
+		try {
+			dir = resolveEnvDir();
+		}
+		catch (IllegalStateException | IllegalArgumentException e) {
+			// No name, directory or (recognizable) content: no target location to speak of.
+			return EnvStatus.MISSING;
+		}
+		if (dir == null) return EnvStatus.MISSING;
+		if (incompatibility(dir) != null) return EnvStatus.INCOMPATIBLE;
+		if (!hasEnvironment(dir)) return EnvStatus.MISSING;
+		if (!new File(dir, "appose.json").isFile()) return EnvStatus.EXTERNAL;
+		try {
+			return isUpToDate(dir) ? EnvStatus.CURRENT : EnvStatus.STALE;
+		}
+		catch (IOException | IllegalArgumentException e) {
+			return EnvStatus.STALE;
+		}
 	}
 
 	@Override
@@ -178,7 +201,10 @@ public abstract class BaseBuilder<T extends BaseBuilder<T>> implements Builder<T
 	 */
 	protected void addStateFields(Map<String, Object> state) {
 		state.put("content", content);
-		state.put("scheme", scheme != null ? scheme.name() : null);
+		// Note: build() infers the scheme from content before recording state,
+		// so status() must do likewise for the comparison to match.
+		Scheme s = scheme != null ? scheme : content != null ? Schemes.fromContent(content) : null;
+		state.put("scheme", s != null ? s.name() : null);
 		state.put("channels", channels);
 		state.put("flags", flags);
 		state.put("envVars", new TreeMap<>(envVars));
@@ -186,7 +212,8 @@ public abstract class BaseBuilder<T extends BaseBuilder<T>> implements Builder<T
 
 	/**
 	 * Returns true if {@code appose.json} in the given directory matches
-	 * the current builder's state, meaning no rebuild is needed.
+	 * the current builder's state. See also {@link #status()}, which also
+	 * checks that the environment itself is present.
 	 *
 	 * @param envDir The environment directory to check.
 	 * @return True if up to date, false if a rebuild is needed.
@@ -210,6 +237,44 @@ public abstract class BaseBuilder<T extends BaseBuilder<T>> implements Builder<T
 	protected void writeApposeStateFile(File envDir) throws IOException {
 		File apposeJson = new File(envDir, "appose.json");
 		Files.write(apposeJson.toPath(), buildStateString().getBytes(StandardCharsets.UTF_8));
+	}
+
+	/**
+	 * Tests whether the given directory actually contains a usable environment
+	 * of this builder's type, regardless of who built it. Used by {@link #status()}.
+	 * Note: unlike {@code BuilderFactory#canWrap}, this requires the environment
+	 * itself to be present, not merely its configuration.
+	 *
+	 * @param envDir The target environment directory.
+	 * @return True iff the environment is present.
+	 */
+	protected boolean hasEnvironment(File envDir) {
+		return envDir.isDirectory();
+	}
+
+	/**
+	 * Checks whether the given directory holds an environment of a different
+	 * type, which this builder cannot build over. Used by {@link #status()}
+	 * and {@link #checkCompatibility}.
+	 *
+	 * @param envDir The target environment directory.
+	 * @return A description of the incompatibility, or null if compatible.
+	 */
+	protected String incompatibility(File envDir) {
+		return null;
+	}
+
+	/**
+	 * Fails if the given directory holds an environment of a different type.
+	 *
+	 * @param envDir The target environment directory.
+	 * @throws BuildException If the environment is incompatible.
+	 */
+	protected void checkCompatibility(File envDir) throws BuildException {
+		String reason = incompatibility(envDir);
+		if (reason != null) {
+			throw new BuildException(this, "Cannot use " + getClass().getSimpleName() + ": " + reason + " at " + envDir);
+		}
 	}
 
 	/** Determines the environment directory path. */

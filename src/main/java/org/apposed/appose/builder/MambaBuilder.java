@@ -30,6 +30,7 @@
 package org.apposed.appose.builder;
 
 import org.apposed.appose.BuildException;
+import org.apposed.appose.EnvStatus;
 import org.apposed.appose.Environment;
 import org.apposed.appose.util.FilePaths;
 import org.apposed.appose.scheme.Schemes;
@@ -58,16 +59,26 @@ public final class MambaBuilder extends BaseBuilder<MambaBuilder> {
 	}
 
 	@Override
+	protected boolean hasEnvironment(File envDir) {
+		return new File(envDir, "conda-meta").isDirectory();
+	}
+
+	@Override
+	protected String incompatibility(File envDir) {
+		if (new File(envDir, ".pixi").isDirectory()) {
+			return "environment already managed by Pixi";
+		}
+		if (new File(envDir, "pyvenv.cfg").exists()) {
+			return "environment already managed by uv/venv";
+		}
+		return null;
+	}
+
+	@Override
 	public Environment build() throws BuildException {
 		File envDir = resolveEnvDir();
 
-		// Check for incompatible existing environments.
-		if (new File(envDir, ".pixi").isDirectory()) {
-			throw new BuildException(this, "Cannot use MambaBuilder: environment already managed by Pixi at " + envDir);
-		}
-		if (new File(envDir, "pyvenv.cfg").exists()) {
-			throw new BuildException(this, "Cannot use MambaBuilder: environment already managed by uv/venv at " + envDir);
-		}
+		checkCompatibility(envDir);
 
 		// Infer scheme from content if available.
 		if (content != null && scheme == null) scheme = Schemes.fromContent(content);
@@ -100,7 +111,7 @@ public final class MambaBuilder extends BaseBuilder<MambaBuilder> {
 		try {
 			// If the env state matches our current configuration,
 			// skip all package management and return immediately.
-			if (isUpToDate(envDir)) {
+			if (status() == EnvStatus.CURRENT) {
 				return createEnvironment(mamba, envDir);
 			}
 

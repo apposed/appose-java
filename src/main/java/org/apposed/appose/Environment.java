@@ -107,6 +107,15 @@ public interface Environment {
 	}
 
 	/**
+	 * Gets the current status of this environment on disk.
+	 *
+	 * @return The result of {@link Builder#status()} on this environment's builder.
+	 */
+	default EnvStatus status() {
+		return builder().status();
+	}
+
+	/**
 	 * Deletes the existing environment directory, if any.
 	 *
 	 * @return This environment, for fluid chaining.

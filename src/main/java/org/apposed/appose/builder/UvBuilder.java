@@ -30,6 +30,7 @@
 package org.apposed.appose.builder;
 
 import org.apposed.appose.BuildException;
+import org.apposed.appose.EnvStatus;
 import org.apposed.appose.Environment;
 import org.apposed.appose.util.FilePaths;
 import org.apposed.appose.util.Platforms;
@@ -95,16 +96,26 @@ public final class UvBuilder extends BaseBuilder<UvBuilder> {
 	}
 
 	@Override
+	protected boolean hasEnvironment(File envDir) {
+		return new File(envDir, "pyvenv.cfg").isFile() || new File(envDir, ".venv").isDirectory();
+	}
+
+	@Override
+	protected String incompatibility(File envDir) {
+		if (new File(envDir, ".pixi").isDirectory()) {
+			return "environment already managed by Pixi";
+		}
+		if (new File(envDir, "conda-meta").isDirectory()) {
+			return "environment already managed by Mamba/Conda";
+		}
+		return null;
+	}
+
+	@Override
 	public Environment build() throws BuildException {
 		File envDir = resolveEnvDir();
 
-		// Check for incompatible existing environments.
-		if (new File(envDir, ".pixi").isDirectory()) {
-			throw new BuildException(this, "Cannot use UvBuilder: environment already managed by Pixi at " + envDir);
-		}
-		if (new File(envDir, "conda-meta").isDirectory()) {
-			throw new BuildException(this, "Cannot use UvBuilder: environment already managed by Mamba/Conda at " + envDir);
-		}
+		checkCompatibility(envDir);
 
 		Uv uv = new Uv();
 
@@ -139,7 +150,7 @@ public final class UvBuilder extends BaseBuilder<UvBuilder> {
 		try {
 			// If the env state matches our current configuration,
 			// skip all package management and return immediately.
-			if (isUpToDate(envDir)) {
+			if (status() == EnvStatus.CURRENT) {
 				return createEnvironment(envDir);
 			}
 
