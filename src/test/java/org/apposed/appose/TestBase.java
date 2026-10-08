@@ -110,8 +110,8 @@ public abstract class TestBase {
 	public static Environment pythonEnv(String name, String... packages)
 		throws BuildException
 	{
-		String spec = apposePythonSpec();
-		System.err.println("[TestBase] Building " + name + " with " + spec);
+		String[] spec = apposePythonSpec();
+		System.err.println("[TestBase] Building " + name + " with " + String.join(" ", spec));
 		return Appose.uv()
 			.python("3.9")
 			.include(spec)
@@ -121,7 +121,7 @@ public abstract class TestBase {
 	}
 
 	/**
-	 * Gets the pip requirement specifying which appose-python to test against:
+	 * Gets the pip arguments specifying which appose-python to test against:
 	 * <ol>
 	 *   <li>The {@value #APPOSE_PYTHON_PROPERTY} system property, if set. Its
 	 *     value is either a local directory, or a pip requirement such as
@@ -129,21 +129,26 @@ public abstract class TestBase {
 	 *   <li>Otherwise, a sibling {@code ../appose-python} checkout, if any.</li>
 	 *   <li>Otherwise, the main branch of appose-python on GitHub.</li>
 	 * </ol>
+	 * A local directory is installed in editable mode.
 	 */
-	public static String apposePythonSpec() {
+	public static String[] apposePythonSpec() {
 		String value = System.getProperty(APPOSE_PYTHON_PROPERTY);
 		if (value != null && !value.trim().isEmpty()) {
 			File dir = new File(value.trim());
-			return dir.isDirectory() ? localSpec(dir) : value.trim();
+			return dir.isDirectory() ? localSpec(dir) : new String[] { value.trim() };
 		}
 		File sibling = new File("../appose-python");
 		if (new File(sibling, "pyproject.toml").isFile()) return localSpec(sibling);
-		return "appose @ git+https://github.com/apposed/appose-python";
+		return new String[] { "appose @ git+https://github.com/apposed/appose-python" };
 	}
 
-	private static String localSpec(File dir) {
-		// Note: uv reinstalls local directories every time, so edits are picked up.
-		return "appose @ " + dir.toPath().toAbsolutePath().normalize().toUri();
+	private static String[] localSpec(File dir) {
+		// Note: Editable mode, so that source edits take effect immediately.
+		// A regular install would go stale: UvBuilder skips uv entirely when
+		// the env is up to date, and uv caches the built wheel anyway.
+		return new String[] {
+			"-e", "appose @ " + dir.toPath().toAbsolutePath().normalize().toUri()
+		};
 	}
 
 	public void executeAndAssert(Service service, String script)
