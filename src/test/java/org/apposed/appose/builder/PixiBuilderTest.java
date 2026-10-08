@@ -118,6 +118,19 @@ public class PixiBuilderTest extends TestBase {
 	}
 
 	@Test
+	public void testPixiVacuousKeepsExistingEnv() throws Exception {
+		File base = new File("target/envs/pixi-vacuous-existing");
+		FilePaths.deleteRecursively(base);
+		File marker = new File(base, ".pixi/envs/default/conda-meta/history");
+		assertTrue(marker.getParentFile().mkdirs());
+		assertTrue(marker.createNewFile());
+		// With nothing to build from, the existing env must be used as-is, not wiped.
+		Environment env = Appose.pixi().base(base).logDebug().build();
+		assertEquals(base.getAbsolutePath(), env.base());
+		assertTrue(marker.exists());
+	}
+
+	@Test
 	public void testPixiApposeRequirement() throws IOException {
 		String base = "target/envs/pixi-appose-requirement";
 		FilePaths.deleteRecursively(new File(base));

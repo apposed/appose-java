@@ -132,6 +132,16 @@ public final class PixiBuilder extends BaseBuilder<PixiBuilder> {
 				return buildPixiEnvironment(pixi, envDir);
 			}
 
+			// With nothing to build from, use an existing env as-is, if any.
+			// Note: this must happen before anything is wiped below.
+			if (content == null && condaPackages.isEmpty() && pypiPackages.isEmpty()) {
+				if (hasEnvironment(envDir)) return buildPixiEnvironment(pixi, envDir);
+				throw new IllegalStateException(
+					"Cannot build empty environment programmatically. " +
+					"Either provide a source file via Appose.pixi(source), or add packages via .conda() or .pypi()."
+				);
+			}
+
 			// We are about to hit the network anyway; take the opportunity
 			// to keep pixi current, so it understands state written by newer
 			// pixi installations elsewhere on the system.
@@ -178,14 +188,6 @@ public final class PixiBuilder extends BaseBuilder<PixiBuilder> {
 				// Add channels.
 				if (!channels.isEmpty()) {
 					pixi.addChannels(envDir, channels.toArray(new String[0]));
-				}
-
-				// Fail fast for vacuous environments.
-				if (condaPackages.isEmpty() && pypiPackages.isEmpty()) {
-					throw new IllegalStateException(
-						"Cannot build empty environment programmatically. " +
-						"Either provide a source file via Appose.pixi(source), or add packages via .conda() or .pypi()."
-					);
 				}
 
 				// Add conda packages.
