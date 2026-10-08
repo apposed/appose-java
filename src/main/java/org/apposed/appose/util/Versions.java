@@ -48,7 +48,7 @@ public final class Versions {
 	public static String version(Class<?> c) {
 		// Extract version from embedded pom.xml.
 		XML xml = null;
-		URL pom = c.getResource("META-INF/org.apposed/appose/pom.xml");
+		URL pom = c.getResource("/META-INF/maven/org.apposed/appose/pom.xml");
 		try {
 			if (pom != null) xml = new XML(pom);
 		}

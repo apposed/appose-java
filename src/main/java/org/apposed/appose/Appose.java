@@ -37,8 +37,13 @@ import org.apposed.appose.builder.SimpleBuilder;
 import org.apposed.appose.builder.UvBuilder;
 import org.apposed.appose.util.Versions;
 
+import java.io.BufferedReader;
 import java.io.File;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.net.URL;
+import java.nio.charset.StandardCharsets;
 
 /**
  * Appose is a library for interprocess cooperation with shared memory. The
@@ -529,13 +534,24 @@ public class Appose {
 	/**
 	 * Gets the version of Appose in use.
 	 *
-	 * @return The version string extracted from the JAR manifest,
-	 *   or {@code "<dev>"} if there is no enclosing JAR with
-	 *   appropriate manifest entries.
+	 * @return The version string recorded at build time,
+	 *   or {@code "(unknown)"} if it cannot be determined.
 	 */
 	public static String version() {
-		String v = Versions.version(Appose.class);
-		return v == null ? "(unknown)" : v;
+		String v = null;
+		try (InputStream in = Appose.class.getResourceAsStream("version.txt")) {
+			if (in != null) {
+				v = new BufferedReader(new InputStreamReader(in, StandardCharsets.UTF_8)).readLine();
+			}
+		}
+		catch (IOException e) {
+			// No action needed.
+		}
+		if (v == null || v.trim().isEmpty() || v.startsWith("$")) {
+			// NB: Not filtered by Maven, e.g. when compiled by an IDE.
+			v = Versions.version(Appose.class);
+		}
+		return v == null ? "(unknown)" : v.trim();
 	}
 
 	// -- Helper methods --

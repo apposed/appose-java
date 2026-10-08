@@ -144,4 +144,23 @@
 		</dependency>
 
 	</dependencies>
+
+	<build>
+		<resources>
+			<resource>
+				<directory>src/main/resources</directory>
+				<excludes>
+					<exclude>org/apposed/appose/version.txt</exclude>
+				</excludes>
+			</resource>
+			<resource>
+				<!-- Record the version, for workers to identify themselves. -->
+				<directory>src/main/resources</directory>
+				<filtering>true</filtering>
+				<includes>
+					<include>org/apposed/appose/version.txt</include>
+				</includes>
+			</resource>
+		</resources>
+	</build>
 </project>
