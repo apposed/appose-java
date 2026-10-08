@@ -35,6 +35,7 @@ import org.apposed.appose.Service;
 import org.apposed.appose.util.Plugins;
 
 import java.util.List;
+import java.util.Map;
 
 /**
  * Utility class for discovering and working with {@link ScriptSyntax}es.
@@ -66,6 +67,31 @@ public final class Syntaxes {
 	 *
 	 * @param service The service to ensure valid script syntax assignment
 	 */
+	/**
+	 * Quotes the given string as a single-quoted string literal, valid in both
+	 * Python and Groovy (where single quotes do not interpolate {@code $}).
+	 *
+	 * @param s The string to quote.
+	 * @return The quoted string literal.
+	 */
+	public static String quote(String s) {
+		return "'" + s.replace("\\", "\\\\").replace("'", "\\'")
+			.replace("\n", "\\n").replace("\r", "\\r") + "'";
+	}
+
+	/**
+	 * Quotes the given map of strings as a map literal, valid in both Python
+	 * (a dict) and Groovy (a LinkedHashMap), except when empty.
+	 */
+	static String quote(Map<String, String> map) {
+		StringBuilder sb = new StringBuilder();
+		map.forEach((k, v) -> {
+			if (sb.length() > 0) sb.append(", ");
+			sb.append(quote(k)).append(": ").append(quote(v));
+		});
+		return sb.toString();
+	}
+
 	public static void validate(Service service) {
 		if (service.syntax() != null) return; // OK!
 		throw new IllegalStateException("No script syntax configured for this service");

@@ -51,6 +51,7 @@ import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -65,6 +66,8 @@ import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Consumer;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 /**
  * An Appose *service* provides access to a linked Appose *worker* running in a
@@ -111,6 +114,7 @@ public class Service implements AutoCloseable {
 
 	private @Nullable Consumer<String> debugListener;
 	private @Nullable String initScript;
+	private final List<String> libraryScripts = new ArrayList<>();
 	private ScriptSyntax syntax;
 
 
@@ -160,6 +164,147 @@ public class Service implements AutoCloseable {
 	}
 
 	/**
+	 * Registers library code with the worker, so that tasks can use it via
+	 * normal import statements.
+	 * <p>
+	 * The library is ordinary source code in the worker's language, which can
+	 * be developed in an IDE like any other code, with no reference to
+	 * Appose's {@code task} variable. Its state persists across tasks: in
+	 * Python, a library is a module, whose module-level state lives on in the
+	 * worker's {@code sys.modules}; in Groovy, a library is a set of classes,
+	 * whose static state lives on because they are loaded only once. Either
+	 * way, e.g. a cache of expensive-to-load models stays "warm" for all
+	 * subsequent tasks, without the need for {@code task.export}.
+	 * </p>
+	 * <p>
+	 * The library's source is read now and sent to the worker, so later changes
+	 * to the files on disk are not seen unless the library is registered again.
+	 * Registering changed source replaces the library (discarding its state);
+	 * registering unchanged source is a no-op. Resources, on the other hand,
+	 * are read from the directory on disk when accessed, as for any installed
+	 * library; so they are available only to libraries given as a directory,
+	 * on the same filesystem as the worker.
+	 * </p>
+	 * <p>
+	 * If called before the service starts, registration happens during worker
+	 * startup, before the init script (see {@link #init}), which may then use
+	 * the library itself. Otherwise, registration happens via a task, and this
+	 * method blocks until it completes.
+	 * </p>
+	 * <p>
+	 * The meaning of {@code name} and {@code path} depends on the language:
+	 * </p>
+	 * <ul>
+	 * <li><strong>Python:</strong> {@code name} is the module name to import the
+	 *     library as. The path is a single source file (imported as a module),
+	 *     or a directory (imported as a package, with subdirectories as
+	 *     subpackages).</li>
+	 * <li><strong>Groovy:</strong> {@code name} only identifies the library, for
+	 *     re-registration; the classes are imported by the packages and names
+	 *     declared in their source. The path is a single source file, or a
+	 *     source root directory (e.g. {@code src/main/groovy}), whose
+	 *     subdirectories correspond to packages.</li>
+	 * </ul>
+	 *
+	 * @param name The name of the library.
+	 * @param path A single source file, or a directory of source files.
+	 * @return This service object, for chaining method calls.
+	 * @throws IOException If the library's source files cannot be read.
+	 * @throws InterruptedException If interrupted while registering the library.
+	 * @throws TaskException If the worker fails to register the library.
+	 * @throws IllegalArgumentException If the name is not a valid identifier,
+	 *           or the path is neither a file nor a directory.
+	 * @throws IllegalStateException If no script syntax has been configured for this service.
+	 * @throws UnsupportedOperationException If this service's script syntax
+	 *           does not support libraries.
+	 * @see #importLibrarySource(String, String)
+	 * @see #importLibrarySource(String, Map)
+	 */
+	public Service importLibrary(String name, File path)
+		throws IOException, InterruptedException, TaskException
+	{
+		checkLibraryName(name);
+		Syntaxes.validate(this);
+		File file = path.getAbsoluteFile();
+		String origin = file.toPath().normalize().toString().replace(File.separatorChar, '/');
+		Map<String, String> files = new LinkedHashMap<>();
+		if (file.isFile()) {
+			files.put(file.getName(), readString(file.toPath()));
+			return registerLibrary(syntax.importLibrary(name, files, origin, false));
+		}
+		if (!file.isDirectory()) {
+			throw new IllegalArgumentException("No such file or directory: " + file);
+		}
+		String suffix = syntax.librarySuffix();
+		Path root = file.toPath();
+		List<Path> sources;
+		try (Stream<Path> walk = Files.walk(root)) {
+			sources = walk
+				.filter(p -> p.getFileName().toString().endsWith(suffix))
+				.filter(p -> Files.isRegularFile(p))
+				.filter(p -> !p.toString().contains("__pycache__"))
+				.sorted()
+				.collect(Collectors.toList());
+		}
+		for (Path p : sources) {
+			String relPath = root.relativize(p).toString().replace(File.separatorChar, '/');
+			files.put(relPath, readString(p));
+		}
+		return registerLibrary(syntax.importLibrary(name, files, origin, true));
+	}
+
+	/**
+	 * Registers library code, given directly as a single string of source
+	 * code, with the worker. See {@link #importLibrary(String, File)} for
+	 * details.
+	 *
+	 * @param name The name of the library.
+	 * @param source The library's source code (a Python module, or a
+	 *          Groovy source file).
+	 * @return This service object, for chaining method calls.
+	 * @throws InterruptedException If interrupted while registering the library.
+	 * @throws TaskException If the worker fails to register the library.
+	 * @throws IllegalArgumentException If the name is not a valid identifier.
+	 * @throws IllegalStateException If no script syntax has been configured for this service.
+	 * @throws UnsupportedOperationException If this service's script syntax
+	 *           does not support libraries.
+	 */
+	public Service importLibrarySource(String name, String source)
+		throws InterruptedException, TaskException
+	{
+		checkLibraryName(name);
+		Syntaxes.validate(this);
+		String fileName = name + syntax.librarySuffix();
+		Map<String, String> files = Collections.singletonMap(fileName, source);
+		return registerLibrary(syntax.importLibrary(name, files, sourceOrigin(fileName), false));
+	}
+
+	/**
+	 * Registers library code, given directly as source code of multiple files,
+	 * with the worker. See {@link #importLibrary(String, File)} for details.
+	 *
+	 * @param name The name of the library.
+	 * @param sources Map from relative POSIX path (e.g. {@code "__init__.py"}
+	 *          or {@code "sub/mod.py"}) to source code, as if the library were
+	 *          given as a directory.
+	 * @return This service object, for chaining method calls.
+	 * @throws InterruptedException If interrupted while registering the library.
+	 * @throws TaskException If the worker fails to register the library.
+	 * @throws IllegalArgumentException If the name is not a valid identifier.
+	 * @throws IllegalStateException If no script syntax has been configured for this service.
+	 * @throws UnsupportedOperationException If this service's script syntax
+	 *           does not support libraries.
+	 */
+	public Service importLibrarySource(String name, Map<String, String> sources)
+		throws InterruptedException, TaskException
+	{
+		checkLibraryName(name);
+		Syntaxes.validate(this);
+		Map<String, String> files = new LinkedHashMap<>(sources);
+		return registerLibrary(syntax.importLibrary(name, files, sourceOrigin(name), true));
+	}
+
+	/**
 	 * Adds environment variables to pass to the worker process.
 	 *
 	 * @param vars Key/value pairs to add to the worker's environment.
@@ -186,14 +331,11 @@ public class Service implements AutoCloseable {
 
 		String prefix = "Appose-Service-" + serviceID;
 
-		// If an init script is provided, write it to a temporary file
-		// and pass its path via environment variable.
-		if (initScript != null && !initScript.isEmpty()) {
-			File initFile = File.createTempFile("appose-init-", ".txt");
-			initFile.deleteOnExit();
-			Files.write(initFile.toPath(), initScript.getBytes(StandardCharsets.UTF_8));
-			envVars.put("APPOSE_INIT_SCRIPT", initFile.getAbsolutePath());
-		}
+		// If libraries or an init script are provided, write them to temporary
+		// files and pass their paths via environment variables. The worker
+		// registers the libraries first, so that the init script can use them.
+		writeStartupScript(String.join("", libraryScripts), "appose-libraries-", "APPOSE_LIBRARY_SCRIPT");
+		writeStartupScript(initScript, "appose-init-", "APPOSE_INIT_SCRIPT");
 
 		ProcessBuilder pb = Processes.builder(cwd, envVars, args);
 		process = pb.start();
@@ -558,6 +700,43 @@ public class Service implements AutoCloseable {
 	}
 
 	/** Input loop processing lines from the worker stdout stream. */
+	private void writeStartupScript(@Nullable String script, String prefix, String envVar)
+		throws IOException
+	{
+		if (script == null || script.isEmpty()) return;
+		File file = File.createTempFile(prefix, ".txt");
+		file.deleteOnExit();
+		Files.write(file.toPath(), script.getBytes(StandardCharsets.UTF_8));
+		envVars.put(envVar, file.getAbsolutePath());
+	}
+
+	private static void checkLibraryName(String name) {
+		boolean valid = !name.isEmpty() && Character.isJavaIdentifierStart(name.charAt(0)) &&
+			name.chars().allMatch(Character::isJavaIdentifierPart);
+		if (!valid) throw new IllegalArgumentException("Invalid library name: " + name);
+	}
+
+	private static String sourceOrigin(String fileName) {
+		// NB: Not wrapped in <...>, which Python's linecache would refuse to
+		// resolve via the module's loader, leaving tracebacks without source lines.
+		return "<appose>/" + fileName;
+	}
+
+	private static String readString(Path path) throws IOException {
+		return new String(Files.readAllBytes(path), StandardCharsets.UTF_8);
+	}
+
+	private Service registerLibrary(String script) throws InterruptedException, TaskException {
+		synchronized (this) {
+			if (process == null) {
+				libraryScripts.add(script);
+				return this;
+			}
+		}
+		task(script).waitFor();
+		return this;
+	}
+
 	private void stdoutLoop() {
 		BufferedReader stdout = new BufferedReader(new InputStreamReader(process.getInputStream()));
 		while (true) {

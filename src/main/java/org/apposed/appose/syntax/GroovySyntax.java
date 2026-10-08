@@ -32,6 +32,7 @@ package org.apposed.appose.syntax;
 import org.apposed.appose.ScriptSyntax;
 
 import java.util.List;
+import java.util.Map;
 
 /**
  * Groovy-specific script syntax implementation.
@@ -84,5 +85,19 @@ public class GroovySyntax implements ScriptSyntax {
 		return "try { " + objectVarName + "." + attributeName + " } " +
 			"catch (groovy.lang.MissingPropertyException e) { " +
 			objectVarName + ".&" + attributeName + " }";
+	}
+
+	@Override
+	public String librarySuffix() {
+		return ".groovy";
+	}
+
+	@Override
+	public String importLibrary(String name, Map<String, String> files,
+		String origin, boolean directory)
+	{
+		String map = files.isEmpty() ? ":" : Syntaxes.quote(files);
+		return "org.apposed.appose.GroovyLibraries.register(" + Syntaxes.quote(name) +
+			", [" + map + "], " + Syntaxes.quote(origin) + ", " + directory + ")\n";
 	}
 }

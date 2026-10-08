@@ -30,6 +30,7 @@
 package org.apposed.appose;
 
 import java.util.List;
+import java.util.Map;
 
 /**
  * Strategy interface for generating language-specific script syntax.
@@ -130,4 +131,44 @@ public interface ScriptSyntax {
 	 * @see WorkerObject#getAttribute(String)
 	 */
 	String getAttribute(String objectVarName, String attributeName);
+
+	/**
+	 * Gets the file suffix of library source files in this language
+	 * (e.g. ".py").
+	 * <p>
+	 * When a library is given as a directory, only files with this suffix are
+	 * sent to the worker as source code. When it is given as a single string
+	 * of source code, this suffix is used to name it.
+	 * </p>
+	 *
+	 * @return The file suffix, including the leading dot.
+	 * @throws UnsupportedOperationException If this syntax does not support libraries.
+	 * @see Service#importLibrary
+	 */
+	default String librarySuffix() {
+		throw new UnsupportedOperationException(name() + " syntax does not support libraries");
+	}
+
+	/**
+	 * Generates a self-contained script that registers library code with the
+	 * worker, such that tasks can subsequently import it.
+	 * <p>
+	 * The generated script must also be valid as part of a service init
+	 * script, so it must not depend on task inputs or the task variable.
+	 * </p>
+	 *
+	 * @param name The name of the library.
+	 * @param files Map from relative POSIX path to source code.
+	 * @param origin Path of the library on the service side.
+	 * @param directory Whether the library is a directory (package) rather
+	 *          than a single source file.
+	 * @return A script that makes the library importable in the worker.
+	 * @throws UnsupportedOperationException If this syntax does not support libraries.
+	 * @see Service#importLibrary
+	 */
+	default String importLibrary(String name, Map<String, String> files,
+		String origin, boolean directory)
+	{
+		throw new UnsupportedOperationException(name() + " syntax does not support libraries");
+	}
 }

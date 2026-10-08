@@ -263,30 +263,36 @@ public class GroovyWorker {
 	}
 
 	public static void main(String... args) {
-		// Execute init script if provided via environment variable.
-		// This happens before the worker's I/O loop starts, which is useful
-		// for initialization that must happen before the worker begins processing tasks.
-		String initScriptPath = System.getenv("APPOSE_INIT_SCRIPT");
-		if (initScriptPath != null) {
-			File initFile = new File(initScriptPath);
-			if (initFile.exists()) {
-				try {
-					String initCode = new String(Files.readAllBytes(initFile.toPath()), StandardCharsets.UTF_8);
-					Binding binding = new Binding();
-					GroovyShell shell = new GroovyShell(binding);
-					shell.evaluate(initCode);
-					// Store all variables from the init script for use in tasks.
-					initVars.putAll(binding.getVariables());
-					// Clean up the temp file.
-					initFile.delete();
-				}
-				catch (Exception e) {
-					System.err.println("[WARNING] Init script failed: " + e.getMessage());
-				}
-			}
-		}
+		// Register libraries, then execute init script, if provided via
+		// environment variables. This happens before the worker's I/O loop
+		// starts, which is useful for initialization that must happen before
+		// the worker begins processing tasks.
+		// NB: Libraries are registered by a separate script, since the init
+		// script may use them, and Groovy resolves classes at compile time.
+		runStartupScript("APPOSE_LIBRARY_SCRIPT", "Library", false);
+		runStartupScript("APPOSE_INIT_SCRIPT", "Init", true);
 
 		new GroovyWorker().run();
+	}
+
+	private static void runStartupScript(String envVar, String label, boolean export) {
+		String scriptPath = System.getenv(envVar);
+		if (scriptPath == null) return;
+		File scriptFile = new File(scriptPath);
+		if (!scriptFile.exists()) return;
+		try {
+			String code = new String(Files.readAllBytes(scriptFile.toPath()), StandardCharsets.UTF_8);
+			Binding binding = new Binding();
+			GroovyShell shell = new GroovyShell(GroovyLibraries.classLoader(), binding);
+			shell.evaluate(code);
+			// Store all variables from the script for use in tasks.
+			if (export) initVars.putAll(binding.getVariables());
+			// Clean up the temp file.
+			scriptFile.delete();
+		}
+		catch (Exception e) {
+			System.err.println("[WARNING] " + label + " script failed: " + e.getMessage());
+		}
 	}
 
 	/**
@@ -370,7 +376,7 @@ public class GroovyWorker {
 				// Execute the script.
 				Object result;
 
-				GroovyShell shell = new GroovyShell(binding);
+				GroovyShell shell = new GroovyShell(GroovyLibraries.classLoader(), binding);
 				result = shell.evaluate(script);
 
 				// Report the results to the Appose calling process.

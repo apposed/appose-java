@@ -32,6 +32,7 @@ package org.apposed.appose.syntax;
 import org.apposed.appose.ScriptSyntax;
 
 import java.util.List;
+import java.util.Map;
 
 /**
  * Python-specific script syntax implementation.
@@ -79,5 +80,19 @@ public class PythonSyntax implements ScriptSyntax {
 		// Python attribute access: object.attribute
 		// This returns either the field value or a bound method object.
 		return objectVarName + "." + attributeName;
+	}
+
+	@Override
+	public String librarySuffix() {
+		return ".py";
+	}
+
+	@Override
+	public String importLibrary(String name, Map<String, String> files,
+		String origin, boolean directory)
+	{
+		return "from appose.library import register as _appose_register\n" +
+			"_appose_register(" + Syntaxes.quote(name) + ", {" + Syntaxes.quote(files) +
+			"}, " + Syntaxes.quote(origin) + ", " + (directory ? "True" : "False") + ")\n";
 	}
 }
