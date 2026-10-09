@@ -38,6 +38,8 @@ import org.junit.jupiter.api.Test;
 import java.io.File;
 import java.io.IOException;
 import java.net.URL;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
 import java.util.Arrays;
 import java.util.List;
 
@@ -130,19 +132,22 @@ public class PixiBuilderTest extends TestBase {
 		assertTrue(marker.exists());
 	}
 
+	/** Tests that building without appose adds a compatible appose. */
 	@Test
-	public void testPixiApposeRequirement() throws IOException {
-		String base = "target/envs/pixi-appose-requirement";
-		FilePaths.deleteRecursively(new File(base));
-		assertThrows(IllegalStateException.class, () -> {
-			Appose
-				.pixi()
-				.conda("python")
-				.pypi("cowsay==6.1")
-				.base(base)
-				.logDebug()
-				.build();
-		});
+	public void testPixiApposeRequirement() throws Exception {
+		File base = new File("target/envs/pixi-appose-requirement");
+		FilePaths.deleteRecursively(base);
+		Environment env = Appose
+			.pixi()
+			.conda("python")
+			.pypi("cowsay==6.1")
+			.base(base)
+			.logDebug()
+			.build();
+		String pixiToml = new String(Files.readAllBytes(new File(base, "pixi.toml").toPath()),
+			StandardCharsets.UTF_8);
+		assertTrue(pixiToml.contains("appose"), pixiToml);
+		cowsayAndAssert(env, "auto", true);
 	}
 
 	@Test

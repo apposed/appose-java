@@ -93,6 +93,18 @@ public final class UvBuilder extends BaseBuilder<UvBuilder> {
 		super.addStateFields(state);
 		state.put("pythonVersion", pythonVersion);
 		state.put("packages", packages);
+		if (addsAppose()) {
+			// NB: Recorded, so that a change in Appose version triggers a rebuild.
+			state.put("appose", ApposeRequirement.get().pipArgs());
+		}
+	}
+
+	/** Whether this builder adds appose to the packages it installs. */
+	private boolean addsAppose() {
+		// NB: With no packages to install, there is nothing to build, and an
+		// existing environment (e.g. one being wrapped) is used as-is.
+		return content == null && !packages.isEmpty() &&
+			!ApposeRequirement.mentionsAppose(packages);
 	}
 
 	@Override
@@ -199,11 +211,10 @@ public final class UvBuilder extends BaseBuilder<UvBuilder> {
 
 				// Install packages.
 				if (!packages.isEmpty()) {
+					// Include a compatible appose for the worker,
+					// unless the caller chose one explicitly.
 					List<String> allPackages = new ArrayList<>(packages);
-					// Always include appose if we're installing packages.
-					if (allPackages.stream().noneMatch(pkg -> pkg.matches("^appose\\b.*"))) {
-						allPackages.add("appose");
-					}
+					if (addsAppose()) allPackages.addAll(ApposeRequirement.get().pipArgs());
 					uv.pipInstall(envDir, allPackages.toArray(new String[0]));
 				}
 			}

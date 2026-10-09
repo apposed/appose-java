@@ -59,7 +59,7 @@ public class UvBuilderTest extends TestBase {
 			.logDebug()
 			.build();
 		assertInstanceOf(UvBuilder.class, env.builder());
-		cowsayAndAssert(env, "fast");
+		cowsayAndAssert(env, "fast", true);
 	}
 
 	@Test

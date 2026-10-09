@@ -92,6 +92,17 @@ public final class PixiBuilder extends BaseBuilder<PixiBuilder> {
 		super.addStateFields(state);
 		state.put("condaPackages", condaPackages);
 		state.put("pypiPackages", pypiPackages);
+		if (addsAppose()) {
+			// NB: Recorded, so that a change in Appose version triggers a rebuild.
+			state.put("appose", ApposeRequirement.get().pipArgs());
+		}
+	}
+
+	/** Whether this builder adds appose to the packages it installs. */
+	private boolean addsAppose() {
+		List<String> all = new ArrayList<>(condaPackages);
+		all.addAll(pypiPackages);
+		return content == null && !all.isEmpty() && !ApposeRequirement.mentionsAppose(all);
 	}
 
 	@Override
@@ -200,18 +211,11 @@ public final class PixiBuilder extends BaseBuilder<PixiBuilder> {
 					pixi.addPypiPackages(envDir, pypiPackages.toArray(new String[0]));
 				}
 
-				// Verify that appose was included when building programmatically.
-				boolean progBuild = !condaPackages.isEmpty() || !pypiPackages.isEmpty();
-				if (progBuild) {
-					boolean hasAppose =
-						condaPackages.stream().anyMatch(pkg -> pkg.matches("^appose\\b.*")) ||
-						pypiPackages.stream().anyMatch(pkg -> pkg.matches("^appose\\b.*"));
-					if (!hasAppose) {
-						throw new IllegalStateException(
-							"Appose package must be explicitly included when building programmatically. " +
-							"Add .conda(\"appose\") or .pypi(\"appose\") to your builder."
-						);
-					}
+				// Add a compatible appose for the worker,
+				// unless the caller chose one explicitly.
+				if (addsAppose()) {
+					ApposeRequirement requirement = ApposeRequirement.get();
+					pixi.addPypiPackages(envDir, requirement.editable(), requirement.spec());
 				}
 			}
 

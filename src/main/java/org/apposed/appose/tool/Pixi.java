@@ -318,10 +318,27 @@ public class Pixi extends Tool {
 	 * @throws IllegalStateException if Pixi has not been installed
 	 */
 	public void addPypiPackages(final File projectDir, final String... packages) throws IOException, InterruptedException {
+		addPypiPackages(projectDir, false, packages);
+	}
+
+	/**
+	 * Adds PyPI packages to a Pixi project.
+	 *
+	 * @param projectDir The Pixi project directory.
+	 * @param editable Whether to install the packages in editable mode,
+	 *          which applies to packages given as local directories.
+	 * @param packages The PyPI packages to add.
+	 * @throws IOException If an I/O error occurs.
+	 * @throws InterruptedException If the current thread is interrupted.
+	 */
+	public void addPypiPackages(final File projectDir, final boolean editable,
+		final String... packages) throws IOException, InterruptedException
+	{
 		if (packages.length == 0) return;
 		List<String> cmd = new ArrayList<>();
 		cmd.add("add");
 		cmd.add("--pypi");
+		if (editable) cmd.add("--editable");
 		cmd.add("--manifest-path");
 		cmd.add(new File(projectDir, "pixi.toml").getAbsolutePath());
 		cmd.addAll(Arrays.asList(packages));

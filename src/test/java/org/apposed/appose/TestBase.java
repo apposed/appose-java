@@ -32,6 +32,7 @@ package org.apposed.appose;
 import org.apposed.appose.Service.ResponseType;
 import org.apposed.appose.Service.Task;
 import org.apposed.appose.Service.TaskStatus;
+import org.apposed.appose.builder.ApposeRequirement;
 
 import java.io.File;
 import java.util.ArrayList;
@@ -84,7 +85,16 @@ public abstract class TestBase {
 		"task.outputs[\"thread\"] = threading.current_thread().name\n";
 
 	/** System property specifying which appose-python to test against. */
-	public static final String APPOSE_PYTHON_PROPERTY = "appose.test.appose-python";
+	static {
+		// Build environments with the sibling appose-python checkout, if any,
+		// unless told otherwise. See ApposeRequirement for the alternatives.
+		File sibling = new File("../appose-python");
+		boolean overridden = System.getProperty(ApposeRequirement.PROPERTY) != null ||
+			System.getenv(ApposeRequirement.ENV_VAR) != null;
+		if (!overridden && new File(sibling, "pyproject.toml").isFile()) {
+			System.setProperty(ApposeRequirement.PROPERTY, sibling.getAbsolutePath());
+		}
+	}
 
 	private static Environment pythonEnv;
 
@@ -122,33 +132,12 @@ public abstract class TestBase {
 
 	/**
 	 * Gets the pip arguments specifying which appose-python to test against:
-	 * <ol>
-	 *   <li>The {@value #APPOSE_PYTHON_PROPERTY} system property, if set. Its
-	 *     value is either a local directory, or a pip requirement such as
-	 *     {@code appose==0.12.0}.</li>
-	 *   <li>Otherwise, a sibling {@code ../appose-python} checkout, if any.</li>
-	 *   <li>Otherwise, the main branch of appose-python on GitHub.</li>
-	 * </ol>
-	 * A local directory is installed in editable mode.
+	 * the one builders install into the environments they build, which is a
+	 * sibling {@code ../appose-python} checkout, if any (see the static
+	 * initializer), else as described in {@link ApposeRequirement}.
 	 */
 	public static String[] apposePythonSpec() {
-		String value = System.getProperty(APPOSE_PYTHON_PROPERTY);
-		if (value != null && !value.trim().isEmpty()) {
-			File dir = new File(value.trim());
-			return dir.isDirectory() ? localSpec(dir) : new String[] { value.trim() };
-		}
-		File sibling = new File("../appose-python");
-		if (new File(sibling, "pyproject.toml").isFile()) return localSpec(sibling);
-		return new String[] { "appose @ git+https://github.com/apposed/appose-python" };
-	}
-
-	private static String[] localSpec(File dir) {
-		// Note: Editable mode, so that source edits take effect immediately.
-		// A regular install would go stale: UvBuilder skips uv entirely when
-		// the env is up to date, and uv caches the built wheel anyway.
-		return new String[] {
-			"-e", "appose @ " + dir.toPath().toAbsolutePath().normalize().toUri()
-		};
+		return ApposeRequirement.get().pipArgs().toArray(new String[0]);
 	}
 
 	public void executeAndAssert(Service service, String script)
@@ -209,13 +198,29 @@ public abstract class TestBase {
 		assertNull(completion.error);
 	}
 
+	/**
+	 * Runs cowsay in the given environment, skipping the worker version check:
+	 * most builder tests build environments from user-style files containing a
+	 * released appose, from conda-forge or PyPI, which need not match the
+	 * version of appose under test. Such tests are about environment building,
+	 * not compatibility.
+	 */
 	public void cowsayAndAssert(Environment env, String greeting)
 		throws InterruptedException, TaskException
 	{
-		// NB: These environments contain a released appose, from conda-forge or
-		// PyPI, which need not match the version of appose under test. Such
-		// tests are about environment building, not compatibility.
-		System.setProperty(SKIP_VERSION_CHECK, "true");
+		cowsayAndAssert(env, greeting, false);
+	}
+
+	/**
+	 * Runs cowsay in the given environment.
+	 *
+	 * @param checkVersion Whether to enforce the worker version check, as for
+	 *          environments whose builders added a compatible appose themselves.
+	 */
+	public void cowsayAndAssert(Environment env, String greeting, boolean checkVersion)
+		throws InterruptedException, TaskException
+	{
+		if (!checkVersion) System.setProperty(SKIP_VERSION_CHECK, "true");
 		try (Service service = env.python()) {
 			maybeDebug(service);
 			Task task = service.task(
