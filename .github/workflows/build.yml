@@ -102,6 +102,12 @@ jobs:
         run: .github/setup.sh
         shell: bash
 
+      - name: Check out appose-python
+        # NB: The tests install a sibling appose-python into the environments
+        # they build (see TestBase), so they run against its latest code.
+        run: .github/checkout-sibling.sh appose-python
+        shell: bash
+
       - name: Execute the build
         run: .github/build.sh
         shell: bash
