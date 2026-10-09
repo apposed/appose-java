@@ -39,6 +39,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
@@ -100,6 +101,27 @@ public class ServiceShutdownTest extends TestBase {
 		assertNotEquals(0, exitCode);
 		assertSame(TaskStatus.CRASHED, task.status);
 		assertDead(pid);
+	}
+
+	/** A service object, for tasks to call into. */
+	public static class Source {
+		public int get() {
+			return 42;
+		}
+	}
+
+	@Test
+	public void testCloseLetsStartedTasksFinish() throws Exception {
+		Service service = Appose.system().groovy();
+		Task task = service.task("sleep(500)\nsource.get()",
+			Collections.singletonMap("source", new Source())).start();
+		service.close();
+		// Tasks started before closing can still call into service objects,
+		// but no new task can start.
+		assertThrows(IllegalStateException.class, () -> service.task("1 + 1").start());
+		task.waitFor();
+		assertEquals(42, ((Number) task.result()).intValue());
+		assertEquals(0, service.waitFor(10, TimeUnit.SECONDS));
 	}
 
 	@Test

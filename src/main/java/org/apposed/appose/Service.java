@@ -128,6 +128,9 @@ public class Service implements AutoCloseable {
 	private final Map<String, Object> exports = new ConcurrentHashMap<>();
 	private final AtomicInteger exportCount = new AtomicInteger();
 
+	/** Whether closing was requested, once the tasks already started have finished. */
+	private volatile boolean closing;
+
 	private Process process;
 	private PrintWriter stdin;
 	private Thread stdoutThread;
@@ -648,8 +651,9 @@ public class Service implements AutoCloseable {
 	}
 
 	/**
-	 * Closes the worker process's input stream, in order to shut it down.
-	 * Pending tasks will run to completion before the worker process terminates.
+	 * Closes the worker process's input stream, in order to shut it down,
+	 * once the tasks already started have finished. Until then, those tasks
+	 * can still call into service objects; no new task can start.
 	 * <p>
 	 * To shut down the service more forcibly, interrupting any pending tasks,
 	 * use {@link #kill()} instead.
@@ -666,7 +670,22 @@ public class Service implements AutoCloseable {
 	@Override
 	public void close() {
 		requireProcess();
-		stdin.close();
+		closing = true;
+		closeIfIdle();
+	}
+
+	/**
+	 * Closes the worker process's input stream, if closing was requested
+	 * and no started task is still pending.
+	 */
+	private void closeIfIdle() {
+		if (!closing) return;
+		for (Task task : tasks.values()) {
+			if (task.status == TaskStatus.QUEUED || task.status == TaskStatus.RUNNING) return;
+		}
+		synchronized (stdin) {
+			stdin.close();
+		}
 	}
 
 	/**
@@ -1378,6 +1397,7 @@ public class Service implements AutoCloseable {
 		 */
 		public synchronized Task start() {
 			validateInitialState();
+			if (closing) throw new IllegalStateException("Service is closing; no new task can start");
 			status = TaskStatus.QUEUED;
 			if (incompatibility != null) {
 				tasks.remove(uuid);
@@ -1522,6 +1542,7 @@ public class Service implements AutoCloseable {
 				synchronized (this) {
 					notifyAll();
 				}
+				closeIfIdle();
 			}
 		}
 
