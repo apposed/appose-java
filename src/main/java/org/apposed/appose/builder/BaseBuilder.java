@@ -81,7 +81,7 @@ public abstract class BaseBuilder<T extends BaseBuilder<T>> implements Builder<T
 	@Override
 	public void delete() throws IOException {
 		File dir = resolveEnvDir();
-		if (dir.exists()) FilePaths.deleteRecursively(dir);
+		if (dir != null && dir.exists()) FilePaths.deleteRecursively(dir);
 	}
 
 	@Override

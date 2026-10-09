@@ -165,6 +165,15 @@ public final class SimpleBuilder extends BaseBuilder<SimpleBuilder> {
 	}
 
 	@Override
+	public void delete() {
+		// Note: The base directory is not Appose-managed; it defaults to the
+		// current working directory, which must never be deleted.
+		throw new UnsupportedOperationException(
+			"SimpleBuilder does not support delete(). " +
+			"Custom environments are not managed by Appose.");
+	}
+
+	@Override
 	public Environment rebuild() throws BuildException {
 		throw new UnsupportedOperationException(
 			"SimpleBuilder does not support rebuild(). " +

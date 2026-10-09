@@ -41,7 +41,9 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
  * Tests {@link org.apposed.appose.Builder#status()}.
@@ -154,6 +156,38 @@ public class StatusTest {
 		assertEquals(EnvStatus.CURRENT, builder.status());
 		builder.delete();
 		assertEquals(EnvStatus.MISSING, builder.status());
+	}
+
+	@Test
+	public void testDeleteNamed() throws Exception {
+		File envsDir = freshDir("envs-named");
+		String oldEnvsDir = System.setProperty("appose.envs-dir", envsDir.getPath());
+		try {
+			File dir = new File(envsDir, "named");
+			touch(dir, "conda-meta/history");
+			MambaBuilder builder = Appose.mamba().name("named");
+			assertEquals(EnvStatus.EXTERNAL, builder.status());
+			builder.delete();
+			assertFalse(dir.exists());
+			assertEquals(EnvStatus.MISSING, builder.status());
+
+			// No name anywhere: nothing to delete, and nothing to report.
+			MambaBuilder unnamed = Appose.mamba().content("dependencies:\n  - python\n");
+			unnamed.delete();
+			assertEquals(EnvStatus.MISSING, unnamed.status());
+		}
+		finally {
+			if (oldEnvsDir == null) System.clearProperty("appose.envs-dir");
+			else System.setProperty("appose.envs-dir", oldEnvsDir);
+		}
+	}
+
+	@Test
+	public void testSimpleDeleteRefuses() {
+		// Note: SimpleBuilder's base defaults to the CWD, which must survive.
+		assertThrows(UnsupportedOperationException.class, () -> Appose.custom().delete());
+		assertThrows(UnsupportedOperationException.class, () -> Appose.system().delete());
+		assertTrue(new File("pom.xml").exists());
 	}
 
 	@Test
