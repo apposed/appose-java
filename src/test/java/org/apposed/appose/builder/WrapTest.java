@@ -121,6 +121,24 @@ public class WrapTest extends TestBase {
 		}
 	}
 
+	/** Tests detecting a uv project environment, whose venv is in {@code .venv}. */
+	@Test
+	public void testWrapUvProject() throws Exception {
+		File uvDir = new File("target/test-wrap-uv-project");
+		File venvDir = new File(uvDir, ".venv");
+		venvDir.mkdirs();
+		File pyvenvCfg = new File(venvDir, "pyvenv.cfg");
+		pyvenvCfg.createNewFile();
+
+		try {
+			assertEquals("uv", Builders.envType(uvDir));
+		} finally {
+			pyvenvCfg.delete();
+			venvDir.delete();
+			uvDir.delete();
+		}
+	}
+
 	/** Tests wrapping a plain directory (should fall back to SimpleBuilder). */
 	@Test
 	public void testWrapCustom() throws Exception {
