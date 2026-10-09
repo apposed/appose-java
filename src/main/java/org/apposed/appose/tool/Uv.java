@@ -64,7 +64,7 @@ public class Uv extends Tool {
 	public static final String BASE_PATH = Environments.apposeEnvsDir();
 
 	/** uv version to download. */
-	private static final String UV_VERSION = "0.9.5";
+	private static final String UV_VERSION = "0.12.24";
 
 	/** Minimum acceptable uv version; older installations get upgraded to it. */
 	public static final String MIN_VERSION = UV_VERSION;
@@ -95,7 +95,6 @@ public class Uv extends Tool {
 			case "WINDOWS|X64":   return "uv-x86_64-pc-windows-msvc.zip";            // x64 Windows
 			case "LINUX|ARM64":   return "uv-aarch64-unknown-linux-gnu.tar.gz";      // ARM64 Linux
 			case "LINUX|X32":     return "uv-i686-unknown-linux-gnu.tar.gz";         // x86 Linux
-			case "LINUX|PPC64":   return "uv-powerpc64-unknown-linux-gnu.tar.gz";    // PPC64 Linux
 			case "LINUX|PPC64LE": return "uv-powerpc64le-unknown-linux-gnu.tar.gz";  // PPC64LE Linux
 			case "LINUX|RV64GC":  return "uv-riscv64gc-unknown-linux-gnu.tar.gz";    // RISCV Linux
 			case "LINUX|S390X":   return "uv-s390x-unknown-linux-gnu.tar.gz";        // S390x Linux
