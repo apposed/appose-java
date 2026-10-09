@@ -32,10 +32,13 @@ package org.apposed.appose.util;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
+import java.lang.reflect.Method;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.function.Consumer;
+import java.util.stream.Stream;
 
 /**
  * Utility class for working with processes.
@@ -67,6 +70,46 @@ public final class Processes {
 			pb.environment().putAll(envVars);
 		}
 		return pb;
+	}
+
+	/**
+	 * Forcibly terminates a process, along with all of its descendants. This
+	 * matters when the process is a launcher, such as {@code pixi run}, whose
+	 * child does the actual work: killing only the launcher would leave that
+	 * child running as an orphan.
+	 * <p>
+	 * Descendants are found via their parent process IDs, so any already
+	 * orphaned by an exited intermediary are missed. On Java 8, which cannot
+	 * enumerate descendants, only the process itself is terminated.
+	 * </p>
+	 *
+	 * @param process The process to terminate, together with its descendants.
+	 */
+	public static void killTree(Process process) {
+		List<Object> descendants = new ArrayList<>();
+		Method destroyForcibly = null;
+		try {
+			// NB: ProcessHandle requires Java 9+, but Appose supports Java 8.
+			Class<?> handleClass = Class.forName("java.lang.ProcessHandle");
+			Object handle = Process.class.getMethod("toHandle").invoke(process);
+			Stream<?> stream = (Stream<?>) handleClass.getMethod("descendants").invoke(handle);
+			stream.forEach(descendants::add);
+			destroyForcibly = handleClass.getMethod("destroyForcibly");
+		}
+		catch (ReflectiveOperationException exc) {
+			// Java 8: terminate only the process itself.
+		}
+		// Kill the process first, so that it cannot launch any more descendants.
+		process.destroyForcibly();
+		if (destroyForcibly == null) return;
+		for (Object descendant : descendants) {
+			try {
+				destroyForcibly.invoke(descendant);
+			}
+			catch (ReflectiveOperationException exc) {
+				// Should not happen; keep killing the others regardless.
+			}
+		}
 	}
 
 	public static int run(ProcessBuilder processBuilder, Consumer<String> output, Consumer<String> error)

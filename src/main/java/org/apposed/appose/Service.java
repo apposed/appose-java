@@ -63,7 +63,10 @@ import java.util.Map;
 import java.util.Set;
 import java.util.TreeSet;
 import java.util.UUID;
+import java.util.WeakHashMap;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Consumer;
 import java.util.regex.Matcher;
@@ -76,10 +79,20 @@ import java.util.stream.Stream;
  * different process. Using the service, programs create Appose {@link Task}s
  * that run asynchronously in the worker process, which notifies the service of
  * updates via communication over pipes (stdin and stdout).
+ * <p>
+ * A service still running when the JVM shuts down is shut down too: it is
+ * closed, and killed if its worker has not exited within its exit timeout
+ * (see {@link #exitTimeout(long, TimeUnit)}).
+ * </p>
  */
 public class Service implements AutoCloseable {
 
 	private static int serviceCount = 0;
+
+	/** Services started so far, to shut down when the JVM does. */
+	private static final Set<Service> startedServices =
+		Collections.newSetFromMap(new WeakHashMap<>());
+	private static boolean shutdownHookRegistered;
 
 	private final File cwd;
 	private final Map<String, String> envVars;
@@ -120,6 +133,7 @@ public class Service implements AutoCloseable {
 	private Thread stderrThread;
 	private Thread monitorThread;
 
+	private volatile long exitTimeoutNanos = TimeUnit.SECONDS.toNanos(5);
 	private @Nullable Consumer<String> debugListener;
 	private @Nullable String initScript;
 	private final List<String> libraryScripts = new ArrayList<>();
@@ -145,6 +159,20 @@ public class Service implements AutoCloseable {
 	 */
 	public Service debug(Consumer<String> debugListener) {
 		this.debugListener = debugListener;
+		return this;
+	}
+
+	/**
+	 * Sets how long to wait, when the JVM shuts down, for the worker process
+	 * to shut down gracefully before killing it. The default is 5 seconds.
+	 * Pass {@link Long#MAX_VALUE} to wait indefinitely.
+	 *
+	 * @param timeout Maximum time to wait.
+	 * @param unit Unit of the timeout.
+	 * @return This service object, for chaining method calls.
+	 */
+	public Service exitTimeout(long timeout, TimeUnit unit) {
+		exitTimeoutNanos = unit.toNanos(timeout);
 		return this;
 	}
 
@@ -347,10 +375,19 @@ public class Service implements AutoCloseable {
 
 		ProcessBuilder pb = Processes.builder(cwd, envVars, args);
 		process = pb.start();
+		track(this);
 		stdin = new PrintWriter(process.getOutputStream());
+
+		// NB: These threads block until the worker's output streams close, so
+		// they must be daemon threads. The JVM waits for every non-daemon thread
+		// before shutting down, so it would wait forever on a worker that only a
+		// shutdown hook (e.g. ours) shuts down.
 		stdoutThread = new Thread(this::stdoutLoop, prefix + "-Stdout");
 		stderrThread = new Thread(this::stderrLoop, prefix + "-Stderr");
 		monitorThread = new Thread(this::monitorLoop, prefix + "-Monitor");
+		stdoutThread.setDaemon(true);
+		stderrThread.setDaemon(true);
+		monitorThread.setDaemon(true);
 		stderrThread.start();
 		stdoutThread.start();
 		monitorThread.start();
@@ -618,12 +655,47 @@ public class Service implements AutoCloseable {
 	 * </p>
 	 * <p>
 	 * To wait until the service's worker process has completely shut down
-	 * and all output has been reported, call {@link #waitFor()} afterward.
+	 * and all output has been reported, call {@link #waitFor()} afterward;
+	 * or call {@link #close(long, TimeUnit)} instead, to wait for a bounded
+	 * time before killing the worker process.
 	 * </p>
+	 *
+	 * @throws IllegalStateException If the service has not been started.
 	 */
 	@Override
 	public void close() {
+		requireProcess();
 		stdin.close();
+	}
+
+	/**
+	 * Closes the worker process's input stream, in order to shut it down, then
+	 * waits up to the given time for the worker process to terminate, killing
+	 * it (see {@link #kill()}) if it has not. Pending tasks run to completion,
+	 * unless interrupted by the kill.
+	 *
+	 * @param timeout Maximum time to wait before killing the worker process;
+	 *          zero kills it at once.
+	 * @param unit Unit of the timeout.
+	 * @return Exit value of the worker process.
+	 * @throws InterruptedException If interrupted while waiting.
+	 * @throws IllegalStateException If the service has not been started.
+	 */
+	public int close(long timeout, TimeUnit unit) throws InterruptedException {
+		close();
+		long timeoutNanos = unit.toNanos(timeout);
+		try {
+			return waitFor(timeoutNanos, TimeUnit.NANOSECONDS);
+		}
+		catch (TimeoutException exc) {
+			kill();
+		}
+		// NB: The killed worker dies promptly, but the threads processing its
+		// output may not: a descendant that escaped the kill could keep the
+		// streams open, or a listener could be stuck. Do not wait forever.
+		process.waitFor();
+		joinThreads(System.nanoTime(), timeoutNanos);
+		return process.exitValue();
 	}
 
 	/**
@@ -637,19 +709,30 @@ public class Service implements AutoCloseable {
 	 * To wait until the service's worker process has completely shut down
 	 * and all output has been reported, call {@link #waitFor()} afterward.
 	 * </p>
+	 * <p>
+	 * This kills the worker's descendant processes too, not only the process
+	 * launched directly; e.g. {@code pixi run} launches the actual worker
+	 * process as its child. See {@link Processes#killTree(Process)}.
+	 * </p>
+	 *
+	 * @throws IllegalStateException If the service has not been started.
 	 */
 	public void kill() {
-		process.destroyForcibly();
+		requireProcess();
+		Processes.killTree(process);
 	}
 
 	/**
-	 * Waits for the service's worker process to terminate.
+	 * Waits for the service's worker process to terminate,
+	 * and for all its output to be reported.
 	 *
 	 * @return Exit value of the worker process.
 	 * @throws InterruptedException If any of the worker process's monitoring
 	 * 	                             threads are interrupted before shutting down.
+	 * @throws IllegalStateException If the service has not been started.
 	 */
 	public int waitFor() throws InterruptedException {
+		requireProcess();
 		process.waitFor();
 
 		// Wait for worker output processing threads to finish up.
@@ -657,6 +740,45 @@ public class Service implements AutoCloseable {
 		stderrThread.join();
 		monitorThread.join();
 
+		return process.exitValue();
+	}
+
+	/**
+	 * Waits up to the given time for the service's worker process to
+	 * terminate, and for all its output to be reported.
+	 *
+	 * @param timeout Maximum time to wait.
+	 * @param unit Unit of the timeout.
+	 * @return Exit value of the worker process.
+	 * @throws InterruptedException If interrupted while waiting.
+	 * @throws TimeoutException If the timeout elapses first.
+	 * @throws IllegalStateException If the service has not been started.
+	 */
+	public int waitFor(long timeout, TimeUnit unit)
+		throws InterruptedException, TimeoutException
+	{
+		requireProcess();
+		long start = System.nanoTime();
+		long timeoutNanos = unit.toNanos(timeout);
+		if (!process.waitFor(timeoutNanos, TimeUnit.NANOSECONDS) ||
+			!joinThreads(start, timeoutNanos))
+		{
+			throw new TimeoutException("Worker process did not terminate within " +
+				timeout + " " + unit.toString().toLowerCase());
+		}
+		return process.exitValue();
+	}
+
+	/**
+	 * Gets the exit value of the service's worker process.
+	 *
+	 * @return Exit value of the worker process.
+	 * @throws IllegalStateException If the worker process has not yet
+	 *           terminated, or has not been started.
+	 */
+	public int exitValue() {
+		requireProcess();
+		if (process.isAlive()) throw new IllegalStateException("Worker process has not terminated");
 		return process.exitValue();
 	}
 
@@ -911,6 +1033,77 @@ public class Service implements AutoCloseable {
 		String error = sb.toString();
 		tasks.values().forEach(task -> task.crash(error));
 		tasks.clear();
+	}
+
+	private void requireProcess() {
+		if (process == null) throw new IllegalStateException("Service has not been started");
+	}
+
+	/**
+	 * Waits for the worker output processing threads to finish up.
+	 *
+	 * @param start {@link System#nanoTime()} value when the wait began.
+	 * @param timeoutNanos Maximum nanoseconds to wait, since the start.
+	 * @return Whether all the threads finished.
+	 */
+	private boolean joinThreads(long start, long timeoutNanos) throws InterruptedException {
+		Thread[] threads = {stdoutThread, stderrThread, monitorThread};
+		for (Thread thread : threads) {
+			long remaining = timeoutNanos - (System.nanoTime() - start);
+			if (remaining > 0) TimeUnit.NANOSECONDS.timedJoin(thread, remaining);
+		}
+		for (Thread thread : threads) {
+			if (thread.isAlive()) return false;
+		}
+		return true;
+	}
+
+	/** Remembers a started service, so that it can be shut down with the JVM. */
+	private static synchronized void track(Service service) {
+		if (!shutdownHookRegistered) {
+			Runtime.getRuntime().addShutdownHook(
+				new Thread(Service::shutDownServices, "Appose-Shutdown"));
+			shutdownHookRegistered = true;
+		}
+		startedServices.add(service);
+	}
+
+	/**
+	 * Shuts down all services still running, giving each worker up to its
+	 * service's exit timeout to exit gracefully before killing it.
+	 */
+	private static void shutDownServices() {
+		List<Service> services;
+		synchronized (Service.class) {
+			services = startedServices.stream()
+				.filter(Service::isAlive)
+				.collect(Collectors.toList());
+		}
+		// Close every service first, so that their timeouts elapse concurrently.
+		long start = System.nanoTime();
+		for (Service service : services) {
+			try {
+				service.close();
+			}
+			catch (RuntimeException exc) {
+				service.debugService(Messages.stackTrace(exc));
+			}
+		}
+		for (Service service : services) {
+			long remaining = service.exitTimeoutNanos - (System.nanoTime() - start);
+			try {
+				service.close(Math.max(0, remaining), TimeUnit.NANOSECONDS);
+			}
+			catch (InterruptedException exc) {
+				// Shut down the remaining services forcibly, without waiting.
+				Thread.currentThread().interrupt();
+				services.forEach(Service::kill);
+				return;
+			}
+			catch (RuntimeException exc) {
+				service.debugService(Messages.stackTrace(exc));
+			}
+		}
 	}
 
 	/**
