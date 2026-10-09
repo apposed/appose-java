@@ -61,12 +61,17 @@ package org.apposed.appose.tool;
 
 import org.apposed.appose.util.Downloads;
 import org.apposed.appose.util.Environments;
+import org.apposed.appose.util.FilePaths;
 import org.apposed.appose.util.Platforms;
 
 import java.io.File;
 import java.io.IOException;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.nio.file.StandardCopyOption;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 /**
  * Conda-based environment manager, implemented by delegating to micromamba.
@@ -89,8 +94,15 @@ public class Mamba extends Tool {
 	public final static String MICROMAMBA_PLATFORM = microMambaPlatform();
 
 	/** URL from where Micromamba is downloaded to be installed. */
-	public final static String MICROMAMBA_URL = MICROMAMBA_PLATFORM == null ? null :
-		"https://micro.mamba.pm/api/micromamba/" + MICROMAMBA_PLATFORM + "/latest";
+	public final static String MICROMAMBA_URL = micromambaURL("latest");
+
+	/** Environment variable which, when set to false, disables checking for newer releases. */
+	public static final String AUTO_UPDATE_VAR = "APPOSE_MAMBA_AUTO_UPDATE";
+
+	private static String micromambaURL(String version) {
+		return MICROMAMBA_PLATFORM == null ? null :
+			"https://micro.mamba.pm/api/micromamba/" + MICROMAMBA_PLATFORM + "/" + version;
+	}
 
 	private static String microMambaPlatform() {
 		switch (Platforms.PLATFORM) {
@@ -162,15 +174,52 @@ public class Mamba extends Tool {
 			throw new IOException("Failed to create Micromamba default directory " +
 				mambaBaseDir.getParentFile().getAbsolutePath() +
 				". Please try installing it in another directory.");
-		Downloads.unpack(archive, mambaBaseDir);
 		File mmFile = new File(command);
-		if (!mmFile.exists()) throw new IOException("Expected micromamba binary is missing: " + command);
+
+		// Note: Unpack to a staging directory and move the binary into place,
+		// rather than overwriting an existing binary in place, which can break
+		// it while in use (and invalidates its cached code signature on macOS).
+		File stagingDir = Files.createTempDirectory(mambaBaseDir.toPath(), "staging").toFile();
+		try {
+			Downloads.unpack(archive, stagingDir);
+			Path stagedFile = stagingDir.toPath().resolve(MICROMAMBA_RELATIVE_PATH);
+			if (!Files.exists(stagedFile))
+				throw new IOException("Expected micromamba binary is missing from archive: " + archive);
+			Files.createDirectories(mmFile.toPath().getParent());
+			Files.move(stagedFile, mmFile.toPath(), StandardCopyOption.REPLACE_EXISTING);
+		}
+		finally {
+			FilePaths.deleteRecursively(stagingDir);
+		}
+
 		if (!mmFile.canExecute()) {
-			boolean executableSet = new File(command).setExecutable(true);
+			boolean executableSet = mmFile.setExecutable(true);
 			if (!executableSet)
 				throw new IOException("Cannot set file as executable due to missing permissions, "
 					+ "please do it manually: " + command);
 		}
+	}
+
+	@Override
+	protected String autoUpdateVar() {
+		return AUTO_UPDATE_VAR;
+	}
+
+	@Override
+	protected String latestVersion() throws IOException {
+		// Note: We cannot use "micromamba self-update", because it also
+		// rewrites the user's shell configuration (e.g. ~/.zshrc) when
+		// they have run "micromamba shell init" or "mamba shell init".
+		if (MICROMAMBA_URL == null) return null;
+		String location = Downloads.redirectLocation(MICROMAMBA_URL);
+		Matcher m = Pattern.compile("/micromamba/([^/]+)/").matcher(location == null ? "" : location);
+		if (!m.find()) throw new IOException("Could not determine latest micromamba release from " + MICROMAMBA_URL);
+		return m.group(1);
+	}
+
+	@Override
+	protected String downloadURL(String version) {
+		return micromambaURL(version);
 	}
 
 	/**

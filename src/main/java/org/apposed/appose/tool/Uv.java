@@ -31,15 +31,20 @@ package org.apposed.appose.tool;
 
 import org.apposed.appose.util.Downloads;
 import org.apposed.appose.util.Environments;
+import org.apposed.appose.util.FilePaths;
 import org.apposed.appose.util.Platforms;
 
 import java.io.File;
 import java.io.IOException;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.nio.file.StandardCopyOption;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 /**
  * uv-based environment manager.
@@ -61,12 +66,25 @@ public class Uv extends Tool {
 	/** uv version to download. */
 	private static final String UV_VERSION = "0.9.5";
 
+	/** Minimum acceptable uv version; older installations get upgraded to it. */
+	public static final String MIN_VERSION = UV_VERSION;
+
+	/** Environment variable which, when set to false, disables checking for newer releases. */
+	public static final String AUTO_UPDATE_VAR = "APPOSE_UV_AUTO_UPDATE";
+
+	/** URL which redirects to the latest uv release. */
+	private static final String LATEST_URL = "https://github.com/astral-sh/uv/releases/latest";
+
 	/** The filename to download for the current platform. */
 	private static final String UV_BINARY = uvBinary();
 
 	/** URL from where uv is downloaded to be installed. */
-	public final static String UV_URL = UV_BINARY == null ? null :
-		"https://github.com/astral-sh/uv/releases/download/" + UV_VERSION + "/" + UV_BINARY;
+	public final static String UV_URL = uvURL(UV_VERSION);
+
+	private static String uvURL(String version) {
+		return UV_BINARY == null ? null :
+			"https://github.com/astral-sh/uv/releases/download/" + version + "/" + UV_BINARY;
+	}
 
 	private static String uvBinary() {
 		switch (Platforms.PLATFORM) {
@@ -136,61 +154,35 @@ public class Uv extends Tool {
 
 	@Override
 	protected void decompress(final File archive) throws IOException, InterruptedException {
-		File uvBaseDir = new File(rootdir);
-		if (!uvBaseDir.isDirectory() && !uvBaseDir.mkdirs())
-			throw new IOException("Failed to create uv default directory " +
-				uvBaseDir.getParentFile().getAbsolutePath() +
-				". Please try installing it in another directory.");
+		Path uvBinDir = Paths.get(command).getParent();
+		Files.createDirectories(uvBinDir);
 
-		File uvBinDir = Paths.get(rootdir).resolve(".uv").resolve("bin").toFile();
-		if (!uvBinDir.exists() && !uvBinDir.mkdirs())
-			throw new IOException("Failed to create uv bin directory: " + uvBinDir);
+		// Note: Unpack to a staging directory and move the binaries into place,
+		// rather than overwriting existing binaries in place, which can break
+		// them while in use (and invalidates cached code signatures on macOS).
+		File stagingDir = Files.createTempDirectory(uvBinDir.getParent(), "staging").toFile();
+		try {
+			Downloads.unpack(archive, stagingDir);
 
-		// Extract archive.
-		Downloads.unpack(archive, uvBinDir);
+			// Windows ZIPs contain the binaries directly;
+			// others contain them in a uv-<platform> subdirectory.
+			File[] platformDirs = stagingDir.listFiles(f -> f.isDirectory() && f.getName().startsWith("uv-"));
+			File sourceDir = platformDirs != null && platformDirs.length > 0 ? platformDirs[0] : stagingDir;
 
-		String uvBinaryName = Platforms.isWindows() ? "uv.exe" : "uv";
-		File uvDest = new File(command);
-
-		// Check if uv binary is directly in bin dir (Windows ZIP case).
-		File uvDirectly = new File(uvBinDir, uvBinaryName);
-		if (uvDirectly.exists()) {
-			// Windows case: binaries are directly in uvBinDir.
-			// Just ensure uv.exe is in the right place (uvCommand).
-			if (!uvDirectly.equals(uvDest) && !uvDirectly.renameTo(uvDest)) {
-				throw new IOException("Failed to move uv binary from " + uvDirectly + " to " + uvDest);
-			}
-			// uvw.exe and uvx.exe are already in the right place (uvBinDir).
-		} else {
-			// Linux/macOS case: binaries are in uv-<platform>/ subdirectory.
-			File[] platformDirs = uvBinDir.listFiles(f -> f.isDirectory() && f.getName().startsWith("uv-"));
-			if (platformDirs == null || platformDirs.length == 0) {
-				throw new IOException("Expected uv binary or uv-<platform> directory not found in: " + uvBinDir);
-			}
-
-			File platformDir = platformDirs[0];
-
-			// Move all binaries from platform subdirectory to bin directory.
-			File[] binaries = platformDir.listFiles();
+			File[] binaries = sourceDir.listFiles(File::isFile);
 			if (binaries != null) {
 				for (File binary : binaries) {
-					File dest = new File(uvBinDir, binary.getName());
-					if (!binary.renameTo(dest)) {
-						throw new IOException("Failed to move " + binary.getName() + " from " + binary + " to " + dest);
-					}
-					// Set executable permission.
-					if (!dest.canExecute()) {
-						dest.setExecutable(true);
-					}
+					File dest = uvBinDir.resolve(binary.getName()).toFile();
+					Files.move(binary.toPath(), dest.toPath(), StandardCopyOption.REPLACE_EXISTING);
+					if (!dest.canExecute()) dest.setExecutable(true);
 				}
 			}
-
-			// Clean up the now-empty platform directory.
-			if (!platformDir.delete()) {
-				throw new IOException("Failed to delete platform directory: " + platformDir);
-			}
+		}
+		finally {
+			FilePaths.deleteRecursively(stagingDir);
 		}
 
+		File uvDest = new File(command);
 		if (!uvDest.exists()) throw new IOException("Expected uv binary is missing: " + command);
 		if (!uvDest.canExecute()) {
 			boolean executableSet = uvDest.setExecutable(true);
@@ -198,6 +190,29 @@ public class Uv extends Tool {
 				throw new IOException("Cannot set file as executable due to missing permissions, "
 					+ "please do it manually: " + command);
 		}
+	}
+
+	@Override
+	protected String minVersion() {
+		return MIN_VERSION;
+	}
+
+	@Override
+	protected String autoUpdateVar() {
+		return AUTO_UPDATE_VAR;
+	}
+
+	@Override
+	protected String latestVersion() throws IOException {
+		String location = Downloads.redirectLocation(LATEST_URL);
+		Matcher m = Pattern.compile("/tag/([^/]+)$").matcher(location == null ? "" : location);
+		if (!m.find()) throw new IOException("Could not determine latest uv release from " + LATEST_URL);
+		return m.group(1);
+	}
+
+	@Override
+	protected String downloadURL(String version) {
+		return uvURL(version);
 	}
 
 	/**

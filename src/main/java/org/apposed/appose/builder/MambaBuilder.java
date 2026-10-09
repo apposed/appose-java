@@ -126,6 +126,11 @@ public final class MambaBuilder extends BaseBuilder<MambaBuilder> {
 
 			mamba.install();
 
+			// We are about to hit the network anyway; take the opportunity
+			// to keep micromamba current, so it understands state written by
+			// newer micromamba installations elsewhere on the system.
+			mamba.selfUpdate();
+
 			// Wipe any existing env to avoid conflicts with mamba create.
 			if (envDir.exists()) FilePaths.deleteRecursively(envDir);
 

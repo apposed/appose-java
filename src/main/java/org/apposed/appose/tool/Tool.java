@@ -36,13 +36,21 @@ import org.apposed.appose.util.Processes;
 import java.io.File;
 import java.io.IOException;
 import java.net.URISyntaxException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.nio.file.attribute.FileTime;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.TimeUnit;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
+import java.util.function.Function;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 /**
  * Base class for external tool helpers (Mamba, Pixi, uv, etc.).
@@ -54,6 +62,16 @@ import java.util.function.Consumer;
  * @author Claude Code
  */
 public abstract class Tool {
+
+	/**
+	 * Environment variable which, when set to false, disables checking for
+	 * newer releases of all tools. Tool-specific variables (see
+	 * {@link #autoUpdateVar()}) take precedence over it.
+	 */
+	public static final String TOOL_AUTO_UPDATE_VAR = "APPOSE_TOOL_AUTO_UPDATE";
+
+	/** Minimum number of milliseconds between checks for a newer release. */
+	public static final long UPDATE_INTERVAL = TimeUnit.DAYS.toMillis(1);
 
 	/** The name of the external tool (e.g. uv, pixi, micromamba). */
 	public final String name;
@@ -182,6 +200,167 @@ public abstract class Tool {
 	}
 
 	/**
+	 * Upgrades the installed tool, if warranted.
+	 * <p>
+	 * The tool is upgraded to the latest release, at most once per
+	 * {@link #UPDATE_INTERVAL}, unless auto-updating is disabled: the tool's
+	 * own {@link #autoUpdateVar()} environment variable (e.g.
+	 * {@code APPOSE_PIXI_AUTO_UPDATE}) or else the blanket
+	 * {@code APPOSE_TOOL_AUTO_UPDATE} variable is set to false. Regardless, the
+	 * tool is upgraded to at least {@link #minVersion()}, if any, so that it
+	 * understands state written by newer installations of the tool elsewhere
+	 * on the system.
+	 * </p>
+	 * <p>
+	 * Failures (e.g. due to no network connection) are reported to the error
+	 * consumer, but not thrown, so that builds can proceed with the existing tool.
+	 * </p>
+	 *
+	 * @throws IOException If the tool is not installed.
+	 * @throws InterruptedException If the current thread is interrupted.
+	 */
+	public void selfUpdate() throws IOException, InterruptedException {
+		if (autoUpdateEnabled(System::getenv) && updateCheckDue()) tryUpgrade(null);
+
+		String minVersion = minVersion();
+		if (minVersion != null && compareVersions(version(), minVersion) < 0) {
+			tryUpgrade(minVersion);
+		}
+	}
+
+	/**
+	 * Gets the minimum acceptable version of the tool; older installations
+	 * get upgraded to it by {@link #selfUpdate()}.
+	 *
+	 * @return The minimum version, or null if there is none.
+	 */
+	protected String minVersion() {
+		return null;
+	}
+
+	/**
+	 * Gets the environment variable which, when set to false, disables
+	 * checking for newer releases of this tool. It takes precedence over
+	 * {@link #TOOL_AUTO_UPDATE_VAR}.
+	 *
+	 * @return The variable name, or null if there is none.
+	 */
+	protected String autoUpdateVar() {
+		return null;
+	}
+
+	/**
+	 * Upgrades the installed tool to the given version.
+	 * <p>
+	 * This default implementation downloads the requested release from
+	 * {@link #downloadURL} and installs it over the existing one via
+	 * {@link #decompress}. Subclasses whose tool can upgrade itself may
+	 * override it.
+	 * </p>
+	 *
+	 * @param version The version to upgrade to, or null for the latest release.
+	 * @throws IOException If the upgrade fails.
+	 * @throws InterruptedException If the current thread is interrupted.
+	 */
+	protected void upgrade(String version) throws IOException, InterruptedException {
+		String target = version;
+		if (target == null) {
+			target = latestVersion();
+			if (target == null || compareVersions(version(), target) >= 0) return;
+		}
+		String downloadURL = downloadURL(target);
+		if (downloadURL == null) return;
+		output("Updating " + name + " to " + target + System.lineSeparator());
+		decompress(download(downloadURL));
+	}
+
+	/**
+	 * Gets the version of the tool's latest release.
+	 *
+	 * @return The latest version, or null if this tool cannot check for newer releases.
+	 * @throws IOException If the check fails.
+	 */
+	protected String latestVersion() throws IOException {
+		return null;
+	}
+
+	/**
+	 * Gets the URL from which the given release of the tool can be downloaded.
+	 *
+	 * @param version The release version.
+	 * @return The download URL, or null if unavailable.
+	 */
+	protected String downloadURL(String version) {
+		return null;
+	}
+
+	private void tryUpgrade(String version) throws InterruptedException {
+		try {
+			upgrade(version);
+		}
+		catch (IOException e) {
+			// Note: The tool's own error output has already gone to the error consumer.
+			error("Warning: could not update " + name +
+				"; continuing with the installed version." + System.lineSeparator());
+		}
+	}
+
+	boolean autoUpdateEnabled(Function<String, String> env) {
+		for (String var : new String[] { autoUpdateVar(), TOOL_AUTO_UPDATE_VAR }) {
+			String value = var == null ? null : env.apply(var);
+			if (value == null || value.trim().isEmpty()) continue;
+			switch (value.trim().toLowerCase()) {
+				case "0": case "false": case "no": case "off": return false;
+				default: return true;
+			}
+		}
+		return true;
+	}
+
+	/**
+	 * Checks whether {@link #UPDATE_INTERVAL} has elapsed since the last update
+	 * check, recording the current time as the latest check if so.
+	 */
+	private boolean updateCheckDue() {
+		Path stamp = Paths.get(command).resolveSibling("last-update-check");
+		long now = System.currentTimeMillis();
+		try {
+			long elapsed = now - Files.getLastModifiedTime(stamp).toMillis();
+			if (elapsed >= 0 && elapsed < UPDATE_INTERVAL) return false;
+		}
+		catch (IOException e) {
+			// No previous check recorded.
+		}
+		try {
+			// Note: Record the check even if it fails, so that
+			// being offline does not cause a failed check every time.
+			if (!Files.exists(stamp)) Files.createFile(stamp);
+			Files.setLastModifiedTime(stamp, FileTime.fromMillis(now));
+		}
+		catch (IOException e) {
+			// Cannot record the check; proceed anyway.
+		}
+		return true;
+	}
+
+	/** Compares version strings like {@code v0.81.0} numerically. */
+	static int compareVersions(String v1, String v2) {
+		int[] a = versionNumbers(v1), b = versionNumbers(v2);
+		for (int i = 0; i < Math.max(a.length, b.length); i++) {
+			int x = i < a.length ? a[i] : 0, y = i < b.length ? b[i] : 0;
+			if (x != y) return Integer.compare(x, y);
+		}
+		return 0;
+	}
+
+	private static int[] versionNumbers(String version) {
+		List<Integer> numbers = new ArrayList<>();
+		Matcher m = Pattern.compile("\\d+").matcher(version);
+		while (m.find() && numbers.size() < 3) numbers.add(Integer.parseInt(m.group()));
+		return numbers.stream().mapToInt(Integer::intValue).toArray();
+	}
+
+	/**
 	 * Gets whether the tool is installed or not
 	 * @return whether the tool is installed or not
 	 */
@@ -253,6 +432,10 @@ public abstract class Tool {
 			throw new IOException(name + " is not available for this platform (" +
 				Platforms.PLATFORM + "). Please install it manually.");
 		}
+		return download(url);
+	}
+
+	protected File download(String url) throws IOException, InterruptedException {
 		try {
 			return Downloads.download(name, url, this::updateDownloadProgress);
 		}

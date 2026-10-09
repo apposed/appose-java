@@ -168,6 +168,11 @@ public final class UvBuilder extends BaseBuilder<UvBuilder> {
 
 			uv.install();
 
+			// We are about to hit the network anyway; take the opportunity
+			// to keep uv current, so it understands state written by newer
+			// uv installations elsewhere on the system.
+			uv.selfUpdate();
+
 			// Determine whether the venv already exists.
 			boolean isVenvBuilt = new File(envDir, "pyvenv.cfg").isFile() ||
 			                      new File(envDir, ".venv").isDirectory();

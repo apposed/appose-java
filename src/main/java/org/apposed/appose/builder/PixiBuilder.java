@@ -156,7 +156,7 @@ public final class PixiBuilder extends BaseBuilder<PixiBuilder> {
 			// We are about to hit the network anyway; take the opportunity
 			// to keep pixi current, so it understands state written by newer
 			// pixi installations elsewhere on the system.
-			pixi.update();
+			pixi.selfUpdate();
 
 			// Build (or rebuild) the environment.
 			if (content != null) {

@@ -442,6 +442,28 @@ public final class Downloads {
 	}
 
 	/**
+	 * Gets the target of a URL's redirect, without following it.
+	 *
+	 * @param url URL that may redirect.
+	 * @return The redirect target, or null if the URL does not redirect.
+	 * @throws IOException If the connection fails or the server reports an error.
+	 */
+	public static String redirectLocation(String url) throws IOException {
+		HttpURLConnection conn = (HttpURLConnection) new URL(url).openConnection();
+		try {
+			conn.setInstanceFollowRedirects(false);
+			conn.setRequestProperty("User-Agent", userAgent());
+			int statusCode = conn.getResponseCode();
+			if (statusCode >= 300 && statusCode < 400) return conn.getHeaderField("Location");
+			if (statusCode >= 400) throw new IOException("HTTP " + statusCode + " from " + url);
+			return null;
+		}
+		finally {
+			conn.disconnect();
+		}
+	}
+
+	/**
 	 * Gets the size of the file stored in the given URL.
 	 * @param url url where the file is stored
 	 * @return the size of the file
