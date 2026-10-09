@@ -30,6 +30,7 @@
 package org.apposed.appose.util;
 
 import groovy.json.JsonGenerator;
+import org.apposed.appose.Codec;
 import org.apposed.appose.GroovyWorker;
 import org.apposed.appose.NDArray;
 import org.apposed.appose.ServiceProxy;
@@ -76,6 +77,9 @@ public final class Messages {
 	private static final ThreadLocal<Function<Object, Map<String, Object>>> EXPORTER =
 		new ThreadLocal<>();
 
+	// Resources allocated by encoders, to close if an encode() call fails.
+	private static final ThreadLocal<List<AutoCloseable>> CLOSE_ON_FAILURE = new ThreadLocal<>();
+
 	// Registry of class -> (appose_type, encoder) for encoding custom types.
 	private static final Map<Class<?>, String> ENCODER_TYPES = new ConcurrentHashMap<>();
 	private static final Map<Class<?>, Function<Object, Object>> ENCODERS = new ConcurrentHashMap<>();
@@ -103,16 +107,58 @@ public final class Messages {
 	 * @param encoder    Function from object to JSON-compatible value (without appose_type).
 	 * @param decoder    Function from decoded data map to reconstructed object.
 	 */
-	@SuppressWarnings("unchecked")
 	public static <T> void register(
 		Class<T> objType,
 		String apposeType,
 		Function<T, Object> encoder,
 		Function<Map<String, Object>, Object> decoder
 	) {
+		registerEncoder(objType, apposeType, encoder);
+		DECODERS.put(apposeType, decoder);
+	}
+
+	/**
+	 * Registers an encoder function for a custom Appose type, without a decoder.
+	 * <p>
+	 * This allows several Java types to encode as the same {@code appose_type},
+	 * which decodes as whatever the decoder registered for it produces. If an
+	 * object is an instance of several registered types, the encoder of the most
+	 * specific type applies.
+	 * </p>
+	 * <p>
+	 * The encoder may return null to decline encoding a particular object,
+	 * which is then exported (by a service) or auto-exported (by a worker),
+	 * as with any other object that is not JSON-serializable. Or the encoder
+	 * may return another object (e.g. an {@link NDArray}) to encode in the
+	 * given object's place, instead of a map.
+	 * </p>
+	 *
+	 * @param <T>        The type being registered.
+	 * @param objType    The class of objects to encode.
+	 * @param apposeType The {@code appose_type} string used on the wire.
+	 * @param encoder    Function from object to JSON-compatible map (without appose_type),
+	 *                   or to another object to encode in its place, or null.
+	 */
+	@SuppressWarnings("unchecked")
+	public static <T> void registerEncoder(
+		Class<T> objType,
+		String apposeType,
+		Function<T, Object> encoder
+	) {
 		ENCODER_TYPES.put(objType, apposeType);
 		ENCODERS.put(objType, (Function<Object, Object>) (Function<?, ?>) encoder);
-		DECODERS.put(apposeType, decoder);
+	}
+
+	/**
+	 * Registers a resource, allocated by an encoder for the message currently
+	 * being encoded on this thread, to be closed if encoding the message fails.
+	 * Outside of an encode() call that collects transfers, this does nothing.
+	 *
+	 * @param resource The resource to close upon failure.
+	 */
+	public static void closeOnFailure(AutoCloseable resource) {
+		List<AutoCloseable> resources = CLOSE_ON_FAILURE.get();
+		if (resources != null) resources.add(resource);
 	}
 
 	static {
@@ -152,6 +198,17 @@ public final class Messages {
 				(SharedMemory) map.get("shm")
 			)
 		);
+
+		// Register the codecs of any plugins.
+		for (Codec codec : Plugins.discover(Codec.class, null)) {
+			try {
+				codec.register();
+			}
+			catch (RuntimeException | LinkageError exc) {
+				System.err.println("[WARNING] Failed to register codec " +
+					codec.getClass().getName() + ": " + exc);
+			}
+		}
 	}
 
 	/**
@@ -175,12 +232,32 @@ public final class Messages {
 	 * @return The data encoded as a single line of JSON.
 	 */
 	public static String encode(Map<?, ?> data, Function<Object, Map<String, Object>> exporter) {
+		List<AutoCloseable> allocated = new ArrayList<>();
+		// NB: Encoding may itself send a message on this thread, e.g. an
+		// encoder calling into the service, so restore the outer message's
+		// state afterwards.
+		Function<Object, Map<String, Object>> outerExporter = EXPORTER.get();
+		List<AutoCloseable> outerAllocated = CLOSE_ON_FAILURE.get();
 		EXPORTER.set(exporter);
+		CLOSE_ON_FAILURE.set(allocated);
 		try {
 			return GENERATOR.toJson(data);
 		}
+		catch (RuntimeException | Error exc) {
+			// Free the resources allocated for this message.
+			for (AutoCloseable resource : allocated) {
+				try {
+					resource.close();
+				}
+				catch (Exception exc2) {
+					exc.addSuppressed(exc2);
+				}
+			}
+			throw exc;
+		}
 		finally {
-			EXPORTER.remove();
+			EXPORTER.set(outerExporter);
+			CLOSE_ON_FAILURE.set(outerAllocated);
 		}
 	}
 
@@ -293,17 +370,7 @@ public final class Messages {
 
 				@Override
 				public Object convert(Object value, String key) {
-					for (Map.Entry<Class<?>, Function<Object, Object>> entry : ENCODERS.entrySet()) {
-						if (entry.getKey().isAssignableFrom(value.getClass())) {
-							Map<String, Object> map = new LinkedHashMap<>();
-							map.put("appose_type", ENCODER_TYPES.get(entry.getKey()));
-							@SuppressWarnings("unchecked")
-							Map<String, Object> payload = (Map<String, Object>) entry.getValue().apply(value);
-							map.putAll(payload);
-							return map;
-						}
-					}
-					throw new IllegalStateException("No encoder for " + value.getClass());
+					return encodeRegistered(value);
 				}
 			}).addConverter(new JsonGenerator.Converter() {
 				// Catch-all converter for non-serializable objects.
@@ -335,21 +402,66 @@ public final class Messages {
 						return map;
 					}
 
-					Function<Object, Map<String, Object>> exporter = EXPORTER.get();
-					if (exporter != null) return exporter.apply(value);
-
-					// Auto-export the object and return a worker_object reference.
-					String varName = "_appose_auto_" + (proxyCounter++);
-					if (workerExports != null) {
-						workerExports.put(varName, value);
-					}
-					Map<String, Object> map = new LinkedHashMap<>();
-					map.put("appose_type", "worker_object");
-					map.put("var_name", varName);
-					return map;
+					return export(value);
 				}
 			}).build();
 
+	/**
+	 * Exports the given object, via the active exporter (when encoding as a
+	 * service), or else by auto-exporting it (when encoding as a worker).
+	 */
+	private static Map<String, Object> export(Object value) {
+		Function<Object, Map<String, Object>> exporter = EXPORTER.get();
+		if (exporter != null) return exporter.apply(value);
+		if (!workerMode) {
+			throw new IllegalArgumentException("Cannot encode object of " + value.getClass());
+		}
+
+		// Auto-export the object and return a worker_object reference.
+		String varName = "_appose_auto_" + (proxyCounter++);
+		if (workerExports != null) {
+			workerExports.put(varName, value);
+		}
+		Map<String, Object> map = new LinkedHashMap<>();
+		map.put("appose_type", "worker_object");
+		map.put("var_name", varName);
+		return map;
+	}
+
+	/** Encodes the given object, which is an instance of a registered type. */
+	private static Object encodeRegistered(Object value) {
+		Class<?> type = mostSpecificEncoderType(value.getClass());
+		if (type == null) throw new IllegalStateException("No encoder for " + value.getClass());
+		Object encoded = ENCODERS.get(type).apply(value);
+		if (encoded == null) {
+			// The encoder declined this object.
+			return export(value);
+		}
+		if (!(encoded instanceof Map)) {
+			// The encoder gave another object to encode in this one's place.
+			return mostSpecificEncoderType(encoded.getClass()) == null ?
+				encoded : encodeRegistered(encoded);
+		}
+		@SuppressWarnings("unchecked")
+		Map<String, Object> payload = (Map<String, Object>) encoded;
+		Map<String, Object> map = new LinkedHashMap<>();
+		map.put("appose_type", ENCODER_TYPES.get(type));
+		map.putAll(payload);
+		return map;
+	}
+
+	/**
+	 * Finds the most specific registered type of which the given type is a
+	 * subtype, or null if there is none.
+	 */
+	private static Class<?> mostSpecificEncoderType(Class<?> type) {
+		Class<?> best = null;
+		for (Class<?> candidate : ENCODER_TYPES.keySet()) {
+			if (!candidate.isAssignableFrom(type)) continue;
+			if (best == null || best.isAssignableFrom(candidate)) best = candidate;
+		}
+		return best;
+	}
 
 	// -- Deserialization --
 
