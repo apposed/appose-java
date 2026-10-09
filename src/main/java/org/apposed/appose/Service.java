@@ -712,14 +712,19 @@ public class Service implements AutoCloseable {
 	 * <p>
 	 * This kills the worker's descendant processes too, not only the process
 	 * launched directly; e.g. {@code pixi run} launches the actual worker
-	 * process as its child. See {@link Processes#killTree(Process)}.
+	 * process as its child. See {@link Processes#killTree(Process)}. On Java 8,
+	 * which cannot enumerate descendants, only the process launched directly is
+	 * killed; a worker behind a launcher then lives on until its tasks finish,
+	 * and its tasks are not reported as crashed until it exits.
 	 * </p>
 	 *
 	 * @throws IllegalStateException If the service has not been started.
 	 */
 	public void kill() {
 		requireProcess();
-		Processes.killTree(process);
+		if (!Processes.killTree(process)) {
+			debugService("<killed worker process only; its descendants cannot be found on Java 8>");
+		}
 	}
 
 	/**
@@ -999,16 +1004,17 @@ public class Service implements AutoCloseable {
 	}
 
 	private void monitorLoop() {
-		// Wait until the worker process terminates.
-		while (process.isAlive() || stdoutThread.isAlive() || stderrThread.isAlive()) {
-			try {
-				process.waitFor();
-			}
-			catch (InterruptedException exc) {
-				// Treat interruption as a request to shut down.
-				debugService(Messages.stackTrace(exc));
-				break;
-			}
+		// Wait until the worker process terminates and its output is drained.
+		try {
+			process.waitFor();
+			// NB: A descendant that outlives the worker process, such as the
+			// actual worker behind a launcher, may hold its streams open longer.
+			stdoutThread.join();
+			stderrThread.join();
+		}
+		catch (InterruptedException exc) {
+			// Treat interruption as a request to shut down.
+			debugService(Messages.stackTrace(exc));
 		}
 		debugService("<worker process termination detected>");
 

@@ -84,8 +84,10 @@ public final class Processes {
 	 * </p>
 	 *
 	 * @param process The process to terminate, together with its descendants.
+	 * @return False if descendants could not be enumerated (i.e., on Java 8),
+	 *         so that only the process itself was terminated.
 	 */
-	public static void killTree(Process process) {
+	public static boolean killTree(Process process) {
 		List<Object> descendants = new ArrayList<>();
 		Method destroyForcibly = null;
 		try {
@@ -101,7 +103,7 @@ public final class Processes {
 		}
 		// Kill the process first, so that it cannot launch any more descendants.
 		process.destroyForcibly();
-		if (destroyForcibly == null) return;
+		if (destroyForcibly == null) return false;
 		for (Object descendant : descendants) {
 			try {
 				destroyForcibly.invoke(descendant);
@@ -110,6 +112,7 @@ public final class Processes {
 				// Should not happen; keep killing the others regardless.
 			}
 		}
+		return true;
 	}
 
 	public static int run(ProcessBuilder processBuilder, Consumer<String> output, Consumer<String> error)

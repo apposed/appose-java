@@ -44,6 +44,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
 import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assumptions.assumeFalse;
 
 /** Tests shutting down {@link Service}s: closing, killing, and exiting the JVM. */
 public class ServiceShutdownTest extends TestBase {
@@ -59,6 +60,7 @@ public class ServiceShutdownTest extends TestBase {
 
 	@Test
 	public void testKillWrappedWorker() throws Exception {
+		assumeFalse(isJava8(), "Java 8 cannot kill a worker behind a launcher");
 		Service service = pythonEnv().python("-c", WRAPPED_WORKER);
 		long pid = workerPid(service);
 
@@ -86,6 +88,7 @@ public class ServiceShutdownTest extends TestBase {
 
 	@Test
 	public void testCloseWithTimeoutKillsBusyWorker() throws Exception {
+		assumeFalse(isJava8(), "Java 8 cannot kill a worker behind a launcher");
 		Service service = pythonEnv().python("-c", WRAPPED_WORKER);
 		long pid = workerPid(service);
 		Task task = startSleeping(service);
@@ -195,7 +198,7 @@ public class ServiceShutdownTest extends TestBase {
 		if (System.getProperty("os.name").startsWith("Windows")) return;
 		// NB: On Java 8, Processes.killTree cannot find the worker process
 		// behind a launcher, so the worker outlives a kill until its task ends.
-		if (System.getProperty("java.specification.version").startsWith("1.")) return;
+		if (isJava8()) return;
 		// Give the orphaned worker's new parent a moment to reap it.
 		long deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(5);
 		while (System.nanoTime() < deadline) {
@@ -204,6 +207,10 @@ public class ServiceShutdownTest extends TestBase {
 			Thread.sleep(50);
 		}
 		fail("Worker process " + pid + " is still alive");
+	}
+
+	private static boolean isJava8() {
+		return System.getProperty("java.specification.version").startsWith("1.");
 	}
 
 	private static String readAll(InputStream in) throws IOException {
