@@ -41,6 +41,7 @@ import org.apposed.appose.Appose;
 import org.apposed.appose.Nullable;
 
 import java.io.BufferedInputStream;
+import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
@@ -54,6 +55,7 @@ import java.net.URI;
 import java.net.URISyntaxException;
 import java.net.URL;
 import java.net.URLDecoder;
+import java.nio.charset.StandardCharsets;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.nio.channels.Channels;
@@ -460,6 +462,25 @@ public final class Downloads {
 		}
 		finally {
 			conn.disconnect();
+		}
+	}
+
+	/**
+	 * Reads the given URL's content as a UTF-8 string.
+	 *
+	 * @param url The URL to read.
+	 * @return The URL's content.
+	 * @throws IOException If the URL cannot be read.
+	 */
+	public static String readText(URL url) throws IOException {
+		try (InputStream stream = url.openStream()) {
+			ByteArrayOutputStream result = new ByteArrayOutputStream();
+			byte[] buffer = new byte[8192];
+			int length;
+			while ((length = stream.read(buffer)) != -1) {
+				result.write(buffer, 0, length);
+			}
+			return result.toString(StandardCharsets.UTF_8.name());
 		}
 	}
 

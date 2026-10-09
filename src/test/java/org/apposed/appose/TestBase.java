@@ -33,10 +33,14 @@ import org.apposed.appose.Service.ResponseType;
 import org.apposed.appose.Service.Task;
 import org.apposed.appose.Service.TaskStatus;
 import org.apposed.appose.builder.ApposeRequirement;
+import org.apposed.appose.util.FilePaths;
+import org.apposed.appose.util.Json;
 
 import java.io.File;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -273,5 +277,19 @@ public abstract class TestBase {
 			errorMessage = "TASK ERROR in method " + caller + ":\n" + task.error;
 		}
 		assertEquals(TaskStatus.COMPLETE, task.status, errorMessage);
+	}
+
+	/**
+	 * Reads and parses the {@code appose.json} state file from the given
+	 * environment directory.
+	 *
+	 * @param envDir The environment directory containing {@code appose.json}.
+	 * @return The parsed state.
+	 * @throws IOException If the file cannot be read.
+	 */
+	public static Map<?, ?> apposeJsonMap(File envDir) throws IOException {
+		File apposeJson = new File(envDir, "appose.json");
+		assertTrue(apposeJson.isFile(), "appose.json should exist");
+		return (Map<?, ?>) Json.parseJson(FilePaths.readText(apposeJson));
 	}
 }
