@@ -30,11 +30,23 @@
 package org.apposed.appose.builder;
 
 import org.apposed.appose.Appose;
+import org.apposed.appose.EnvStatus;
 import org.apposed.appose.Environment;
 import org.apposed.appose.TestBase;
+import org.apposed.appose.util.Json;
 import org.junit.jupiter.api.Test;
 
+import java.io.File;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.util.Arrays;
+import java.util.Map;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /** End-to-end tests for {@link UvBuilder}. */
 public class UvBuilderTest extends TestBase {
@@ -70,5 +82,54 @@ public class UvBuilderTest extends TestBase {
 			.logDebug()
 			.build();
 		cowsayAndAssert(env, "pyproject");
+
+		// No groups were requested, so none should be recorded.
+		Map<String, Object> state = readState(env);
+		assertFalse(state.containsKey("groups"),
+			"appose.json should not contain 'groups' when none specified");
+	}
+
+	@Test
+	public void testUvPyprojectWithGroup() throws Exception {
+		Environment env = Appose
+			.uv("src/test/resources/envs/cowsay-pyproject-groups.toml")
+			.group("cowsay")
+			.base("target/envs/uv-cowsay-groups")
+			.logDebug()
+			.build();
+		cowsayAndAssert(env, "groups");
+
+		Map<String, Object> state = readState(env);
+		assertEquals(Arrays.asList("cowsay"), state.get("groups"));
+
+		// Wrapping (e.g. after an application restart) must retain the groups,
+		// rather than treating the environment as stale and syncing without them.
+		Environment wrapped = Appose.wrap(new File(env.base()));
+		assertInstanceOf(UvBuilder.class, wrapped.builder());
+		assertEquals(EnvStatus.CURRENT, wrapped.builder().status());
+		cowsayAndAssert(wrapped, "wrapped");
+
+		// Rebuilding the wrapped environment must retain the groups too.
+		Environment rebuilt = wrapped.rebuild();
+		cowsayAndAssert(rebuilt, "rebuilt");
+		assertEquals(Arrays.asList("cowsay"), readState(rebuilt).get("groups"));
+	}
+
+	@Test
+	public void testUvGroupRejectsWithoutPyproject() {
+		assertThrows(IllegalArgumentException.class, () ->
+			Appose.uv()
+				.content("appose\n")
+				.group("cowsay")
+				.base("target/envs/uv-group-no-pyproject")
+				.build());
+	}
+
+	@SuppressWarnings("unchecked")
+	private static Map<String, Object> readState(Environment env) throws Exception {
+		File apposeJson = new File(env.base(), "appose.json");
+		assertTrue(apposeJson.isFile(), "appose.json should exist");
+		String json = new String(Files.readAllBytes(apposeJson.toPath()), StandardCharsets.UTF_8);
+		return (Map<String, Object>) Json.parseJson(json);
 	}
 }

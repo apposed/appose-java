@@ -37,6 +37,7 @@ import org.apposed.appose.builder.ApposeRequirement;
 import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -237,6 +238,10 @@ public abstract class TestBase {
 			assertTrue(actual.contains("^__^"), "Output should contain cow face");
 			assertTrue(actual.contains("(oo)"), "Output should contain cow eyes");
 			assertTrue(actual.contains("||----w |"), "Output should contain cow legs");
+
+			// Note: Wait for the worker to exit, so that it no longer holds the
+			// environment's files open; on Windows, that would block deleting them.
+			service.close(30, TimeUnit.SECONDS);
 		}
 		finally {
 			System.clearProperty(SKIP_VERSION_CHECK);

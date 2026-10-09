@@ -33,6 +33,7 @@ import org.apposed.appose.BuildException;
 import org.apposed.appose.EnvStatus;
 import org.apposed.appose.Environment;
 import org.apposed.appose.util.FilePaths;
+import org.apposed.appose.util.Json;
 import org.apposed.appose.util.Platforms;
 import org.apposed.appose.scheme.Schemes;
 import org.apposed.appose.tool.Uv;
@@ -56,6 +57,7 @@ public final class UvBuilder extends BaseBuilder<UvBuilder> {
 
 	private String pythonVersion;
 	private final List<String> packages = new ArrayList<>();
+	private final List<String> groups = new ArrayList<>();
 
 	// -- UvBuilder methods --
 
@@ -81,6 +83,18 @@ public final class UvBuilder extends BaseBuilder<UvBuilder> {
 		return this;
 	}
 
+	/**
+	 * Adds PEP 735 dependency groups to install via {@code uv sync --group}.
+	 * Only supported with {@code pyproject.toml} scheme.
+	 *
+	 * @param groups Dependency group names defined in {@code [dependency-groups]}.
+	 * @return This builder instance, for fluent-style programming.
+	 */
+	public UvBuilder group(String... groups) {
+		this.groups.addAll(Arrays.asList(groups));
+		return this;
+	}
+
 	// -- Builder methods --
 
 	@Override
@@ -93,6 +107,7 @@ public final class UvBuilder extends BaseBuilder<UvBuilder> {
 		super.addStateFields(state);
 		state.put("pythonVersion", pythonVersion);
 		state.put("packages", packages);
+		if (!groups.isEmpty()) state.put("groups", groups);
 		if (addsAppose()) {
 			// NB: Recorded, so that a change in Appose version triggers a rebuild.
 			state.put("appose", ApposeRequirement.get().pipArgs());
@@ -159,6 +174,12 @@ public final class UvBuilder extends BaseBuilder<UvBuilder> {
 			}
 		}
 
+		// Validate groups are only used with pyproject.toml.
+		if (!groups.isEmpty() && !"pyproject.toml".equals(scheme == null ? null : scheme.name())) {
+			throw new IllegalArgumentException(
+				"Dependency groups are only supported with pyproject.toml scheme");
+		}
+
 		try {
 			// If the env state matches our current configuration,
 			// skip all package management and return immediately.
@@ -192,7 +213,7 @@ public final class UvBuilder extends BaseBuilder<UvBuilder> {
 					Files.write(pyprojectFile.toPath(), content.getBytes(StandardCharsets.UTF_8));
 
 					// Run uv sync to create .venv and install dependencies.
-					uv.sync(envDir, pythonVersion);
+					uv.sync(envDir, pythonVersion, groups);
 				} else {
 					// Handle requirements.txt - traditional venv + pip install.
 					// Create virtual environment if it doesn't exist.
@@ -243,6 +264,26 @@ public final class UvBuilder extends BaseBuilder<UvBuilder> {
 				// Read the content so rebuild() will work even after directory is deleted.
 				content = new String(Files.readAllBytes(pyprojectToml.toPath()), StandardCharsets.UTF_8);
 				scheme = Schemes.fromName("pyproject.toml");
+
+				// Restore any dependency groups, which pyproject.toml does not record.
+				// Otherwise, the environment looks stale, and gets synced without them.
+				File apposeJson = new File(envDir, "appose.json");
+				if (groups.isEmpty() && apposeJson.isFile()) {
+					String json = new String(Files.readAllBytes(apposeJson.toPath()), StandardCharsets.UTF_8);
+					Object state;
+					try {
+						state = Json.parseJson(json);
+					}
+					catch (RuntimeException e) {
+						state = null; // Unreadable state; the env will just look stale.
+					}
+					if (state instanceof Map) {
+						Object stateGroups = ((Map<?, ?>) state).get("groups");
+						if (stateGroups instanceof List) {
+							for (Object g : (List<?>) stateGroups) groups.add(g.toString());
+						}
+					}
+				}
 			}
 			else {
 				// Fall back to requirements.txt.

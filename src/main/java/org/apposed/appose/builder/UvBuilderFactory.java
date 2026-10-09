@@ -68,8 +68,10 @@ public class UvBuilderFactory implements BuilderFactory {
 	public boolean canWrap(java.io.File envDir) {
 		// Check for uv/venv environment markers.
 		// uv creates standard Python venv, so look for pyvenv.cfg,
-		// but exclude conda and pixi environments.
-		boolean hasPyvenvCfg = new java.io.File(envDir, "pyvenv.cfg").isFile();
+		// but exclude conda and pixi environments. For pyproject.toml
+		// projects, uv sync puts the venv in a .venv subdirectory.
+		boolean hasPyvenvCfg = new java.io.File(envDir, "pyvenv.cfg").isFile() ||
+		                       new java.io.File(envDir, ".venv/pyvenv.cfg").isFile();
 		boolean isNotPixi = !new java.io.File(envDir, ".pixi").isDirectory() &&
 		                    !new java.io.File(envDir, "pixi.toml").isFile();
 		boolean isNotConda = !new java.io.File(envDir, "conda-meta").isDirectory();

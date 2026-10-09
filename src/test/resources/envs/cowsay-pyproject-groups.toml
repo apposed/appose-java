@@ -1,0 +1,13 @@
+[project]
+name = "cowsay-groups-test"
+version = "0.1.0"
+description = "Test project for cowsay with dependency groups"
+requires-python = ">=3.10"
+dependencies = [
+    "appose>=0.1.0",
+]
+
+[dependency-groups]
+cowsay = [
+    "cowsay>=6.0",
+]
