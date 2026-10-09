@@ -30,6 +30,7 @@
 package org.apposed.appose.builder;
 
 import org.apposed.appose.Appose;
+import org.apposed.appose.EnvStatus;
 import org.apposed.appose.Environment;
 import org.apposed.appose.TestBase;
 import org.apposed.appose.util.Json;
@@ -100,6 +101,18 @@ public class UvBuilderTest extends TestBase {
 
 		Map<String, Object> state = readState(env);
 		assertEquals(Arrays.asList("cowsay"), state.get("groups"));
+
+		// Wrapping (e.g. after an application restart) must retain the groups,
+		// rather than treating the environment as stale and syncing without them.
+		Environment wrapped = Appose.wrap(new File(env.base()));
+		assertInstanceOf(UvBuilder.class, wrapped.builder());
+		assertEquals(EnvStatus.CURRENT, wrapped.builder().status());
+		cowsayAndAssert(wrapped, "wrapped");
+
+		// Rebuilding the wrapped environment must retain the groups too.
+		Environment rebuilt = wrapped.rebuild();
+		cowsayAndAssert(rebuilt, "rebuilt");
+		assertEquals(Arrays.asList("cowsay"), readState(rebuilt).get("groups"));
 	}
 
 	@Test
