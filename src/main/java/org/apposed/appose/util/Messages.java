@@ -35,6 +35,7 @@ import org.apposed.appose.GroovyWorker;
 import org.apposed.appose.NDArray;
 import org.apposed.appose.ServiceProxy;
 import org.apposed.appose.SharedMemory;
+import org.apposed.appose.SharedMemoryView;
 
 import java.io.PrintWriter;
 import java.io.StringWriter;
@@ -173,12 +174,14 @@ public final class Messages {
 				Map<String, Object> payload = new LinkedHashMap<>();
 				payload.put("name", shm.name());
 				payload.put("rsize", shm.rsize());
+				if (shm instanceof SharedMemoryView) {
+					SharedMemoryView view = (SharedMemoryView) shm;
+					payload.put("offset", view.offset());
+					payload.put("length", view.size());
+				}
 				return payload;
 			},
-			map -> SharedMemory.attach(
-				(String) map.get("name"),
-				((Number) map.get("rsize")).longValue()
-			)
+			Messages::decodeShm
 		);
 		register(NDArray.class, "ndarray",
 			nda -> {
@@ -509,6 +512,23 @@ public final class Messages {
 		} else {
 			return value;
 		}
+	}
+
+	/**
+	 * Decodes a shared memory reference: a whole block, or a region of one.
+	 */
+	private static SharedMemory decodeShm(Map<String, Object> map) {
+		String name = (String) map.get("name");
+		long rsize = ((Number) map.get("rsize")).longValue();
+		if (!map.containsKey("offset") && !map.containsKey("length")) {
+			// A plain block reference, as always.
+			return SharedMemory.attach(name, rsize);
+		}
+		Object offsetValue = map.get("offset");
+		long offset = offsetValue == null ? 0 : ((Number) offsetValue).longValue();
+		Object lengthValue = map.get("length");
+		long length = lengthValue == null ? rsize - offset : ((Number) lengthValue).longValue();
+		return SharedMemoryView.attach(name, rsize, offset, length);
 	}
 
 	private static NDArray.DType toDType(String dtype) {

@@ -168,6 +168,21 @@ public interface SharedMemory extends AutoCloseable {
 	ByteBuffer buf(long fromIndex, long toIndex);
 
 	/**
+	 * Creates a view of a region of this shared memory block.
+	 * <p>
+	 * The view must not be used after this block is closed.
+	 * </p>
+	 *
+	 * @param offset The region's starting position within the block, in bytes.
+	 * @param length The region's length in bytes.
+	 * @return A view of the region.
+	 * @throws IllegalArgumentException If the region does not fit in the block.
+	 */
+	default SharedMemoryView view(long offset, long length) {
+		return new SharedMemoryView(this, offset, length);
+	}
+
+	/**
 	 * Sets whether the {@link #unlink()} method should be invoked to destroy
 	 * the shared memory block when the {@link #close()} method is called.
 	 * <p>
