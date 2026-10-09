@@ -66,7 +66,9 @@ public class ShmMacOS implements ShmFactory {
 
 		@Override
 		protected void doUnlink() {
-			CLibrary.INSTANCE.shm_unlink(name());
+			// NB: Unlike on Linux, a leading slash is significant on macOS:
+			// the block was created with one, so it must be unlinked with one.
+			CLibrary.INSTANCE.shm_unlink(withLeadingSlash(name()));
 		}
 
 		@Override

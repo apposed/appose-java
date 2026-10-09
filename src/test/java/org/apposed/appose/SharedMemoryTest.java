@@ -30,6 +30,7 @@
 package org.apposed.appose;
 
 import org.apposed.appose.util.FilePaths;
+import org.apposed.appose.util.Platforms;
 import org.junit.jupiter.api.Test;
 
 import java.io.BufferedReader;
@@ -46,6 +47,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assumptions.assumeFalse;
 
 /**
  * Tests {@link SharedMemory}.
@@ -53,6 +55,17 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  * @author Curtis Rueden
  */
 public class SharedMemoryTest {
+
+	@Test
+	public void testUnlinkOnClose() {
+		assumeFalse(Platforms.isWindows(), "Windows frees a block once its last handle is closed");
+		String name;
+		try (SharedMemory shm = SharedMemory.create(64)) {
+			name = shm.name();
+			assertTrue(TestBase.shmExists(name));
+		}
+		assertFalse(TestBase.shmExists(name));
+	}
 
 	@Test
 	public void testShmCreate() throws Exception {

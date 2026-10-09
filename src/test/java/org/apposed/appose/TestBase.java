@@ -29,12 +29,15 @@
 
 package org.apposed.appose;
 
+import com.sun.jna.Library;
+import com.sun.jna.Native;
 import org.apposed.appose.Service.ResponseType;
 import org.apposed.appose.Service.Task;
 import org.apposed.appose.Service.TaskStatus;
 import org.apposed.appose.builder.ApposeRequirement;
 import org.apposed.appose.util.FilePaths;
 import org.apposed.appose.util.Json;
+import org.apposed.appose.util.Platforms;
 
 import java.io.File;
 import java.io.IOException;
@@ -250,6 +253,27 @@ public abstract class TestBase {
 		finally {
 			System.clearProperty(SKIP_VERSION_CHECK);
 		}
+	}
+
+	/**
+	 * Checks whether the named shared memory block exists, without
+	 * attaching to it (which on some platforms would create it).
+	 * On Windows, where this cannot be checked, always returns true.
+	 */
+	public static boolean shmExists(String name) {
+		if (Platforms.isWindows()) return true;
+		int fd = LibC.INSTANCE.shm_open("/" + name, 0, 0); // O_RDONLY
+		if (fd < 0) return false;
+		LibC.INSTANCE.close(fd);
+		return true;
+	}
+
+	private interface LibC extends Library {
+		LibC INSTANCE = Native.load("c", LibC.class);
+
+		int shm_open(String name, int oflag, int mode);
+
+		int close(int fd);
 	}
 
 	/** System property that disables the worker version check. */
