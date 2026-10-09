@@ -32,6 +32,7 @@ package org.apposed.appose.util;
 import groovy.json.JsonGenerator;
 import org.apposed.appose.Codec;
 import org.apposed.appose.GroovyWorker;
+import org.apposed.appose.MemoryLink;
 import org.apposed.appose.NDArray;
 import org.apposed.appose.ServiceProxy;
 import org.apposed.appose.SharedMemory;
@@ -77,6 +78,12 @@ public final class Messages {
 	// Exporter for non-JSON-serializable objects, active during an encode() call.
 	private static final ThreadLocal<Function<Object, Map<String, Object>>> EXPORTER =
 		new ThreadLocal<>();
+
+	// Memory link of the connection, active during an encode() or decode() call.
+	private static final ThreadLocal<MemoryLink> LINK = new ThreadLocal<>();
+
+	// Views of managed shared memory regions the message refers to, collected during an encode() call.
+	private static final ThreadLocal<List<SharedMemoryView>> MANAGED = new ThreadLocal<>();
 
 	// Resources allocated by encoders, to close if an encode() call fails.
 	private static final ThreadLocal<List<AutoCloseable>> CLOSE_ON_FAILURE = new ThreadLocal<>();
@@ -151,6 +158,18 @@ public final class Messages {
 	}
 
 	/**
+	 * Gets whether the message currently being encoded on this thread may
+	 * refer to managed shared memory. Encoders can check this before
+	 * allocating managed memory (e.g. via {@link NDArray#managed}), and
+	 * otherwise decline by returning null.
+	 *
+	 * @return true if managed memory may be sent.
+	 */
+	public static boolean managedEnabled() {
+		return LINK.get() != null;
+	}
+
+	/**
 	 * Registers a resource, allocated by an encoder for the message currently
 	 * being encoded on this thread, to be closed if encoding the message fails.
 	 * Outside of an encode() call that collects transfers, this does nothing.
@@ -171,6 +190,20 @@ public final class Messages {
 		// as soon as the Messages class itself is loaded.
 		register(SharedMemory.class, "shm",
 			shm -> {
+				if (shm instanceof SharedMemoryView && ((SharedMemoryView) shm).managed()) {
+					// A managed region, described by the connection's memory link.
+					SharedMemoryView view = (SharedMemoryView) shm;
+					MemoryLink link = LINK.get();
+					if (link == null) {
+						throw new IllegalStateException("Cannot send " + view + ": no managed memory on this connection");
+					}
+					if (view.isClosed()) throw new IllegalStateException(view + " was already closed");
+					List<SharedMemoryView> managed = MANAGED.get();
+					if (managed != null) managed.add(view);
+					Map<String, Object> payload = new LinkedHashMap<>(link.describe(view));
+					payload.put("managed", true);
+					return payload;
+				}
 				Map<String, Object> payload = new LinkedHashMap<>();
 				payload.put("name", shm.name());
 				payload.put("rsize", shm.rsize());
@@ -235,13 +268,44 @@ public final class Messages {
 	 * @return The data encoded as a single line of JSON.
 	 */
 	public static String encode(Map<?, ?> data, Function<Object, Map<String, Object>> exporter) {
+		return encode(data, exporter, null, null);
+	}
+
+	/**
+	 * Converts a Map into a JSON string, using the given exporter function
+	 * for objects that are not JSON-serializable, and collecting the views of
+	 * managed shared memory regions the message refers to.
+	 *
+	 * @param data The data to encode.
+	 * @param exporter Function to call for objects that are not
+	 *          JSON-serializable, or null to auto-export them (in worker mode).
+	 * @param link The memory link of the connection the message is for, which
+	 *          describes the references to managed shared memory regions it
+	 *          contains. If null, the message cannot refer to managed memory,
+	 *          and encoders do not allocate any.
+	 * @param managed List in which to collect the views of managed shared
+	 *          memory regions the message refers to. The caller must keep them
+	 *          until the message is written, and tell the link they are sent
+	 *          (see {@link MemoryLink#sent}).
+	 * @throws IllegalStateException If the data includes a closed view of
+	 *          a managed region, or any managed region without a link.
+	 * @return The data encoded as a single line of JSON.
+	 */
+	public static String encode(Map<?, ?> data,
+		Function<Object, Map<String, Object>> exporter,
+		MemoryLink link, List<SharedMemoryView> managed)
+	{
 		List<AutoCloseable> allocated = new ArrayList<>();
-		// NB: Encoding may itself send a message on this thread, e.g. an
-		// encoder calling into the service, so restore the outer message's
-		// state afterwards.
+		// NB: Encoding may itself send a message on this thread, e.g. a
+		// worker's call to allocate managed memory for an image, so restore
+		// the outer message's state afterwards.
 		Function<Object, Map<String, Object>> outerExporter = EXPORTER.get();
+		MemoryLink outerLink = LINK.get();
+		List<SharedMemoryView> outerManaged = MANAGED.get();
 		List<AutoCloseable> outerAllocated = CLOSE_ON_FAILURE.get();
 		EXPORTER.set(exporter);
+		LINK.set(link);
+		MANAGED.set(managed);
 		CLOSE_ON_FAILURE.set(allocated);
 		try {
 			return GENERATOR.toJson(data);
@@ -260,6 +324,8 @@ public final class Messages {
 		}
 		finally {
 			EXPORTER.set(outerExporter);
+			LINK.set(outerLink);
+			MANAGED.set(outerManaged);
 			CLOSE_ON_FAILURE.set(outerAllocated);
 		}
 	}
@@ -273,6 +339,25 @@ public final class Messages {
 	@SuppressWarnings("unchecked")
 	public static Map<String, Object> decode(String json) {
 		return postProcess(Json.parseJson(json));
+	}
+
+	/**
+	 * Converts a JSON string into a map, resolving the references to managed
+	 * shared memory regions it contains via the given memory link.
+	 *
+	 * @param json The JSON to decode.
+	 * @param link The memory link of the connection the message came from.
+	 * @return The decoded map.
+	 */
+	public static Map<String, Object> decode(String json, MemoryLink link) {
+		MemoryLink outerLink = LINK.get();
+		LINK.set(link);
+		try {
+			return decode(json);
+		}
+		finally {
+			LINK.set(outerLink);
+		}
 	}
 
 	/**
@@ -518,6 +603,14 @@ public final class Messages {
 	 * Decodes a shared memory reference: a whole block, or a region of one.
 	 */
 	private static SharedMemory decodeShm(Map<String, Object> map) {
+		if (Boolean.TRUE.equals(map.get("managed"))) {
+			// A managed region, resolved by the connection's memory link.
+			MemoryLink link = LINK.get();
+			if (link == null) {
+				throw new IllegalStateException("Cannot receive managed memory: none on this connection");
+			}
+			return link.resolve(map);
+		}
 		String name = (String) map.get("name");
 		long rsize = ((Number) map.get("rsize")).longValue();
 		if (!map.containsKey("offset") && !map.containsKey("length")) {

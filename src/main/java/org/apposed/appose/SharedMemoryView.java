@@ -29,17 +29,21 @@
 
 package org.apposed.appose;
 
+import org.apposed.appose.util.Messages;
+
 import java.lang.ref.PhantomReference;
 import java.lang.ref.ReferenceQueue;
 import java.lang.ref.WeakReference;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.function.Consumer;
 
 /**
  * A region of a shared memory block: {@link #size()} bytes, starting
@@ -56,9 +60,12 @@ import java.util.concurrent.atomic.AtomicBoolean;
  * {@link #rsize()}, so that other processes can attach to it.
  * </p>
  * <p>
- * An attached view keeps its block mapped until it is {@link #close()
- * closed}, or until neither it nor any {@link ByteBuffer} obtained from it
- * (including slices and duplicates of such buffers) is reachable.
+ * A view of a <em>managed</em> region (see {@link NDArray#managed}) holds a
+ * reference to the region, which the service counts, and frees the region
+ * once no process holds one anymore. The view gives up its reference once
+ * {@link #close() closed}, or once neither it nor any {@link ByteBuffer}
+ * obtained from it (including slices and duplicates of such buffers) is
+ * reachable. An attached view likewise keeps its block mapped until then.
  * </p>
  */
 public class SharedMemoryView implements SharedMemory {
@@ -66,20 +73,53 @@ public class SharedMemoryView implements SharedMemory {
 	private final SharedMemory block;
 	private final long offset;
 	private final long length;
+	private final boolean managed;
 
 	/** For a region attached by this process: the record of the attachment. */
 	private final @Nullable Attachment attachment;
 
+	/** For a managed region of this process's memory: the record of this view's hold on it. */
+	private final @Nullable Held held;
+
 	SharedMemoryView(SharedMemory block, long offset, long length) {
-		this(block, offset, length, null);
+		this(block, offset, length, false, null, null);
 	}
 
-	private SharedMemoryView(SharedMemory block, long offset, long length, @Nullable Mapping mapping) {
+	private SharedMemoryView(SharedMemory block, long offset, long length,
+		boolean managed, @Nullable Mapping mapping, @Nullable Runnable release)
+	{
 		checkRegion(block.name(), block.rsize(), offset, length);
 		this.block = block;
 		this.offset = offset;
 		this.length = length;
+		this.managed = managed;
 		this.attachment = mapping == null ? null : new Attachment(this, mapping);
+		this.held = release == null ? null : new Held(this, release);
+	}
+
+	/**
+	 * Creates a view of a managed region of a block this process holds.
+	 * For use by {@link MemoryBackend memory backends}.
+	 *
+	 * @param block The shared memory block.
+	 * @param offset The region's starting position within the block, in bytes.
+	 * @param length The region's length in bytes.
+	 * @param release What to do once the view is closed or garbage collected
+	 *          (whichever comes first), e.g. to give up its reference.
+	 * @return A view of the region.
+	 */
+	public static SharedMemoryView held(SharedMemory block, long offset, long length, Runnable release) {
+		return new SharedMemoryView(block, offset, length, true, null, release);
+	}
+
+	/**
+	 * Allocates a managed region from this process's memory backend.
+	 *
+	 * @param length The region's length in bytes.
+	 * @return A view of the newly allocated region.
+	 */
+	static SharedMemoryView allocate(long length) {
+		return MemoryBackends.allocate(length);
 	}
 
 	/**
@@ -98,10 +138,38 @@ public class SharedMemoryView implements SharedMemory {
 	 * @return A view of the region.
 	 */
 	public static SharedMemoryView attach(String name, long rsize, long offset, long length) {
+		return attach(name, rsize, offset, length, null);
+	}
+
+	/**
+	 * Attaches to a managed region of the named shared memory block, created
+	 * by another process. For use by {@link MemoryBackend memory backends}.
+	 *
+	 * @param name The name of the shared memory block.
+	 * @param rsize The requested size of the block in bytes.
+	 * @param offset The region's starting position within the block, in bytes.
+	 * @param length The region's length in bytes.
+	 * @param released What to do once the view is closed or garbage collected
+	 *          (whichever comes first), given the region's name and offset;
+	 *          e.g. to give up its reference.
+	 * @return A view of the region.
+	 */
+	public static SharedMemoryView attachManaged(String name, long rsize, long offset,
+		long length, Consumer<Map<String, Object>> released)
+	{
+		return attach(name, rsize, offset, length, released);
+	}
+
+	private static SharedMemoryView attach(String name, long rsize, long offset,
+		long length, @Nullable Consumer<Map<String, Object>> released)
+	{
 		checkRegion(name, rsize, offset, length);
 		Mapping mapping = Mapping.acquire(name, rsize);
 		try {
-			return new SharedMemoryView(mapping.block, offset, length, mapping);
+			SharedMemoryView view = new SharedMemoryView(mapping.block, offset, length,
+				released != null, mapping, null);
+			view.attachment.released = released;
+			return view;
 		}
 		catch (RuntimeException exc) {
 			mapping.release();
@@ -117,9 +185,19 @@ public class SharedMemoryView implements SharedMemory {
 	}
 
 	/**
-	 * @return Whether this view of an attached region has been closed.
+	 * @return Whether the region is managed: a reference to it is counted,
+	 *         which this view gives up once closed or garbage collected.
+	 */
+	public boolean managed() {
+		return managed;
+	}
+
+	/**
+	 * @return Whether this view has been closed (for a managed region:
+	 *         whether it has given up its reference to the region).
 	 */
 	public boolean isClosed() {
+		if (held != null) return held.isReleased();
 		return attachment != null && attachment.isReleased();
 	}
 
@@ -187,14 +265,16 @@ public class SharedMemoryView implements SharedMemory {
 	}
 
 	/**
-	 * Closes this view: for an attached region, unmaps its block if no other
-	 * region of it is in use. Otherwise, does nothing.
+	 * Closes this view: for a managed region, gives up this view's reference
+	 * to it; for an attached region, unmaps its block if no other region of
+	 * it is in use. Otherwise, does nothing.
 	 * <p>
 	 * After closing a view, do not use it, nor any buffer obtained from it.
 	 * </p>
 	 */
 	@Override
 	public void close() {
+		if (held != null) held.release();
 		if (attachment != null) attachment.release();
 	}
 
@@ -248,6 +328,38 @@ public class SharedMemoryView implements SharedMemory {
 	}
 
 	/**
+	 * The record of a view's hold on a managed region of this process's
+	 * memory, given up once the view is closed or garbage collected.
+	 */
+	private static class Held extends PhantomReference<SharedMemoryView> {
+
+		/** Pending records, kept reachable until released. */
+		private static final Set<Held> PENDING = ConcurrentHashMap.newKeySet();
+
+		private final Runnable release;
+
+		// NB: Not a lock, since the memory may check it while holding its own.
+		private final AtomicBoolean released = new AtomicBoolean();
+
+		Held(SharedMemoryView view, Runnable release) {
+			super(view, Cleaner.QUEUE);
+			this.release = release;
+			PENDING.add(this);
+		}
+
+		boolean isReleased() {
+			return released.get();
+		}
+
+		void release() {
+			if (!released.compareAndSet(false, true)) return;
+			PENDING.remove(this);
+			clear();
+			release.run();
+		}
+	}
+
+	/**
 	 * The record of an attached region, which releases the
 	 * region once its view is closed or garbage collected.
 	 */
@@ -257,12 +369,19 @@ public class SharedMemoryView implements SharedMemory {
 		private static final Set<Attachment> PENDING = ConcurrentHashMap.newKeySet();
 
 		private final Mapping mapping;
+		private final String name;
+		private final long offset;
+
+		/** For a managed region: what to do once released, given the region. */
+		volatile @Nullable Consumer<Map<String, Object>> released;
 
 		private final AtomicBoolean done = new AtomicBoolean();
 
 		Attachment(SharedMemoryView view, Mapping mapping) {
 			super(view, Cleaner.QUEUE);
 			this.mapping = mapping;
+			this.name = view.name();
+			this.offset = view.offset;
 			PENDING.add(this);
 		}
 
@@ -276,6 +395,13 @@ public class SharedMemoryView implements SharedMemory {
 			PENDING.remove(this);
 			clear();
 			mapping.release();
+			Consumer<Map<String, Object>> callback = released;
+			if (callback != null) {
+				Map<String, Object> region = new LinkedHashMap<>();
+				region.put("name", name);
+				region.put("offset", offset);
+				callback.accept(region);
+			}
 		}
 	}
 
@@ -322,7 +448,7 @@ public class SharedMemoryView implements SharedMemory {
 
 	/**
 	 * Cleans up after garbage collected buffers and views: forgets the owners
-	 * of buffers, and releases the regions of attached views.
+	 * of buffers, and releases the regions of views.
 	 */
 	private static class Cleaner {
 
@@ -344,6 +470,7 @@ public class SharedMemoryView implements SharedMemory {
 
 					for (Object ref : batch) {
 						if (ref instanceof Owners.Key) Owners.OWNERS.remove(ref);
+						else if (ref instanceof Held) ((Held) ref).release();
 						else ((Attachment) ref).release();
 					}
 				}

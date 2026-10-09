@@ -79,6 +79,32 @@ public class NDArray implements AutoCloseable {
 	}
 
 	/**
+	 * Creates an {@code NDArray} with the specified data type and shape, in
+	 * the service's managed shared memory (in a worker, the service allocates
+	 * it, on request).
+	 * <p>
+	 * A managed array may be sent to any number of processes (e.g. as a task
+	 * input or output), which share its data in place; the service counts
+	 * the processes using it, and frees it once none does anymore. This
+	 * process's use of the array ends once it closes the array, or once
+	 * neither the array nor any buffer obtained from it is reachable.
+	 * </p>
+	 * <p>
+	 * For example, a service object called by a worker can fill such an
+	 * array and return it, without the array data being copied; or a cache
+	 * of image cells can load each cell once, for any number of workers.
+	 * </p>
+	 *
+	 * @param dType element data type
+	 * @param shape array shape
+	 * @return The newly allocated array.
+	 */
+	public static NDArray managed(final DType dType, final Shape shape) {
+		final long length = shape.numElements() * dType.bytesPerElement();
+		return new NDArray(dType, shape, SharedMemoryView.allocate(length));
+	}
+
+	/**
 	 * @return The data type of the array elements.
 	 */
 	public DType dType() {

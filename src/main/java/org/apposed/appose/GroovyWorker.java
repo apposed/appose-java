@@ -43,6 +43,7 @@ import java.io.InputStreamReader;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.util.ArrayDeque;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Deque;
 import java.util.HashMap;
@@ -76,11 +77,31 @@ public class GroovyWorker {
 	private final Map<String, PendingCall> calls = new ConcurrentHashMap<>();
 	private volatile boolean running = true;
 
+	/** Managed shared memory, as used over the connection to the service, if any. */
+	private final MemoryLink memoryLink;
+
 	public GroovyWorker() {
 		// Flag that we're in worker mode for auto-proxy serialization.
 		Messages.workerMode = true;
 		Messages.workerExports = exports;
 		Messages.workerInstance = this;
+
+		// Send objects (e.g. images) via managed shared memory only if the
+		// service provides a backend this worker knows; otherwise, they are
+		// sent as proxies.
+		MemoryBackends.useFromEnvironment();
+		MemoryBackend memory = MemoryBackends.backend();
+		memoryLink = memory == null ? null : memory.link(new Peer() {
+			@Override
+			public void send(Map<String, Object> message) {
+				GroovyWorker.this.send(message);
+			}
+
+			@Override
+			public Object call(String function, List<Object> args) {
+				return invoke(function, "call", null, args);
+			}
+		});
 
 		new Thread(this::processInput, "Appose-Receiver").start();
 		new Thread(this::cleanupThreads, "Appose-Janitor").start();
@@ -148,8 +169,18 @@ public class GroovyWorker {
 	}
 
 	/** Sends a message to the service. */
-	private static void send(Map<String, Object> response) {
-		String encoded = Messages.encode(response);
+	private void send(Map<String, Object> response) {
+		// NB: Hold the views of managed regions the message refers to until
+		// it is written, so that no release of them overtakes the message.
+		List<SharedMemoryView> managed = new ArrayList<>();
+		String encoded = Messages.encode(response, null, memoryLink, managed);
+		print(encoded);
+		// NB: Using the list here keeps its views reachable until now.
+		managed.clear();
+	}
+
+	/** Writes an encoded message to the service. */
+	private static void print(String encoded) {
 		// NB: Messages may be sent from multiple threads, and must not interleave.
 		synchronized (System.out) {
 			System.out.println(encoded);
@@ -177,6 +208,7 @@ public class GroovyWorker {
 						pending.resolve(Collections.singletonMap("error", "Service connection closed"));
 					}
 				}
+				if (memoryLink != null) memoryLink.close();
 				break;
 			}
 
@@ -194,7 +226,7 @@ public class GroovyWorker {
 	private void receive(String line) {
 		Map<String, Object> request;
 		try {
-			request = Messages.decode(line);
+			request = Messages.decode(line, memoryLink);
 		}
 		catch (RuntimeException exc) {
 			reject(line, Messages.stackTrace(exc));
@@ -339,7 +371,7 @@ public class GroovyWorker {
 		hello.put("responseType", ResponseType.HELLO.toString());
 		hello.put("implementation", "appose-java");
 		hello.put("version", Appose.version());
-		send(hello);
+		print(Messages.encode(hello));
 
 		// Register libraries, then execute init script, if provided via
 		// environment variables. This happens before the worker's I/O loop
@@ -383,7 +415,7 @@ public class GroovyWorker {
 		public boolean cancelRequested;
 
 		private final String script;
-		private final Map<String, Object> inputs;
+		private Map<String, Object> inputs;
 		private boolean finished;
 		private Thread thread;
 
@@ -470,6 +502,12 @@ public class GroovyWorker {
 			}
 			catch (Exception exc) {
 				fail(Messages.stackTrace(exc));
+			}
+			finally {
+				// NB: Drop the inputs and outputs, so that shared memory regions
+				// among them are released as soon as the script no longer uses them.
+				inputs = null;
+				outputs.clear();
 			}
 		}
 

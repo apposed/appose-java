@@ -128,6 +128,19 @@ public class Service implements AutoCloseable {
 	private final Map<String, Object> exports = new ConcurrentHashMap<>();
 	private final AtomicInteger exportCount = new AtomicInteger();
 
+	/** Managed shared memory, as used over the connection to this worker. */
+	private final MemoryLink memoryLink = MemoryBackends.backend().link(new Peer() {
+		@Override
+		public void send(Map<String, Object> message) {
+			Service.this.send(message);
+		}
+
+		@Override
+		public void export(String name, Object obj) {
+			exports.put(name, obj);
+		}
+	});
+
 	/** Whether closing was requested, once the tasks already started have finished. */
 	private volatile boolean closing;
 
@@ -376,6 +389,10 @@ public class Service implements AutoCloseable {
 		// registers the libraries first, so that the init script can use them.
 		writeStartupScript(String.join("", libraryScripts), "appose-libraries-", "APPOSE_LIBRARY_SCRIPT");
 		writeStartupScript(initScript, "appose-init-", "APPOSE_INIT_SCRIPT");
+
+		// Tell the worker which backend provides managed shared memory,
+		// so that it may send its arrays that way.
+		envVars.put(MemoryBackends.ENV_VAR, MemoryBackends.backendName());
 
 		ProcessBuilder pb = Processes.builder(cwd, envVars, args);
 		process = pb.start();
@@ -653,7 +670,8 @@ public class Service implements AutoCloseable {
 	/**
 	 * Closes the worker process's input stream, in order to shut it down,
 	 * once the tasks already started have finished. Until then, those tasks
-	 * can still call into service objects; no new task can start.
+	 * can still call into service objects, and allocate managed shared memory
+	 * (e.g. for their outputs); no new task can start.
 	 * <p>
 	 * To shut down the service more forcibly, interrupting any pending tasks,
 	 * use {@link #kill()} instead.
@@ -973,7 +991,7 @@ public class Service implements AutoCloseable {
 	private void handleResponse(String line) {
 		Map<String, Object> response;
 		try {
-			response = Messages.decode(line);
+			response = Messages.decode(line, memoryLink);
 		}
 		catch (RuntimeException exc) {
 			reject(line, Messages.stackTrace(exc));
@@ -993,6 +1011,11 @@ public class Service implements AutoCloseable {
 				"predates Appose " + minor + "; this service requires Appose " + minor + ".x.");
 		}
 		if (incompatibility != null) return;
+		if (ResponseType.RELEASE.toString().equals(responseType)) {
+			// The worker gives up references to managed regions.
+			memoryLink.released(response.get("regions"));
+			return;
+		}
 		if (ResponseType.CALL.toString().equals(responseType)) {
 			// The worker is calling back into a service object.
 			// Handle it on its own thread, so that this loop stays
@@ -1089,6 +1112,10 @@ public class Service implements AutoCloseable {
 			debugService(Messages.stackTrace(exc));
 		}
 		debugService("<worker process termination detected>");
+
+		// Once the worker's output is fully processed (its last outputs may
+		// refer to managed regions it holds), drop its remaining references.
+		memoryLink.close();
 
 		// Do some sanity checks.
 		int exitCode = process.exitValue();
@@ -1201,7 +1228,11 @@ public class Service implements AutoCloseable {
 
 	/** Sends a request to the worker process. */
 	private void send(Map<String, Object> request) {
-		String encoded = Messages.encode(request, this::export);
+		List<SharedMemoryView> managed = new ArrayList<>();
+		String encoded = Messages.encode(request, this::export, memoryLink, managed);
+		// NB: Record the worker's new references before sending, while the
+		// views are still held, so that no region is freed in between.
+		memoryLink.sent(managed);
 		// NB: Requests may be sent from multiple threads, and must not interleave.
 		synchronized (stdin) {
 			stdin.println(encoded);
@@ -1355,7 +1386,7 @@ public class Service implements AutoCloseable {
 	}
 
 	public enum ResponseType {
-		HELLO, LAUNCH, UPDATE, CALL, COMPLETION, CANCELATION, FAILURE, CRASH;
+		HELLO, LAUNCH, UPDATE, CALL, RELEASE, COMPLETION, CANCELATION, FAILURE, CRASH;
 
 		/** True iff response type is COMPLETION, CANCELATION, FAILURE, or CRASH. */
 		public boolean isTerminal() {

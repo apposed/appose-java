@@ -45,6 +45,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
+import java.util.function.BooleanSupplier;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -274,6 +275,35 @@ public abstract class TestBase {
 		int shm_open(String name, int oflag, int mode);
 
 		int close(int fd);
+	}
+
+	/** The number of managed regions held by this process's (builtin) memory backend. */
+	public static int regionCount() {
+		return ((SlabMemory) MemoryBackends.backend()).regionCount();
+	}
+
+	/** A memory link of this process's memory backend, without a worker process. */
+	public static MemoryLink testLink() {
+		return MemoryBackends.backend().link(new Peer() {
+			@Override
+			public void export(String name, Object obj) { }
+		});
+	}
+
+	/**
+	 * Waits until the given condition holds, running the garbage collector
+	 * meanwhile, for up to 10 seconds.
+	 *
+	 * @return Whether the condition holds.
+	 */
+	public static boolean eventually(BooleanSupplier condition) throws InterruptedException {
+		long deadline = System.currentTimeMillis() + 10_000;
+		while (!condition.getAsBoolean()) {
+			if (System.currentTimeMillis() > deadline) return false;
+			System.gc();
+			Thread.sleep(20);
+		}
+		return true;
 	}
 
 	/** System property that disables the worker version check. */
