@@ -35,6 +35,7 @@ import groovy.lang.MetaMethod;
 import groovy.lang.MetaProperty;
 import groovy.lang.MissingPropertyException;
 import org.apposed.appose.syntax.Syntaxes;
+import org.apposed.appose.util.Json;
 import org.apposed.appose.util.Messages;
 import org.apposed.appose.util.Processes;
 import org.apposed.appose.util.Proxies;
@@ -936,41 +937,9 @@ public class Service implements AutoCloseable {
 				break;
 			}
 			try {
-				Map<String, Object> response = Messages.decode(line);
-				debugService(line); // Echo the line to the debug listener.
-				if (ResponseType.HELLO.toString().equals(response.get("responseType"))) {
-					handleHello(response);
-					continue;
-				}
-				if (workerInfo == null && incompatibility == null) {
-					// NB: Workers predating the HELLO handshake begin with
-					// some other message, e.g. LAUNCH for the first task.
-					String minor = minor(Appose.version());
-					rejectWorker("Worker did not identify itself, so it probably " +
-						"predates Appose " + minor + "; this service requires Appose " + minor + ".x.");
-				}
-				if (incompatibility != null) continue;
-				if (ResponseType.CALL.toString().equals(response.get("responseType"))) {
-					// The worker is calling back into a service object.
-					// Handle it on its own thread, so that this loop stays
-					// free to process other responses in the meantime.
-					Thread t = new Thread(() -> handleCall(response),
-						"Appose-Service-" + serviceID + "-Call");
-					t.setDaemon(true);
-					t.start();
-					continue;
-				}
-				Object uuid = response.get("task");
-				if (uuid == null) {
-					debugService("Invalid service message:" + line);
-					continue;
-				}
-				Task task = tasks.get(uuid.toString());
-				if (task == null) {
-					debugService("No such task: " + uuid);
-					continue;
-				}
-				task.handle(response);
+				// NB: Handle each response in its own method, so that no
+				// reference to it lingers here while awaiting the next one.
+				handleResponse(line);
 			}
 			catch (Exception exc) {
 				// Something went wrong decoding the line of JSON.
@@ -979,6 +948,90 @@ public class Service implements AutoCloseable {
 				invalidLines.add(line);
 			}
 		}
+	}
+
+	/** Processes a line of output from the worker's stdout stream. */
+	private void handleResponse(String line) {
+		Map<String, Object> response;
+		try {
+			response = Messages.decode(line);
+		}
+		catch (RuntimeException exc) {
+			reject(line, Messages.stackTrace(exc));
+			throw exc;
+		}
+		debugService(line); // Echo the line to the debug listener.
+		Object responseType = response.get("responseType");
+		if (ResponseType.HELLO.toString().equals(responseType)) {
+			handleHello(response);
+			return;
+		}
+		if (workerInfo == null && incompatibility == null) {
+			// NB: Workers predating the HELLO handshake begin with
+			// some other message, e.g. LAUNCH for the first task.
+			String minor = minor(Appose.version());
+			rejectWorker("Worker did not identify itself, so it probably " +
+				"predates Appose " + minor + "; this service requires Appose " + minor + ".x.");
+		}
+		if (incompatibility != null) return;
+		if (ResponseType.CALL.toString().equals(responseType)) {
+			// The worker is calling back into a service object.
+			// Handle it on its own thread, so that this loop stays
+			// free to process other responses in the meantime.
+			Thread t = new Thread(() -> handleCall(response),
+				"Appose-Service-" + serviceID + "-Call");
+			t.setDaemon(true);
+			t.start();
+			return;
+		}
+		Object uuid = response.get("task");
+		if (uuid == null) {
+			debugService("Invalid service message:" + line);
+			return;
+		}
+		Task task = tasks.get(uuid.toString());
+		if (task == null) {
+			debugService("No such task: " + uuid);
+			return;
+		}
+		task.handle(response);
+	}
+
+	/**
+	 * Reports a response from the worker that could not be decoded, to
+	 * whoever awaits it: fails the task it concludes, or the call it makes.
+	 */
+	private void reject(String line, String error) {
+		Object raw;
+		try {
+			raw = Json.parseJson(line);
+		}
+		catch (RuntimeException exc) {
+			return;
+		}
+		if (!(raw instanceof Map)) return;
+		Map<?, ?> map = (Map<?, ?>) raw;
+		Object responseType = map.get("responseType");
+		if (ResponseType.CALL.toString().equals(responseType)) {
+			Map<String, Object> reply = new HashMap<>();
+			reply.put("requestType", RequestType.REPLY.toString());
+			reply.put("call", map.get("call"));
+			reply.put("error", "Service could not decode the call:\n" + error);
+			send(reply);
+			return;
+		}
+		Object uuid = map.get("task");
+		Task task = uuid == null ? null : tasks.get(uuid.toString());
+		boolean terminal = ResponseType.COMPLETION.toString().equals(responseType) ||
+			ResponseType.CANCELATION.toString().equals(responseType) ||
+			ResponseType.FAILURE.toString().equals(responseType);
+		if (task == null || !terminal) return;
+		Map<String, Object> failure = new HashMap<>();
+		failure.put("task", task.uuid);
+		failure.put("responseType", ResponseType.FAILURE.toString());
+		failure.put("error", "Service could not decode the task's " +
+			responseType + " response:\n" + error);
+		task.handle(failure);
 	}
 
 	/** Input loop processing lines from the worker stderr stream. */

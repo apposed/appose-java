@@ -33,6 +33,7 @@ import groovy.lang.Binding;
 import groovy.lang.GroovyShell;
 import org.apposed.appose.Service.RequestType;
 import org.apposed.appose.Service.ResponseType;
+import org.apposed.appose.util.Json;
 import org.apposed.appose.util.Messages;
 
 import java.io.BufferedReader;
@@ -179,27 +180,80 @@ public class GroovyWorker {
 				break;
 			}
 
-			String uuid = null;
-			try {
-				Map<String, Object> request = Messages.decode(line);
-				uuid = (String) request.get("task");
-				handleRequest(request, uuid);
-			}
-			catch (Exception exc) {
-				// NB: This thread must never die; report the problem and keep going.
-				String error = Messages.stackTrace(exc);
-				System.err.println("Invalid request: " + line + "\n" + error);
-				// NB: If the request was meant to start a task, the service is
-				// waiting for that task to finish, so we must report it failed.
-				if (uuid != null && !tasks.containsKey(uuid)) {
-					new Task(uuid, null, null).fail(error);
-				}
+			// NB: Handle each request in its own method, so that no reference
+			// to it lingers here while awaiting the next one.
+			receive(line);
+		}
+	}
+
+	/**
+	 * Decodes and handles a request from the service. Whatever goes wrong,
+	 * this must not stop the receiver; and whoever awaits the outcome of the
+	 * request must be told.
+	 */
+	private void receive(String line) {
+		Map<String, Object> request;
+		try {
+			request = Messages.decode(line);
+		}
+		catch (RuntimeException exc) {
+			reject(line, Messages.stackTrace(exc));
+			return;
+		}
+		try {
+			handleRequest(request);
+		}
+		catch (RuntimeException exc) {
+			String error = Messages.stackTrace(exc);
+			System.err.println("Invalid request: " + line + "\n" + error);
+			// NB: If the request was meant to start a task, the service is
+			// waiting for that task to finish, so we must report it failed.
+			Object uuid = request.get("task");
+			if (uuid instanceof String && !tasks.containsKey(uuid)) {
+				new Task((String) uuid, null, null).fail(error);
 			}
 		}
 	}
 
-	private void handleRequest(Map<String, Object> request, String uuid) {
+	/**
+	 * Reports a request from the service that could not be decoded:
+	 * fails its task, or the call awaiting it, if any.
+	 */
+	private void reject(String line, String error) {
+		Object raw;
+		try {
+			raw = Json.parseJson(line);
+		}
+		catch (RuntimeException exc) {
+			raw = null;
+		}
+		Map<?, ?> map = raw instanceof Map ? (Map<?, ?>) raw : Collections.emptyMap();
+		Object requestType = map.get("requestType");
+		Object uuid = map.get("task");
+		if (RequestType.EXECUTE.toString().equals(requestType) && uuid != null) {
+			Map<String, Object> response = new HashMap<>();
+			response.put("task", uuid.toString());
+			response.put("responseType", ResponseType.FAILURE.toString());
+			response.put("error", "Worker could not decode the task request:\n" + error);
+			send(response);
+			return;
+		}
+		if (RequestType.REPLY.toString().equals(requestType)) {
+			Object callID = map.get("call");
+			PendingCall pending = callID == null ? null : calls.remove(callID.toString());
+			if (pending != null) {
+				pending.resolve(Collections.singletonMap("error",
+					"Worker could not decode the service's reply:\n" + error));
+				return;
+			}
+		}
+		System.err.println("Invalid request, which could not be decoded: " + line + "\n" + error);
+	}
+
+	private void handleRequest(Map<String, Object> request) {
+		String uuid = (String) request.get("task");
 		String requestType = (String) request.get("requestType");
+
 		switch (RequestType.valueOf(requestType)) {
 			case EXECUTE:
 				String script = (String) request.get("script");
