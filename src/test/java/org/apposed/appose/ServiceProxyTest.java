@@ -221,7 +221,7 @@ public class ServiceProxyTest extends TestBase {
 	@Test
 	public void testServiceProxyShmPython() throws Exception {
 		Environment env = pythonEnv("ndarray-check-python", "numpy");
-		try (Service service = env.python()) {
+		try (Service service = env.python().init("import numpy")) {
 			assertServiceProxyShm(service,
 				"import numpy\n" +
 				"total = 0\n" +
