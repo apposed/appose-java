@@ -85,6 +85,7 @@ public class DumpApi {
 		PACKAGE_TO_MODULE.put("org.apposed.appose.NDArray.Shape", "appose/shm.api");
 		PACKAGE_TO_MODULE.put("org.apposed.appose.NDArray.Order", "appose/shm.api");
 		PACKAGE_TO_MODULE.put("org.apposed.appose.SharedMemory", "appose/shm.api");
+		PACKAGE_TO_MODULE.put("org.apposed.appose.GroovyLibraries", "appose/library.api");
 
 		// Subsystem packages - all classes in package go to same file.
 		PACKAGE_TO_MODULE.put("org.apposed.appose.Scheme", "appose/scheme.api");
@@ -93,17 +94,20 @@ public class DumpApi {
 		PACKAGE_TO_MODULE.put("org.apposed.appose.scheme.PyProjectTomlScheme", "appose/scheme.api");
 		PACKAGE_TO_MODULE.put("org.apposed.appose.scheme.RequirementsTxtScheme", "appose/scheme.api");
 		PACKAGE_TO_MODULE.put("org.apposed.appose.scheme.Schemes", "appose/scheme.api");
-		PACKAGE_TO_MODULE.put("org.apposed.appose.shm.Shms", "appose/shm.api");
+		PACKAGE_TO_MODULE.put("org.apposed.appose.ScriptSyntax", "appose/syntax.api");
 		PACKAGE_TO_MODULE.put("org.apposed.appose.syntax", "appose/syntax.api");
 
 		// Builder subsystem - core in builder/__init__.api, implementations in separate files.
 		PACKAGE_TO_MODULE.put("org.apposed.appose.BuildException", "appose/builder/__init__.api");
 		PACKAGE_TO_MODULE.put("org.apposed.appose.Builder", "appose/builder/__init__.api");
 		PACKAGE_TO_MODULE.put("org.apposed.appose.BuilderFactory", "appose/builder/__init__.api");
+		PACKAGE_TO_MODULE.put("org.apposed.appose.EnvStatus", "appose/builder/__init__.api");
 		PACKAGE_TO_MODULE.put("org.apposed.appose.builder.BaseBuilder", "appose/builder/__init__.api");
 		PACKAGE_TO_MODULE.put("org.apposed.appose.builder.SimpleBuilder", "appose/builder/__init__.api");
 		PACKAGE_TO_MODULE.put("org.apposed.appose.builder.DynamicBuilder", "appose/builder/__init__.api");
 		PACKAGE_TO_MODULE.put("org.apposed.appose.builder.Builders", "appose/builder/__init__.api");
+		PACKAGE_TO_MODULE.put("org.apposed.appose.builder.ApposeRequirement", "appose/builder/requirement.api");
+		PACKAGE_TO_MODULE.put("org.apposed.appose.builder.PixiInstallMonitor", "appose/builder/pixi_install_monitor.api");
 		PACKAGE_TO_MODULE.put("org.apposed.appose.builder.MambaBuilder", "appose/builder/mamba.api");
 		PACKAGE_TO_MODULE.put("org.apposed.appose.builder.MambaBuilderFactory", "appose/builder/mamba.api");
 		PACKAGE_TO_MODULE.put("org.apposed.appose.builder.PixiBuilder", "appose/builder/pixi.api");
@@ -121,62 +125,68 @@ public class DumpApi {
 		PACKAGE_TO_MODULE.put("org.apposed.appose.util.Downloads", "appose/util/download.api");
 		PACKAGE_TO_MODULE.put("org.apposed.appose.util.Environments", "appose/util/environment.api");
 		PACKAGE_TO_MODULE.put("org.apposed.appose.util.FilePaths", "appose/util/filepath.api");
+		PACKAGE_TO_MODULE.put("org.apposed.appose.Codec", "appose/util/message.api");
+		PACKAGE_TO_MODULE.put("org.apposed.appose.util.Messages", "appose/util/message.api");
 		PACKAGE_TO_MODULE.put("org.apposed.appose.util.Platforms", "appose/util/platform.api");
 		PACKAGE_TO_MODULE.put("org.apposed.appose.util.Processes", "appose/util/process.api");
 		PACKAGE_TO_MODULE.put("org.apposed.appose.util.Proxies", "appose/util/proxy.api");
-		PACKAGE_TO_MODULE.put("org.apposed.appose.util.Types", "appose/util/types.api");
+		PACKAGE_TO_MODULE.put("org.apposed.appose.WorkerObject", "appose/util/proxy.api");
+		PACKAGE_TO_MODULE.put("org.apposed.appose.ServiceProxy", "appose/util/proxy.api");
 		PACKAGE_TO_MODULE.put("org.apposed.appose.util.Versions", "appose/util/versions.api");
 		PACKAGE_TO_MODULE.put("org.apposed.appose.util.XML", "appose/util/xml.api");
 
 		// Workers.
 		PACKAGE_TO_MODULE.put("org.apposed.appose.GroovyWorker", "appose/worker.api");
 		PACKAGE_TO_MODULE.put("org.apposed.appose.GroovyWorker.Task", "appose/worker.api");
+		PACKAGE_TO_MODULE.put("org.apposed.appose.GroovyWorker.PendingCall", "appose/worker.api");
 
 		// Test classes - map to tests/*.api files (aligned with Python structure).
 		PACKAGE_TO_MODULE.put("org.apposed.appose.TestBase", "tests/test_base.api");
+		PACKAGE_TO_MODULE.put("org.apposed.appose.HandshakeTest", "tests/test_handshake.api");
+		PACKAGE_TO_MODULE.put("org.apposed.appose.LibraryTest", "tests/test_library.api");
 		PACKAGE_TO_MODULE.put("org.apposed.appose.ServiceTest", "tests/test_service.api");
+		PACKAGE_TO_MODULE.put("org.apposed.appose.ServiceProxyTest", "tests/test_service_proxy.api");
+		PACKAGE_TO_MODULE.put("org.apposed.appose.ServiceShutdownTest", "tests/test_service_shutdown.api");
+		PACKAGE_TO_MODULE.put("org.apposed.appose.DTypeTest", "tests/test_shm.api");
+		PACKAGE_TO_MODULE.put("org.apposed.appose.NDArrayTest", "tests/test_shm.api");
 		PACKAGE_TO_MODULE.put("org.apposed.appose.SharedMemoryTest", "tests/test_shm.api");
 		PACKAGE_TO_MODULE.put("org.apposed.appose.SyntaxTest", "tests/test_syntax.api");
 		PACKAGE_TO_MODULE.put("org.apposed.appose.TaskExceptionTest", "tests/test_task_exception.api");
+		PACKAGE_TO_MODULE.put("org.apposed.appose.UndecodableTest", "tests/test_undecodable.api");
+		PACKAGE_TO_MODULE.put("org.apposed.appose.builder.ApposeRequirementTest", "tests/builder/test_requirement.api");
+		PACKAGE_TO_MODULE.put("org.apposed.appose.builder.BaseBuilderTest", "tests/builder/test_lock.api");
+		PACKAGE_TO_MODULE.put("org.apposed.appose.builder.BuilderContentTest", "tests/builder/test_content.api");
+		PACKAGE_TO_MODULE.put("org.apposed.appose.builder.BuildersTest", "tests/builder/test_builders.api");
 		PACKAGE_TO_MODULE.put("org.apposed.appose.builder.MambaBuilderTest", "tests/builder/test_mamba.api");
 		PACKAGE_TO_MODULE.put("org.apposed.appose.builder.PixiBuilderTest", "tests/builder/test_pixi.api");
 		PACKAGE_TO_MODULE.put("org.apposed.appose.builder.SimpleBuilderTest", "tests/builder/test_simple.api");
+		PACKAGE_TO_MODULE.put("org.apposed.appose.builder.StatusTest", "tests/builder/test_status.api");
 		PACKAGE_TO_MODULE.put("org.apposed.appose.builder.UvBuilderTest", "tests/builder/test_uv.api");
 		PACKAGE_TO_MODULE.put("org.apposed.appose.builder.WrapTest", "tests/builder/test_wrap.api");
+		PACKAGE_TO_MODULE.put("org.apposed.appose.tool.ToolTest", "tests/tool/test_update.api");
 		PACKAGE_TO_MODULE.put("org.apposed.appose.util.FilePathsTest", "tests/util/test_filepath.api");
-		PACKAGE_TO_MODULE.put("org.apposed.appose.util.TypesTest", "tests/util/test_types.api");
+		PACKAGE_TO_MODULE.put("org.apposed.appose.EncoderTest", "tests/util/test_message.api");
+		PACKAGE_TO_MODULE.put("org.apposed.appose.util.MessagesTest", "tests/util/test_message.api");
 		PACKAGE_TO_MODULE.put("org.apposed.appose.util.VersionsTest", "tests/util/test_versions.api");
 	}
 
 	// Static utility classes to dump as module-level functions (not as classes).
+	// Note: Test classes are also dumped this way; see isTestClass.
 	private static final Set<String> STATIC_UTILITY_CLASSES = new HashSet<>(Arrays.asList(
 		"org.apposed.appose.Appose",
 		"org.apposed.appose.builder.Builders",
 		"org.apposed.appose.scheme.Schemes",
-		"org.apposed.appose.shm.Shms",
 		"org.apposed.appose.util.Downloads",
 		"org.apposed.appose.util.Environments",
 		"org.apposed.appose.util.FilePaths",
+		"org.apposed.appose.util.Messages",
 		"org.apposed.appose.util.Platforms",
 		"org.apposed.appose.util.Processes",
 		"org.apposed.appose.util.Proxies",
-		"org.apposed.appose.util.Types",
 		"org.apposed.appose.util.Versions",
 		"org.apposed.appose.util.XML",
-		// Test classes - dump as module-level test functions.
-		"org.apposed.appose.TestBase",
-		"org.apposed.appose.ServiceTest",
-		"org.apposed.appose.SharedMemoryTest",
-		"org.apposed.appose.SyntaxTest",
-		"org.apposed.appose.TaskExceptionTest",
-		"org.apposed.appose.builder.MambaBuilderTest",
-		"org.apposed.appose.builder.PixiBuilderTest",
-		"org.apposed.appose.builder.SimpleBuilderTest",
-		"org.apposed.appose.builder.UvBuilderTest",
-		"org.apposed.appose.builder.WrapTest",
-		"org.apposed.appose.util.FilePathsTest",
-		"org.apposed.appose.util.TypesTest",
-		"org.apposed.appose.util.VersionsTest"
+		"org.apposed.appose.syntax.Syntaxes",
+		"org.apposed.appose.GroovyLibraries"
 	));
 
 	// Classes to exclude from API dump (internal implementation details).
@@ -434,6 +444,8 @@ public class DumpApi {
 				MethodDeclaration method = (MethodDeclaration) member;
 				// Include static methods for utilities, or instance methods for test classes.
 				boolean includeMethod = (method.isStatic() || isTestClass) && (method.isPublic() || INCLUDE_PRIVATE);
+				// Note: Test lifecycle methods correspond to pytest fixtures, which are not dumped.
+				if (isTestClass && isLifecycleMethod(method)) includeMethod = false;
 				if (includeMethod) {
 					String methodName = nonClassName(method);
 					methodsByName.computeIfAbsent(methodName, k -> new ArrayList<>()).add(method);
@@ -532,6 +544,10 @@ public class DumpApi {
 		StringBuilder sb = new StringBuilder("def ");
 
 		String methodName = nonClassName(method);
+		// Note: JUnit identifies tests by annotation, pytest by name prefix.
+		if (isTestMethod(method) && !methodName.startsWith("test")) {
+			methodName = "test_" + methodName;
+		}
 		sb.append(methodName).append("(");
 
 		NodeList<Parameter> params = method.getParameters();
@@ -565,7 +581,7 @@ public class DumpApi {
 		PrintWriter out = currentWriter != null ? currentWriter : new PrintWriter(System.out);
 
 		// Special case: Static utility classes should be dumped as module-level functions.
-		if (STATIC_UTILITY_CLASSES.contains(fullName)) {
+		if (STATIC_UTILITY_CLASSES.contains(fullName) || isTestClass(type)) {
 			dumpStaticUtilityAsModuleFunctions(type);
 			return;
 		}
@@ -782,15 +798,40 @@ public class DumpApi {
 	static String formatConstructor(ConstructorDeclaration ctor) {
 		StringBuilder sb = new StringBuilder("def __init__(self");
 
+		// Note: A non-static inner class constructor implicitly receives its
+		// enclosing instance, which Python must pass explicitly.
+		String outerName = enclosingInstanceType(ctor);
+		if (outerName != null) {
+			sb.append(", ").append(toSnakeCase(outerName)).append(": ").append(outerName);
+		}
+
 		for (Parameter param : ctor.getParameters()) {
 			sb.append(", ");
 			String paramName = nonClassName(param);
 			String paramType = formatParameterType(param);
+			if (param.isVarArgs()) sb.append("*");
 			sb.append(paramName).append(": ").append(paramType);
 		}
 
 		sb.append(") -> None: ...");
 		return sb.toString();
+	}
+
+	/**
+	 * Gets the simple name of the enclosing class whose instance a constructor
+	 * implicitly receives, or null if the constructor's class is not a
+	 * non-static inner class.
+	 */
+	static String enclosingInstanceType(ConstructorDeclaration ctor) {
+		Optional<com.github.javaparser.ast.Node> parent = ctor.getParentNode();
+		if (!parent.isPresent() || !(parent.get() instanceof ClassOrInterfaceDeclaration)) return null;
+		ClassOrInterfaceDeclaration type = (ClassOrInterfaceDeclaration) parent.get();
+		if (type.isStatic() || type.isInterface()) return null;
+		Optional<com.github.javaparser.ast.Node> outer = type.getParentNode();
+		if (!outer.isPresent() || !(outer.get() instanceof ClassOrInterfaceDeclaration)) return null;
+		ClassOrInterfaceDeclaration outerType = (ClassOrInterfaceDeclaration) outer.get();
+		if (outerType.isInterface()) return null;
+		return outerType.getNameAsString();
 	}
 
 	static String formatMethod(MethodDeclaration method) {
@@ -1138,8 +1179,23 @@ public class DumpApi {
 		return simpleName;
 	}
 
+	static boolean isLifecycleMethod(MethodDeclaration method) {
+		return method.getAnnotations().stream().anyMatch(a -> {
+			String name = a.getNameAsString();
+			return name.startsWith("Before") || name.startsWith("After");
+		});
+	}
+
+	static boolean isTestMethod(MethodDeclaration method) {
+		return method.getAnnotations().stream().anyMatch(a ->
+			a.getNameAsString().endsWith("Test"));
+	}
+
 	static String toSnakeCase(String camelCase) {
 		if (!NORMALIZE) return camelCase;
+
+		// Leave CONSTANT_CASE names alone; Python spells constants the same way.
+		if (camelCase.matches("[A-Z][A-Z0-9_]*")) return camelCase;
 
 		// Handle acronyms and consecutive capitals.
 		String result = camelCase.replaceAll("([A-Z]+)([A-Z][a-z])", "$1_$2");
