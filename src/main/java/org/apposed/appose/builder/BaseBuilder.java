@@ -168,7 +168,19 @@ public abstract class BaseBuilder<T extends BaseBuilder<T>> implements Builder<T
 
 	@Override
 	public T scheme(String scheme) {
-		this.scheme = Schemes.fromName(scheme);
+		return scheme(Schemes.fromName(scheme));
+	}
+
+	/**
+	 * Explicitly specifies the scheme for the configuration.
+	 * This overrides auto-detection.
+	 *
+	 * @param scheme The scheme.
+	 * @return This builder instance, for fluent-style programming.
+	 * @see #scheme(String)
+	 */
+	public T scheme(Scheme scheme) {
+		this.scheme = scheme;
 		return typedThis();
 	}
 

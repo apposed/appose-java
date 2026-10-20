@@ -215,6 +215,18 @@ public class Uv extends Tool {
 	}
 
 	/**
+	 * Create a virtual environment using uv, with the default Python version.
+	 *
+	 * @param envDir The directory for the virtual environment.
+	 * @throws IOException If an I/O error occurs.
+	 * @throws InterruptedException If the current thread is interrupted.
+	 * @throws IllegalStateException if uv has not been installed
+	 */
+	public void createVenv(final File envDir) throws IOException, InterruptedException {
+		createVenv(envDir, null);
+	}
+
+	/**
 	 * Create a virtual environment using uv.
 	 *
 	 * @param envDir The directory for the virtual environment.
@@ -264,6 +276,20 @@ public class Uv extends Tool {
 	 */
 	public void pipInstallFromRequirements(final File envDir, String requirementsFile) throws IOException, InterruptedException {
 		exec("pip", "install", "--python", envDir.getAbsolutePath(), "-r", requirementsFile);
+	}
+
+	/**
+	 * Synchronize a project's dependencies from pyproject.toml, with the
+	 * default Python version.
+	 * Creates a virtual environment at projectDir/.venv and installs dependencies.
+	 *
+	 * @param projectDir The project directory containing pyproject.toml.
+	 * @throws IOException If an I/O error occurs.
+	 * @throws InterruptedException If the current thread is interrupted.
+	 * @throws IllegalStateException if uv has not been installed
+	 */
+	public void sync(final File projectDir) throws IOException, InterruptedException {
+		sync(projectDir, null);
 	}
 
 	/**

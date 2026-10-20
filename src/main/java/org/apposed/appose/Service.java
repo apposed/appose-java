@@ -1370,6 +1370,7 @@ public class Service implements AutoCloseable {
 	public class Task {
 
 		public final String uuid = UUID.randomUUID().toString();
+		public final Service service = Service.this;
 		public final String script;
 		private final Map<String, Object> mInputs = new HashMap<>();
 		private final Map<String, Object> mOutputs = new HashMap<>();

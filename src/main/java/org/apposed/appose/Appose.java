@@ -520,6 +520,41 @@ public class Appose {
 	}
 
 	/**
+	 * Creates a system environment with sensible defaults, using the given
+	 * directory as the working directory.
+	 *
+	 * @param directory The working directory.
+	 * @return A system environment ready to use.
+	 * @throws BuildException If the directory does not exist.
+	 * @see #system()
+	 */
+	public static Environment system(String directory) throws BuildException {
+		return system(new File(directory));
+	}
+
+	/**
+	 * Creates a system environment with sensible defaults, using the given
+	 * directory as the working directory.
+	 * <p>
+	 * This is a convenience method equivalent to:
+	 * <pre>
+	 * Appose.custom().base(directory).inheritRunningJava().appendSystemPath().build()
+	 * </pre>
+	 *
+	 * @param directory The working directory.
+	 * @return A system environment ready to use.
+	 * @throws BuildException If the directory does not exist.
+	 * @see #system()
+	 */
+	public static Environment system(File directory) throws BuildException {
+		return custom()
+			.base(directory)
+			.inheritRunningJava()
+			.appendSystemPath()
+			.build();
+	}
+
+	/**
 	 * Creates a custom simple environment builder with no defaults. Use this
 	 * when you need explicit control over binary paths and configuration.
 	 *

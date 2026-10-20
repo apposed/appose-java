@@ -433,6 +433,11 @@ public class GroovyWorker {
 			respond(ResponseType.CANCELATION, null);
 		}
 
+		@SuppressWarnings("unused")
+		public void fail() {
+			fail(null);
+		}
+
 		public void fail(String error) {
 			Map<String, Object> args = error == null ? null : //
 				Collections.singletonMap("error", error);
