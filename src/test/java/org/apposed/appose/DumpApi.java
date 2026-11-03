@@ -73,6 +73,7 @@ public class DumpApi {
 		// Core API classes.
 		PACKAGE_TO_MODULE.put("org.apposed.appose.Appose", "appose/__init__.api");
 		PACKAGE_TO_MODULE.put("org.apposed.appose.Environment", "appose/environment.api");
+		PACKAGE_TO_MODULE.put("org.apposed.appose.LazyEnvironment", "appose/environment.api");
 		PACKAGE_TO_MODULE.put("org.apposed.appose.TaskException", "appose/service.api");
 		PACKAGE_TO_MODULE.put("org.apposed.appose.Service", "appose/service.api");
 		PACKAGE_TO_MODULE.put("org.apposed.appose.Service.TaskStatus", "appose/service.api");
@@ -80,6 +81,7 @@ public class DumpApi {
 		PACKAGE_TO_MODULE.put("org.apposed.appose.Service.ResponseType", "appose/service.api");
 		PACKAGE_TO_MODULE.put("org.apposed.appose.TaskEvent", "appose/service.api");
 		PACKAGE_TO_MODULE.put("org.apposed.appose.Service.Task", "appose/service.api");
+		PACKAGE_TO_MODULE.put("org.apposed.appose.ResidentWorker", "appose/service.api");
 		PACKAGE_TO_MODULE.put("org.apposed.appose.NDArray", "appose/shm.api");
 		PACKAGE_TO_MODULE.put("org.apposed.appose.NDArray.DType", "appose/shm.api");
 		PACKAGE_TO_MODULE.put("org.apposed.appose.NDArray.Shape", "appose/shm.api");
@@ -99,6 +101,7 @@ public class DumpApi {
 
 		// Builder subsystem - core in builder/__init__.api, implementations in separate files.
 		PACKAGE_TO_MODULE.put("org.apposed.appose.BuildException", "appose/builder/__init__.api");
+		PACKAGE_TO_MODULE.put("org.apposed.appose.BuildListener", "appose/builder/__init__.api");
 		PACKAGE_TO_MODULE.put("org.apposed.appose.Builder", "appose/builder/__init__.api");
 		PACKAGE_TO_MODULE.put("org.apposed.appose.BuilderFactory", "appose/builder/__init__.api");
 		PACKAGE_TO_MODULE.put("org.apposed.appose.EnvStatus", "appose/builder/__init__.api");
@@ -144,6 +147,7 @@ public class DumpApi {
 		PACKAGE_TO_MODULE.put("org.apposed.appose.TestBase", "tests/test_base.api");
 		PACKAGE_TO_MODULE.put("org.apposed.appose.HandshakeTest", "tests/test_handshake.api");
 		PACKAGE_TO_MODULE.put("org.apposed.appose.LibraryTest", "tests/test_library.api");
+		PACKAGE_TO_MODULE.put("org.apposed.appose.ResidentWorkerTest", "tests/test_resident_worker.api");
 		PACKAGE_TO_MODULE.put("org.apposed.appose.ServiceTest", "tests/test_service.api");
 		PACKAGE_TO_MODULE.put("org.apposed.appose.ServiceProxyTest", "tests/test_service_proxy.api");
 		PACKAGE_TO_MODULE.put("org.apposed.appose.ServiceShutdownTest", "tests/test_service_shutdown.api");

@@ -81,7 +81,7 @@ public class ResidentWorkerTest extends TestBase {
 	}
 
 	private static int pid(ResidentWorker worker) throws Exception {
-		return ((Number) worker.task(PID, null).waitFor().outputs.get("pid"))
+		return ((Number) worker.task(PID).waitFor().outputs.get("pid"))
 			.intValue();
 	}
 

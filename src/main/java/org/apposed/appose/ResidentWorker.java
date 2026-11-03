@@ -125,6 +125,11 @@ public class ResidentWorker implements AutoCloseable {
 	}
 
 	/** Creates a task to run on this worker. */
+	public Service.Task task(String script) throws BuildException {
+		return task(script, null);
+	}
+
+	/** Creates a task to run on this worker. */
 	public Service.Task task(String script, @Nullable Map<String, Object> inputs)
 		throws BuildException
 	{
