@@ -39,8 +39,10 @@ import java.util.concurrent.CopyOnWriteArrayList;
  * any number of {@link ResidentWorker}s.
  * <p>
  * Builds of environments with the same name are serialized, even across
- * instances, because they share a directory on disk: e.g. when the
+ * instances, because they typically share a directory on disk: e.g. when the
  * environment's configuration changes while an older build is still running.
+ * So instances whose builders target the same directory should be given the
+ * same name.
  * </p>
  *
  * @author Curtis Rueden
@@ -59,8 +61,10 @@ public class LazyEnvironment {
 	private volatile Environment env;
 
 	/**
-	 * @param name Name of the environment, as reported to listeners, and as
-	 *          given to the builder.
+	 * @param name Name of the environment, as reported to listeners, and
+	 *          identifying builds to serialize. It is not given to the builder,
+	 *          which must already be configured with where to build, e.g. via
+	 *          {@link Builder#name} or {@link Builder#base(java.io.File)}.
 	 * @param builder Builder for the environment; built on first use.
 	 */
 	public LazyEnvironment(String name, Builder<?> builder) {
@@ -68,8 +72,10 @@ public class LazyEnvironment {
 	}
 
 	/**
-	 * @param name Name of the environment, as reported to listeners, and as
-	 *          given to the builder.
+	 * @param name Name of the environment, as reported to listeners, and
+	 *          identifying builds to serialize. It is not given to the builder,
+	 *          which must already be configured with where to build, e.g. via
+	 *          {@link Builder#name} or {@link Builder#base(java.io.File)}.
 	 * @param builder Builder for the environment; built on first use.
 	 * @param activate Name of the sub-environment to activate once built (e.g.
 	 *          a pixi environment), or null to use the environment as built.
@@ -81,7 +87,7 @@ public class LazyEnvironment {
 		this.activate = activate;
 		// Note: Subscribe once, here, and dispatch to the current listeners,
 		// because builders accumulate subscribers with every call.
-		this.builder = builder.name(name) //
+		this.builder = builder //
 			.subscribeProgress((title, current, maximum) -> listeners.forEach(
 				l -> l.buildProgress(name, title, current, maximum))) //
 			.subscribeOutput(text -> listeners.forEach(l -> l.buildOutput(name,
